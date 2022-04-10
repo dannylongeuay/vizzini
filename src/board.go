@@ -6,13 +6,14 @@ import (
 	"strings"
 )
 
-type Piece int
+type Square int
 type Color int
 type File int
 type Rank int
+type Bits uint8
 
 const (
-	Empty Piece = iota
+	Invalid Square = iota
 	WhitePawn
 	WhiteKnight
 	WhiteBishop
@@ -25,6 +26,7 @@ const (
 	BlackRook
 	BlackQueen
 	BlackKing
+	Empty
 )
 
 const (
@@ -61,7 +63,7 @@ const BoardSquares int = 120
 
 const StartingFEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-var PiecesIndex64 = [64]int{
+var SquareIndexes64 = [64]int{
 	21, 22, 23, 24, 25, 26, 27, 28,
 	31, 32, 33, 34, 35, 36, 37, 38,
 	41, 42, 43, 44, 45, 46, 47, 48,
@@ -73,27 +75,30 @@ var PiecesIndex64 = [64]int{
 }
 
 type board struct {
-	pieces       []Piece
-	side         Color
+	squares      []Square
+	sideToMove   Color
 	fiftyMove    int
-	castleRights int
+	castleRights Bits
 }
 
 func newBoard(fen string) (*board, error) {
 	fenParts := strings.Split(fen, " ")
+
 	if len(fenParts) != 6 {
 		return nil, fmt.Errorf("FEN parts: %v != 6", len(fenParts))
 	}
+
 	b := board{}
-	b.pieces = make([]Piece, BoardSquares)
+	b.squares = make([]Square, BoardSquares)
+
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
 		return nil, fmt.Errorf("Ranks: %v != 8", len(ranks))
 	}
-	pieceIndex64 := 0
+	squareIndex64 := 0
 	for _, rank := range ranks {
 		for _, char := range []rune(rank) {
-			pieceIndex := PiecesIndex64[pieceIndex64]
+			squareIndex := SquareIndexes64[squareIndex64]
 			switch string(char) {
 			case "1":
 			case "2":
@@ -105,50 +110,81 @@ func newBoard(fen string) (*board, error) {
 			case "8":
 				break
 			case "P":
-				b.pieces[pieceIndex] = WhitePawn
+				b.squares[squareIndex] = WhitePawn
 				break
 			case "N":
-				b.pieces[pieceIndex] = WhiteKnight
+				b.squares[squareIndex] = WhiteKnight
 				break
 			case "B":
-				b.pieces[pieceIndex] = WhiteBishop
+				b.squares[squareIndex] = WhiteBishop
 				break
 			case "R":
-				b.pieces[pieceIndex] = WhiteRook
+				b.squares[squareIndex] = WhiteRook
 				break
 			case "Q":
-				b.pieces[pieceIndex] = WhiteQueen
+				b.squares[squareIndex] = WhiteQueen
 				break
 			case "K":
-				b.pieces[pieceIndex] = WhiteKing
+				b.squares[squareIndex] = WhiteKing
 				break
 			case "p":
-				b.pieces[pieceIndex] = BlackPawn
+				b.squares[squareIndex] = BlackPawn
 				break
 			case "n":
-				b.pieces[pieceIndex] = BlackKnight
+				b.squares[squareIndex] = BlackKnight
 				break
 			case "b":
-				b.pieces[pieceIndex] = BlackBishop
+				b.squares[squareIndex] = BlackBishop
 				break
 			case "r":
-				b.pieces[pieceIndex] = BlackRook
+				b.squares[squareIndex] = BlackRook
 				break
 			case "q":
-				b.pieces[pieceIndex] = BlackQueen
+				b.squares[squareIndex] = BlackQueen
 				break
 			case "k":
-				b.pieces[pieceIndex] = BlackKing
+				b.squares[squareIndex] = BlackKing
 				break
 			default:
-				return nil, fmt.Errorf("Invalid char in fen string: %v", string(char))
+				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
 			}
 			i, err := strconv.Atoi(string(char))
 			if err != nil {
-				pieceIndex64++
+				squareIndex64++
 			} else {
-				pieceIndex64 += i
+				squareIndex64 += i
 			}
+		}
+	}
+
+	sideToMove := fenParts[1]
+	if sideToMove == "w" {
+		b.sideToMove = White
+	} else if sideToMove == "b" {
+		b.sideToMove = Black
+	} else {
+		return nil, fmt.Errorf("Invalid side to move in fen string: %v", sideToMove)
+	}
+
+	castlingRights := fenParts[2]
+	for _, char := range []rune(castlingRights) {
+		switch string(char) {
+		case "-":
+			break
+		case "K":
+			b.castleRights |= 1 << 3
+			break
+		case "Q":
+			b.castleRights |= 1 << 2
+			break
+		case "k":
+			b.castleRights |= 1 << 1
+			break
+		case "q":
+			b.castleRights |= 1
+			break
+		default:
+			return nil, fmt.Errorf("Invalid castling rights in fen string: %v", string(char))
 		}
 	}
 	return &b, nil

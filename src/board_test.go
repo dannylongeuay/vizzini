@@ -4,18 +4,20 @@ import (
 	"testing"
 )
 
-type testBoardChecks struct {
-	file  File
-	rank  Rank
-	piece Piece
+type testSquareChecks struct {
+	file   File
+	rank   Rank
+	square Square
 }
 
 func TestNewBoard(t *testing.T) {
 	tests := []struct {
-		fen    string
-		checks []testBoardChecks
+		fen          string
+		sideToMove   Color
+		castleRights Bits
+		checks       []testSquareChecks
 	}{
-		{StartingFEN, []testBoardChecks{
+		{StartingFEN, White, 15, []testSquareChecks{
 			{FILE_A, RANK_8, BlackRook},
 			{FILE_B, RANK_8, BlackKnight},
 			{FILE_C, RANK_8, BlackBishop},
@@ -59,9 +61,17 @@ func TestNewBoard(t *testing.T) {
 		for _, check := range tt.checks {
 			square := squareByFileRank(check.file, check.rank)
 
-			if b.pieces[square] != check.piece {
-				t.Errorf("piece: %v != %v", b.pieces[square], check.piece)
+			if b.squares[square] != check.square {
+				t.Errorf("square: %v != %v", b.squares[square], check.square)
 			}
+		}
+
+		if b.sideToMove != tt.sideToMove {
+			t.Errorf("side: %v != %v", b.sideToMove, tt.sideToMove)
+		}
+
+		if b.castleRights != tt.castleRights {
+			t.Errorf("castling rights: %v != %v", b.castleRights, tt.castleRights)
 		}
 	}
 }
@@ -93,7 +103,7 @@ func TestSquareByIndex(t *testing.T) {
 	}
 	for _, tt := range tests {
 
-		actual := PiecesIndex64[tt.index]
+		actual := SquareIndexes64[tt.index]
 		if actual != tt.expected {
 			t.Errorf("square: %v != %v", actual, tt.expected)
 		}
