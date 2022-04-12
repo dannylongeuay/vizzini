@@ -79,6 +79,9 @@ type board struct {
 	sideToMove   Color
 	fiftyMove    int
 	castleRights Bits
+	epIndex      int
+	halfMove     int
+	fullMove     int
 }
 
 func newBoard(fen string) (*board, error) {
@@ -148,11 +151,15 @@ func newBoard(fen string) (*board, error) {
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
 			}
-			i, err := strconv.Atoi(string(char))
+			count, err := strconv.Atoi(string(char))
 			if err != nil {
 				squareIndex64++
 			} else {
-				squareIndex64 += i
+				for i := 0; i < count; i++ {
+					b.squares[squareIndex] = Empty
+					squareIndex64++
+					squareIndex = SquareIndexes64[squareIndex64]
+				}
 			}
 		}
 	}
@@ -187,9 +194,81 @@ func newBoard(fen string) (*board, error) {
 			return nil, fmt.Errorf("Invalid castling rights in fen string: %v", string(char))
 		}
 	}
+
+	b.epIndex = -1
+	if fenParts[3] != "-" {
+		var err error
+		b.epIndex, err = squareIndexByCoord(fenParts[3])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var err error
+	b.halfMove, err = strconv.Atoi(fenParts[4])
+	if err != nil {
+		return nil, err
+	}
+
+	b.fullMove, err = strconv.Atoi(fenParts[5])
+	if err != nil {
+		return nil, err
+	}
+
 	return &b, nil
 }
 
-func squareByFileRank(f File, r Rank) int {
+func squareIndexByCoord(s string) (int, error) {
+	var f File
+	var r Rank
+	coordParts := []rune(s)
+	if len(coordParts) != 2 {
+		return -1, fmt.Errorf("Invalid chess notation: %v", s)
+	}
+	switch strings.ToLower(string(coordParts[0])) {
+	case "a":
+		f = FILE_A
+	case "b":
+		f = FILE_B
+	case "c":
+		f = FILE_C
+	case "d":
+		f = FILE_D
+	case "e":
+		f = FILE_E
+	case "f":
+		f = FILE_F
+	case "g":
+		f = FILE_G
+	case "h":
+		f = FILE_H
+	default:
+		return -1, fmt.Errorf("Invalid chess file: %v", string(coordParts[0]))
+	}
+	switch string(coordParts[1]) {
+	case "1":
+		r = RANK_1
+	case "2":
+		r = RANK_2
+	case "3":
+		r = RANK_3
+	case "4":
+		r = RANK_4
+	case "5":
+		r = RANK_5
+	case "6":
+		r = RANK_6
+	case "7":
+		r = RANK_7
+	case "8":
+		r = RANK_8
+	default:
+		return -1, fmt.Errorf("Invalid chess rank: %v", string(coordParts[1]))
+
+	}
+	return squareIndexByFileRank(f, r), nil
+}
+
+func squareIndexByFileRank(f File, r Rank) int {
 	return (21 + int(f)) + int(r)*10
 }

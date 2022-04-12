@@ -15,9 +15,12 @@ func TestNewBoard(t *testing.T) {
 		fen          string
 		sideToMove   Color
 		castleRights Bits
+		epIndex      int
+		halfMove     int
+		fullMove     int
 		checks       []testSquareChecks
 	}{
-		{StartingFEN, White, 15, []testSquareChecks{
+		{StartingFEN, White, 15, -1, 0, 1, []testSquareChecks{
 			{FILE_A, RANK_8, BlackRook},
 			{FILE_B, RANK_8, BlackKnight},
 			{FILE_C, RANK_8, BlackBishop},
@@ -34,6 +37,8 @@ func TestNewBoard(t *testing.T) {
 			{FILE_F, RANK_7, BlackPawn},
 			{FILE_G, RANK_7, BlackPawn},
 			{FILE_H, RANK_7, BlackPawn},
+			{FILE_A, RANK_6, Empty},
+			{FILE_H, RANK_3, Empty},
 			{FILE_A, RANK_2, WhitePawn},
 			{FILE_B, RANK_2, WhitePawn},
 			{FILE_C, RANK_2, WhitePawn},
@@ -50,8 +55,31 @@ func TestNewBoard(t *testing.T) {
 			{FILE_F, RANK_1, WhiteBishop},
 			{FILE_G, RANK_1, WhiteKnight},
 			{FILE_H, RANK_1, WhiteRook},
+			{FILE_None, RANK_None, Invalid},
 		},
 		},
+		{"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+			Black, 15, 75, 0, 1, []testSquareChecks{
+				{FILE_E, RANK_4, WhitePawn},
+			}},
+		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
+			White, 15, 43, 0, 2, []testSquareChecks{
+				{FILE_C, RANK_5, BlackPawn},
+			}},
+		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+			Black, 15, -1, 1, 2, []testSquareChecks{
+				{FILE_F, RANK_3, WhiteKnight},
+			}},
+		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
+			White, 0, -1, 0, 1, []testSquareChecks{}},
+		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w q - 0 1",
+			White, 1, -1, 0, 1, []testSquareChecks{}},
+		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w k - 0 1",
+			White, 2, -1, 0, 1, []testSquareChecks{}},
+		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Q - 0 1",
+			White, 4, -1, 0, 1, []testSquareChecks{}},
+		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K - 0 1",
+			White, 8, -1, 0, 1, []testSquareChecks{}},
 	}
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)
@@ -59,10 +87,10 @@ func TestNewBoard(t *testing.T) {
 			t.Error(err)
 		}
 		for _, check := range tt.checks {
-			square := squareByFileRank(check.file, check.rank)
+			squareIndex := squareIndexByFileRank(check.file, check.rank)
 
-			if b.squares[square] != check.square {
-				t.Errorf("square: %v != %v", b.squares[square], check.square)
+			if b.squares[squareIndex] != check.square {
+				t.Errorf("square: %v != %v", b.squares[squareIndex], check.square)
 			}
 		}
 
@@ -73,10 +101,22 @@ func TestNewBoard(t *testing.T) {
 		if b.castleRights != tt.castleRights {
 			t.Errorf("castling rights: %v != %v", b.castleRights, tt.castleRights)
 		}
+
+		if b.epIndex != tt.epIndex {
+			t.Errorf("en passant index: %v != %v", b.epIndex, tt.epIndex)
+		}
+
+		if b.halfMove != tt.halfMove {
+			t.Errorf("half move clock: %v != %v", b.halfMove, tt.halfMove)
+		}
+
+		if b.fullMove != tt.fullMove {
+			t.Errorf("full move clock: %v != %v", b.fullMove, tt.fullMove)
+		}
 	}
 }
 
-func TestSquareByFileRank(t *testing.T) {
+func TestSquareIndexByFileRank(t *testing.T) {
 	tests := []struct {
 		file     File
 		rank     Rank
@@ -86,14 +126,14 @@ func TestSquareByFileRank(t *testing.T) {
 		{FILE_H, RANK_1, 98},
 	}
 	for _, tt := range tests {
-		actual := squareByFileRank(tt.file, tt.rank)
+		actual := squareIndexByFileRank(tt.file, tt.rank)
 		if actual != tt.expected {
 			t.Errorf("square: %v != %v", actual, tt.expected)
 		}
 	}
 }
 
-func TestSquareByIndex(t *testing.T) {
+func TestSquareByIndexes64(t *testing.T) {
 	tests := []struct {
 		index    int
 		expected int
