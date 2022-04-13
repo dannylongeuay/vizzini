@@ -220,11 +220,16 @@ func newBoard(fen string) (*board, error) {
 
 func (b board) toString() string {
 	s := ""
-	s += "\n_________________________\n"
+	sep := "\n_________________________\n"
+	s += sep
+	rank := 8
 	for i, index := range SquareIndexes64 {
 		square := b.squares[index]
 		if i != 0 && i%8 == 0 {
-			s += "|\n_________________________\n"
+			s += "| "
+			s += strconv.Itoa(rank)
+			rank--
+			s += sep
 		}
 		s += "|"
 		switch square {
@@ -267,10 +272,15 @@ func (b board) toString() string {
 		case BlackKing:
 			s += "♔"
 			break
+		default:
+			s += "♠"
+			break
 		}
 		s += " "
 	}
-	s += "|\n_________________________\n"
+	s += "| 1"
+	s += sep
+	s += " A  B  C  D  E  F  G  H"
 	return s
 }
 

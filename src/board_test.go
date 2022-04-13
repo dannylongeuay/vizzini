@@ -116,6 +116,36 @@ func TestNewBoard(t *testing.T) {
 	}
 }
 
+func TestBoardToString(t *testing.T) {
+	expected := `
+_________________________
+|♖ |♘ |♗ |♕ |♔ |♗ |♘ |♖ | 8
+_________________________
+|♙ |♙ |♙ |♙ |♙ |♙ |♙ |♙ | 7
+_________________________
+|  |  |  |  |  |  |  |  | 6
+_________________________
+|  |  |  |  |  |  |  |  | 5
+_________________________
+|  |  |  |  |  |  |  |  | 4
+_________________________
+|  |  |  |  |  |  |  |  | 3
+_________________________
+|♟ |♟ |♟ |♟ |♟ |♟ |♟ |♟ | 2
+_________________________
+|♜ |♞ |♝ |♛ |♚ |♝ |♞ |♜ | 1
+_________________________
+ A  B  C  D  E  F  G  H`
+
+	board, err := newBoard(StartingFEN)
+	if err != nil {
+		t.Error(err)
+	}
+	if board.toString() != expected {
+		t.Errorf("board to string: %v != %v", board.toString(), expected)
+	}
+}
+
 func TestSquareIndexByFileRank(t *testing.T) {
 	tests := []struct {
 		file     File
