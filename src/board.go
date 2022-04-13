@@ -218,6 +218,62 @@ func newBoard(fen string) (*board, error) {
 	return &b, nil
 }
 
+func (b board) toString() string {
+	s := ""
+	s += "\n_________________________\n"
+	for i, index := range SquareIndexes64 {
+		square := b.squares[index]
+		if i != 0 && i%8 == 0 {
+			s += "|\n_________________________\n"
+		}
+		s += "|"
+		switch square {
+		case Empty:
+			s += " "
+			break
+		case WhitePawn:
+			s += "♟"
+			break
+		case WhiteKnight:
+			s += "♞"
+			break
+		case WhiteBishop:
+			s += "♝"
+			break
+		case WhiteRook:
+			s += "♜"
+			break
+		case WhiteQueen:
+			s += "♛"
+			break
+		case WhiteKing:
+			s += "♚"
+			break
+		case BlackPawn:
+			s += "♙"
+			break
+		case BlackKnight:
+			s += "♘"
+			break
+		case BlackBishop:
+			s += "♗"
+			break
+		case BlackRook:
+			s += "♖"
+			break
+		case BlackQueen:
+			s += "♕"
+			break
+		case BlackKing:
+			s += "♔"
+			break
+		}
+		s += " "
+	}
+	s += "|\n_________________________\n"
+	return s
+}
+
 func squareIndexByCoord(s string) (int, error) {
 	var f File
 	var r Rank
