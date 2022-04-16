@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 func main() {
-	board, err := newBoard(StartingFEN)
+	board, err := newBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
 	}
