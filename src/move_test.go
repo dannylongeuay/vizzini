@@ -264,3 +264,63 @@ func TestGenerateKnightMoves(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateBishopMoves(t *testing.T) {
+	tests := []struct {
+		fen         string
+		color       Color
+		squareCoord SquareCoord
+		movesLength int
+		moves       []testMove
+	}{
+		{STARTING_FEN, WHITE, "f1", 0,
+			[]testMove{},
+		},
+		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", WHITE, "f1", 5,
+			[]testMove{
+				{"f1", "e2", QUIET},
+				{"f1", "d3", QUIET},
+				{"f1", "c4", QUIET},
+				{"f1", "b5", QUIET},
+				{"f1", "a6", QUIET},
+			},
+		},
+		{"rnbqkbnr/pp1pp1pp/5p2/2p5/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 0 3", WHITE, "c4", 10,
+			[]testMove{
+				{"c4", "b3", QUIET},
+				{"c4", "b5", QUIET},
+				{"c4", "a6", QUIET},
+				{"c4", "d3", QUIET},
+				{"c4", "e2", QUIET},
+				{"c4", "f1", QUIET},
+				{"c4", "d5", QUIET},
+				{"c4", "e6", QUIET},
+				{"c4", "f7", QUIET},
+				{"c4", "g8", CAPTURE},
+			},
+		},
+	}
+	for _, tt := range tests {
+		b, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
+		}
+		squareIndex, err := squareIndexByCoord(tt.squareCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		moves := b.generateBishopMoves(tt.color, squareIndex)
+		if len(moves) != tt.movesLength {
+			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
+		}
+		for _, testMove := range tt.moves {
+			contains, err := containsTestMove(moves, testMove)
+			if err != nil {
+				t.Error(err)
+			}
+			if !contains {
+				t.Errorf("unable to find move %v in %v", testMove, moves)
+			}
+		}
+	}
+}

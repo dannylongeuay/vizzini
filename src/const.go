@@ -1,13 +1,25 @@
 package main
 
 const STARTING_FEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 const BOARD_SQUARES int = 120
+const BOARD_WIDTH_HEIGHT int = 8
+
 const VERTICAL_MOVE_DIST int = 10
 const HORIZONTAL_MOVE_DIST int = 1
+
 const UP int = -1
 const LEFT int = -1
 const DOWN int = 1
 const RIGHT int = 1
+
+const MAX_GENERATED_MOVES int = 512
+const MAX_PAWN_MOVES int = 12
+const MAX_KNIGHT_MOVES int = 8
+const MAX_BISHOP_MOVES int = 13
+const MAX_ROOK_MOVES int = 14
+const MAX_QUEEN_MOVES int = 27
+const MAX_KING_MOVES int = 8
 
 const (
 	INVALID Square = iota
