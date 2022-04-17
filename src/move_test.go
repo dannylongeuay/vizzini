@@ -325,7 +325,179 @@ func TestGenerateBishopMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateBishopMoves(tt.color, squareIndex)
+		moves := b.generateSlidingMoves(tt.color, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
+		if len(moves) != tt.movesLength {
+			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
+		}
+		for _, testMove := range tt.moves {
+			contains, err := containsTestMove(moves, testMove)
+			if err != nil {
+				t.Error(err)
+			}
+			if !contains {
+				t.Errorf("unable to find move %v in %v", testMove, moves)
+			}
+		}
+	}
+}
+
+func TestGenerateRookMoves(t *testing.T) {
+	tests := []struct {
+		fen         string
+		color       Color
+		squareCoord SquareCoord
+		movesLength int
+		moves       []testMove
+	}{
+		{STARTING_FEN, WHITE, "a1", 0,
+			[]testMove{},
+		},
+		{"rnbqkbnr/2pppppp/8/8/8/R7/1PPPPPPP/1NBQKBNR w Kk - 2 5", WHITE, "a3", MAX_ROOK_MOVES,
+			[]testMove{
+				{"a3", "a1", QUIET},
+				{"a3", "a2", QUIET},
+				{"a3", "a4", QUIET},
+				{"a3", "a5", QUIET},
+				{"a3", "a6", QUIET},
+				{"a3", "a7", QUIET},
+				{"a3", "a8", CAPTURE},
+				{"a3", "b3", QUIET},
+				{"a3", "c3", QUIET},
+				{"a3", "d3", QUIET},
+				{"a3", "e3", QUIET},
+				{"a3", "f3", QUIET},
+				{"a3", "g3", QUIET},
+				{"a3", "h3", QUIET},
+			},
+		},
+	}
+	for _, tt := range tests {
+		b, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
+		}
+		squareIndex, err := squareIndexByCoord(tt.squareCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		moves := b.generateSlidingMoves(tt.color, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+		if len(moves) != tt.movesLength {
+			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
+		}
+		for _, testMove := range tt.moves {
+			contains, err := containsTestMove(moves, testMove)
+			if err != nil {
+				t.Error(err)
+			}
+			if !contains {
+				t.Errorf("unable to find move %v in %v", testMove, moves)
+			}
+		}
+	}
+}
+
+func TestGenerateQueenMoves(t *testing.T) {
+	tests := []struct {
+		fen         string
+		color       Color
+		squareCoord SquareCoord
+		movesLength int
+		moves       []testMove
+	}{
+		{STARTING_FEN, WHITE, "d1", 0,
+			[]testMove{},
+		},
+		{"r2qk1r1/p1p3pp/np3p1n/3Q4/6bP/P5P1/1PP1PP1R/RNB1KBN1 w Qq - 1 10", WHITE, "d5", MAX_QUEEN_MOVES,
+			[]testMove{
+				{"d5", "c6", QUIET},
+				{"d5", "b7", QUIET},
+				{"d5", "a8", CAPTURE},
+				{"d5", "e6", QUIET},
+				{"d5", "f7", QUIET},
+				{"d5", "g8", CAPTURE},
+				{"d5", "c4", QUIET},
+				{"d5", "b3", QUIET},
+				{"d5", "a2", QUIET},
+				{"d5", "e4", QUIET},
+				{"d5", "f3", QUIET},
+				{"d5", "g2", QUIET},
+				{"d5", "h1", QUIET},
+				{"d5", "d1", QUIET},
+				{"d5", "d2", QUIET},
+				{"d5", "d3", QUIET},
+				{"d5", "d4", QUIET},
+				{"d5", "d6", QUIET},
+				{"d5", "d7", QUIET},
+				{"d5", "d8", CAPTURE},
+				{"d5", "a5", QUIET},
+				{"d5", "b5", QUIET},
+				{"d5", "c5", QUIET},
+				{"d5", "e5", QUIET},
+				{"d5", "f5", QUIET},
+				{"d5", "g5", QUIET},
+				{"d5", "h5", QUIET},
+			},
+		},
+	}
+	for _, tt := range tests {
+		b, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
+		}
+		squareIndex, err := squareIndexByCoord(tt.squareCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		moves := b.generateSlidingMoves(tt.color, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_QUEEN_MOVES, MAX_MOVE_RANGE)
+		if len(moves) != tt.movesLength {
+			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
+		}
+		for _, testMove := range tt.moves {
+			contains, err := containsTestMove(moves, testMove)
+			if err != nil {
+				t.Error(err)
+			}
+			if !contains {
+				t.Errorf("unable to find move %v in %v", testMove, moves)
+			}
+		}
+	}
+}
+
+func TestGenerateKingMoves(t *testing.T) {
+	tests := []struct {
+		fen         string
+		color       Color
+		squareCoord SquareCoord
+		movesLength int
+		moves       []testMove
+	}{
+		{STARTING_FEN, WHITE, "e1", 0,
+			[]testMove{},
+		},
+		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", MAX_KING_MOVES,
+			[]testMove{
+				{"e4", "d3", QUIET},
+				{"e4", "d4", QUIET},
+				{"e4", "d5", QUIET},
+				{"e4", "e3", QUIET},
+				{"e4", "e5", CAPTURE},
+				{"e4", "f3", QUIET},
+				{"e4", "f4", QUIET},
+				{"e4", "f5", QUIET},
+			},
+		},
+	}
+	for _, tt := range tests {
+		b, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
+		}
+		squareIndex, err := squareIndexByCoord(tt.squareCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		moves := b.generateSlidingMoves(tt.color, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}

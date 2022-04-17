@@ -3,15 +3,16 @@ package main
 const STARTING_FEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 const BOARD_SQUARES int = 120
-const BOARD_WIDTH_HEIGHT int = 8
+const MAX_MOVE_RANGE int = 8
+const KING_MOVE_RANGE int = 2
 
 const VERTICAL_MOVE_DIST int = 10
 const HORIZONTAL_MOVE_DIST int = 1
+const POS_DIAG_MOVE_DIST int = 9
+const NEG_DIAG_MOVE_DIST int = 11
 
-const UP int = -1
-const LEFT int = -1
-const DOWN int = 1
-const RIGHT int = 1
+const POSITIVE_DIR int = 1
+const NEGATIVE_DIR int = -1
 
 const MAX_GENERATED_MOVES int = 512
 const MAX_PAWN_MOVES int = 12

@@ -6,10 +6,16 @@ type move struct {
 	kind   MoveKind
 }
 
-var DIAGONAL_DISTS = [2]int{9, 11}
-var KNIGHT_MOVES_DIST = [4]int{8, 12, 19, 21}
-var VERTICAL_DIRECTIONS = [2]int{UP, DOWN}
-var HORIZONTAL_DIRECTIONS = [2]int{LEFT, RIGHT}
+var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
+var KNIGHT_MOVE_DISTS = []int{8, 12, 19, 21}
+var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
+var CARD_DIAG_MOVE_DISTS = []int{
+	HORIZONTAL_MOVE_DIST,
+	VERTICAL_MOVE_DIST,
+	POS_DIAG_MOVE_DIST,
+	NEG_DIAG_MOVE_DIST,
+}
+var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
 
 func (b board) generateMoves(side Color) []move {
 	moves := make([]move, 0, MAX_GENERATED_MOVES)
@@ -30,20 +36,27 @@ func (b board) generateMoves(side Color) []move {
 		case WHITE_BISHOP:
 			fallthrough
 		case BLACK_BISHOP:
-			bishopMoves := b.generateBishopMoves(side, squareIndex)
+			bishopMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
 			moves = append(moves, bishopMoves...)
 			break
 		case WHITE_ROOK:
 			fallthrough
 		case BLACK_ROOK:
+			rookMoves := b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+			moves = append(moves, rookMoves...)
 			break
 		case WHITE_QUEEN:
 			fallthrough
 		case BLACK_QUEEN:
+			queenMoves := b.generateSlidingMoves(side, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_QUEEN_MOVES, MAX_MOVE_RANGE)
+			moves = append(moves, queenMoves...)
 			break
 		case WHITE_KING:
 			fallthrough
 		case BLACK_KING:
+			// TODO: add castling moves
+			kingMoves := b.generateSlidingMoves(side, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
+			moves = append(moves, kingMoves...)
 			break
 		}
 	}
@@ -52,13 +65,13 @@ func (b board) generateMoves(side Color) []move {
 
 func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 	moves := make([]move, 0, MAX_PAWN_MOVES)
-	dir := DOWN
+	dir := POSITIVE_DIR
 	rank := rankBySquareIndex(squareIndex)
 	doublePushRank := RANK_SEVEN
 	promotionRank := RANK_TWO
 
 	if side == WHITE {
-		dir = UP
+		dir = NEGATIVE_DIR
 		doublePushRank = RANK_TWO
 		promotionRank = RANK_SEVEN
 	}
@@ -99,7 +112,7 @@ func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 	}
 
 	// Handle captures
-	for _, moveDist := range DIAGONAL_DISTS {
+	for _, moveDist := range DIAGONAL_MOVE_DISTS {
 		targetIndex := SquareIndex(moveDist*dir) + squareIndex
 		if b.colorBySquareIndex(targetIndex) == side^1 {
 			moveKinds := []MoveKind{CAPTURE}
@@ -133,8 +146,8 @@ func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 
 func (b board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
 	moves := make([]move, 0, MAX_KNIGHT_MOVES)
-	for _, dir := range VERTICAL_DIRECTIONS {
-		for _, moveDist := range KNIGHT_MOVES_DIST {
+	for _, dir := range MOVE_DIRECTIONS {
+		for _, moveDist := range KNIGHT_MOVE_DISTS {
 			targetIndex := SquareIndex(moveDist*dir) + squareIndex
 			if b.squares[targetIndex] == EMPTY {
 				move := move{
@@ -157,11 +170,11 @@ func (b board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
 	return moves
 }
 
-func (b board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, MAX_BISHOP_MOVES)
-	for _, dir := range VERTICAL_DIRECTIONS {
-		for _, moveDist := range DIAGONAL_DISTS {
-			for i := 1; i < BOARD_WIDTH_HEIGHT; i++ {
+func (b board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDists []int, maxMoves int, moveRange int) []move {
+	moves := make([]move, 0, maxMoves)
+	for _, dir := range MOVE_DIRECTIONS {
+		for _, moveDist := range moveDists {
+			for i := 1; i < moveRange; i++ {
 				targetIndex := SquareIndex(moveDist*dir*i) + squareIndex
 				targetSquare := b.squares[targetIndex]
 				if targetSquare == INVALID {
@@ -188,10 +201,5 @@ func (b board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
 			}
 		}
 	}
-	return moves
-}
-
-func (b board) generateRookMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, MAX_ROOK_MOVES)
 	return moves
 }
