@@ -329,7 +329,7 @@ func TestGenerateBishopMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateSlidingMoves(tt.color, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
+		moves := b.generateBishopMoves(tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -384,7 +384,7 @@ func TestGenerateRookMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateSlidingMoves(tt.color, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+		moves := b.generateRookMoves(tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -452,7 +452,7 @@ func TestGenerateQueenMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateSlidingMoves(tt.color, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_QUEEN_MOVES, MAX_MOVE_RANGE)
+		moves := b.generateQueenMoves(tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -504,7 +504,7 @@ func TestGenerateKingMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateKingMoves(tt.color, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
+		moves := b.generateKingMoves(tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}

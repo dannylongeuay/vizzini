@@ -12,12 +12,6 @@ var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
 
 var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
 var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
-var CARD_DIAG_MOVE_DISTS = []int{
-	HORIZONTAL_MOVE_DIST,
-	VERTICAL_MOVE_DIST,
-	POS_DIAG_MOVE_DIST,
-	NEG_DIAG_MOVE_DIST,
-}
 
 func (b board) generateMoves(side Color) []move {
 	moves := make([]move, 0, MAX_GENERATED_MOVES)
@@ -38,25 +32,25 @@ func (b board) generateMoves(side Color) []move {
 		case WHITE_BISHOP:
 			fallthrough
 		case BLACK_BISHOP:
-			bishopMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
+			bishopMoves := b.generateBishopMoves(side, squareIndex)
 			moves = append(moves, bishopMoves...)
 			break
 		case WHITE_ROOK:
 			fallthrough
 		case BLACK_ROOK:
-			rookMoves := b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+			rookMoves := b.generateRookMoves(side, squareIndex)
 			moves = append(moves, rookMoves...)
 			break
 		case WHITE_QUEEN:
 			fallthrough
 		case BLACK_QUEEN:
-			queenMoves := b.generateSlidingMoves(side, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_QUEEN_MOVES, MAX_MOVE_RANGE)
+			queenMoves := b.generateQueenMoves(side, squareIndex)
 			moves = append(moves, queenMoves...)
 			break
 		case WHITE_KING:
 			fallthrough
 		case BLACK_KING:
-			kingMoves := b.generateKingMoves(side, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
+			kingMoves := b.generateKingMoves(side, squareIndex)
 			moves = append(moves, kingMoves...)
 			break
 		}
@@ -204,11 +198,29 @@ func (b board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDis
 	}
 	return moves
 }
+func (b board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
+	return b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
+}
 
-func (b board) generateKingMoves(side Color, squareIndex SquareIndex, moveDists []int, maxMoves int, moveRange int) []move {
-	moves := make([]move, 0, maxMoves)
-	normalMoves := b.generateSlidingMoves(side, squareIndex, moveDists, maxMoves, moveRange)
-	moves = append(moves, normalMoves...)
+func (b board) generateRookMoves(side Color, squareIndex SquareIndex) []move {
+	return b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+}
+
+func (b board) generateQueenMoves(side Color, squareIndex SquareIndex) []move {
+	moves := make([]move, 0, MAX_QUEEN_MOVES)
+	diagonalMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
+	moves = append(moves, diagonalMoves...)
+	cardinalMoves := b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+	moves = append(moves, cardinalMoves...)
+	return moves
+}
+
+func (b board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
+	moves := make([]move, 0, MAX_KING_MOVES)
+	diagonalMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_KING_MOVES/2, KING_MOVE_RANGE)
+	moves = append(moves, diagonalMoves...)
+	cardinalMoves := b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_KING_MOVES/2, KING_MOVE_RANGE)
+	moves = append(moves, cardinalMoves...)
 	kingsideCastleAvail := false
 	queensideCastleAvail := false
 	if side == WHITE {

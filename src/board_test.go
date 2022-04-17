@@ -387,9 +387,8 @@ func TestSquareAttackers(t *testing.T) {
 		},
 		{"k7/8/2N1NQ2/1NBK1N2/1R1n2R1/1N1QPN2/2N1NP2/B7 b - - 0 1", BLACK, "d4", MAX_SQUARE_ATTACKERS,
 			[]SquareCoord{
-				"a1", "b3", "b4", "b5", "c2", "c5", "c6",
-				"d3", "d5", "e2", "e3", "e6", "f3", "f5",
-				"f6", "g4",
+				"a1", "b3", "b4", "b5", "c2", "c5", "c6", "d3",
+				"d5", "e2", "e3", "e6", "f3", "f5", "f6", "g4",
 			},
 		},
 	}
