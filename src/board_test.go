@@ -13,7 +13,7 @@ type testSquareChecks struct {
 type testPieceChecks struct {
 	color              Color
 	pieceIndexesLength int
-	pieceIndexes       []SquareIndex
+	pieceCoords        []SquareCoord
 }
 
 func containsPieceIndex(indexes []SquareIndex, testIndex SquareIndex) bool {
@@ -75,13 +75,13 @@ func TestNewBoard(t *testing.T) {
 				{FILE_NONE, RANK_NONE, INVALID},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareIndex{
-					81, 82, 83, 84, 85, 86, 87, 88,
-					91, 92, 93, 94, 95, 96, 97, 98,
+				{WHITE, 16, []SquareCoord{
+					"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+					"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 				}},
-				{BLACK, 16, []SquareIndex{
-					21, 22, 23, 24, 25, 26, 27, 28,
-					31, 32, 33, 34, 35, 36, 37, 38,
+				{BLACK, 16, []SquareCoord{
+					"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+					"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
 				}},
 			},
 		},
@@ -91,8 +91,8 @@ func TestNewBoard(t *testing.T) {
 				{FILE_E, RANK_FOUR, WHITE_PAWN},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareIndex{
-					65,
+				{WHITE, 16, []SquareCoord{
+					"e4",
 				}},
 			},
 		},
@@ -102,8 +102,8 @@ func TestNewBoard(t *testing.T) {
 				{FILE_C, RANK_FIVE, BLACK_PAWN},
 			},
 			[]testPieceChecks{
-				{BLACK, 16, []SquareIndex{
-					34,
+				{BLACK, 16, []SquareCoord{
+					"c5",
 				}},
 			},
 		},
@@ -113,8 +113,8 @@ func TestNewBoard(t *testing.T) {
 				{FILE_F, RANK_THREE, WHITE_KNIGHT},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareIndex{
-					65, 76,
+				{WHITE, 16, []SquareCoord{
+					"e4", "f3",
 				}},
 			},
 		},
@@ -140,11 +140,11 @@ func TestNewBoard(t *testing.T) {
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE, 15, []SquareIndex{
-					28, 74, 76,
+				{WHITE, 15, []SquareCoord{
+					"h8", "d3", "f3",
 				}},
-				{BLACK, 13, []SquareIndex{
-					45, 46, 82,
+				{BLACK, 13, []SquareCoord{
+					"e6", "f6", "b2",
 				}},
 			},
 		},
@@ -155,11 +155,11 @@ func TestNewBoard(t *testing.T) {
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE, 14, []SquareIndex{
-					28, 74, 76,
+				{WHITE, 14, []SquareCoord{
+					"h8", "d3", "f3",
 				}},
-				{BLACK, 13, []SquareIndex{
-					45, 46, 91,
+				{BLACK, 13, []SquareCoord{
+					"e6", "f6", "a1",
 				}},
 			},
 		},
@@ -180,7 +180,11 @@ func TestNewBoard(t *testing.T) {
 			if len(b.pieceIndexes[check.color]) != check.pieceIndexesLength {
 				t.Errorf("piece indexes length: %v != %v", len(b.pieceIndexes[check.color]), check.pieceIndexesLength)
 			}
-			for _, pieceIndex := range check.pieceIndexes {
+			for _, pieceCoord := range check.pieceCoords {
+				pieceIndex, err := squareIndexByCoord(pieceCoord)
+				if err != nil {
+					t.Error(err)
+				}
 				if !containsPieceIndex(b.pieceIndexes[check.color], pieceIndex) {
 					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceIndexes[check.color])
 

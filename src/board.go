@@ -155,7 +155,7 @@ func newBoard(fen string) (*board, error) {
 
 	if fenParts[3] != "-" {
 		var err error
-		b.epIndex, err = squareIndexByCoord(fenParts[3])
+		b.epIndex, err = squareIndexByCoord(SquareCoord(fenParts[3]))
 		if err != nil {
 			return nil, err
 		}
@@ -272,7 +272,7 @@ func (b board) toString() string {
 	return s
 }
 
-func squareIndexByCoord(s string) (SquareIndex, error) {
+func squareIndexByCoord(s SquareCoord) (SquareIndex, error) {
 	var f File
 	var r Rank
 	coordParts := []rune(s)
