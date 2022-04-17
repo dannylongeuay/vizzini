@@ -6,64 +6,7 @@ import (
 	"strings"
 )
 
-type Square int
-type Color int
-type File int
-type Rank int
-type Bits uint8
-
-const (
-	Invalid Square = iota
-	WhitePawn
-	WhiteKnight
-	WhiteBishop
-	WhiteRook
-	WhiteQueen
-	WhiteKing
-	BlackPawn
-	BlackKnight
-	BlackBishop
-	BlackRook
-	BlackQueen
-	BlackKing
-	Empty
-)
-
-const (
-	White Color = iota
-	Black
-	Both
-)
-
-const (
-	FILE_A File = iota
-	FILE_B
-	FILE_C
-	FILE_D
-	FILE_E
-	FILE_F
-	FILE_G
-	FILE_H
-	FILE_None
-)
-
-const (
-	RANK_8 Rank = iota
-	RANK_7
-	RANK_6
-	RANK_5
-	RANK_4
-	RANK_3
-	RANK_2
-	RANK_1
-	RANK_None
-)
-
-const BoardSquares int = 120
-
-const StartingFEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-
-var SquareIndexes64 = [64]int{
+var SquareIndexes64 = [64]SquareIndex{
 	21, 22, 23, 24, 25, 26, 27, 28,
 	31, 32, 33, 34, 35, 36, 37, 38,
 	41, 42, 43, 44, 45, 46, 47, 48,
@@ -76,10 +19,17 @@ var SquareIndexes64 = [64]int{
 
 type board struct {
 	squares      []Square
+	pieceIndexes [][]SquareIndex // pieces[color] = [...]
 	sideToMove   Color
 	fiftyMove    int
-	castleRights Bits
-	epIndex      int
+	/*
+		0000 0001 = Black king can castle queenside
+		0000 0010 = Black king can castle kingside
+		0000 0100 = White king can castle queenside
+		0000 1000 = White king can castle kingside
+	*/
+	castleRights CastleRights
+	epIndex      SquareIndex
 	halfMove     int
 	fullMove     int
 }
@@ -92,7 +42,10 @@ func newBoard(fen string) (*board, error) {
 	}
 
 	b := board{}
-	b.squares = make([]Square, BoardSquares)
+	b.squares = make([]Square, BOARD_SQUARES)
+	b.pieceIndexes = make([][]SquareIndex, 2)
+	b.pieceIndexes[WHITE] = make([]SquareIndex, 0, 16)
+	b.pieceIndexes[BLACK] = make([]SquareIndex, 0, 16)
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
@@ -113,52 +66,57 @@ func newBoard(fen string) (*board, error) {
 			case "8":
 				break
 			case "P":
-				b.squares[squareIndex] = WhitePawn
+				b.squares[squareIndex] = WHITE_PAWN
 				break
 			case "N":
-				b.squares[squareIndex] = WhiteKnight
+				b.squares[squareIndex] = WHITE_KNIGHT
 				break
 			case "B":
-				b.squares[squareIndex] = WhiteBishop
+				b.squares[squareIndex] = WHITE_BISHOP
 				break
 			case "R":
-				b.squares[squareIndex] = WhiteRook
+				b.squares[squareIndex] = WHITE_ROOK
 				break
 			case "Q":
-				b.squares[squareIndex] = WhiteQueen
+				b.squares[squareIndex] = WHITE_QUEEN
 				break
 			case "K":
-				b.squares[squareIndex] = WhiteKing
+				b.squares[squareIndex] = WHITE_KING
 				break
 			case "p":
-				b.squares[squareIndex] = BlackPawn
+				b.squares[squareIndex] = BLACK_PAWN
 				break
 			case "n":
-				b.squares[squareIndex] = BlackKnight
+				b.squares[squareIndex] = BLACK_KNIGHT
 				break
 			case "b":
-				b.squares[squareIndex] = BlackBishop
+				b.squares[squareIndex] = BLACK_BISHOP
 				break
 			case "r":
-				b.squares[squareIndex] = BlackRook
+				b.squares[squareIndex] = BLACK_ROOK
 				break
 			case "q":
-				b.squares[squareIndex] = BlackQueen
+				b.squares[squareIndex] = BLACK_QUEEN
 				break
 			case "k":
-				b.squares[squareIndex] = BlackKing
+				b.squares[squareIndex] = BLACK_KING
 				break
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
 			}
 			count, err := strconv.Atoi(string(char))
 			if err != nil {
+				color := WHITE
+				if b.squares[squareIndex] > 6 {
+					color = BLACK
+				}
+				b.pieceIndexes[color] = append(b.pieceIndexes[color], squareIndex)
 				squareIndex64++
 			} else {
 				for i := 0; i < count; i++ {
-					b.squares[squareIndex] = Empty
+					emptySquareIndex := SquareIndexes64[squareIndex64]
+					b.squares[emptySquareIndex] = EMPTY
 					squareIndex64++
-					squareIndex = SquareIndexes64[squareIndex64]
 				}
 			}
 		}
@@ -166,9 +124,9 @@ func newBoard(fen string) (*board, error) {
 
 	sideToMove := fenParts[1]
 	if sideToMove == "w" {
-		b.sideToMove = White
+		b.sideToMove = WHITE
 	} else if sideToMove == "b" {
-		b.sideToMove = Black
+		b.sideToMove = BLACK
 	} else {
 		return nil, fmt.Errorf("Invalid side to move in fen string: %v", sideToMove)
 	}
@@ -195,10 +153,9 @@ func newBoard(fen string) (*board, error) {
 		}
 	}
 
-	b.epIndex = -1
 	if fenParts[3] != "-" {
 		var err error
-		b.epIndex, err = squareIndexByCoord(fenParts[3])
+		b.epIndex, err = squareIndexByCoord(SquareCoord(fenParts[3]))
 		if err != nil {
 			return nil, err
 		}
@@ -218,6 +175,37 @@ func newBoard(fen string) (*board, error) {
 	return &b, nil
 }
 
+func (b board) colorBySquareIndex(s SquareIndex) Color {
+	c := COLOR_NONE
+	switch b.squares[s] {
+	case WHITE_PAWN:
+		fallthrough
+	case WHITE_KNIGHT:
+		fallthrough
+	case WHITE_BISHOP:
+		fallthrough
+	case WHITE_ROOK:
+		fallthrough
+	case WHITE_QUEEN:
+		fallthrough
+	case WHITE_KING:
+		return WHITE
+	case BLACK_PAWN:
+		fallthrough
+	case BLACK_KNIGHT:
+		fallthrough
+	case BLACK_BISHOP:
+		fallthrough
+	case BLACK_ROOK:
+		fallthrough
+	case BLACK_QUEEN:
+		fallthrough
+	case BLACK_KING:
+		return BLACK
+	}
+	return c
+}
+
 func (b board) toString() string {
 	s := ""
 	sep := "\n_________________________\n"
@@ -233,43 +221,43 @@ func (b board) toString() string {
 		}
 		s += "|"
 		switch square {
-		case Empty:
+		case EMPTY:
 			s += " "
 			break
-		case WhitePawn:
+		case WHITE_PAWN:
 			s += "♟"
 			break
-		case WhiteKnight:
+		case WHITE_KNIGHT:
 			s += "♞"
 			break
-		case WhiteBishop:
+		case WHITE_BISHOP:
 			s += "♝"
 			break
-		case WhiteRook:
+		case WHITE_ROOK:
 			s += "♜"
 			break
-		case WhiteQueen:
+		case WHITE_QUEEN:
 			s += "♛"
 			break
-		case WhiteKing:
+		case WHITE_KING:
 			s += "♚"
 			break
-		case BlackPawn:
+		case BLACK_PAWN:
 			s += "♙"
 			break
-		case BlackKnight:
+		case BLACK_KNIGHT:
 			s += "♘"
 			break
-		case BlackBishop:
+		case BLACK_BISHOP:
 			s += "♗"
 			break
-		case BlackRook:
+		case BLACK_ROOK:
 			s += "♖"
 			break
-		case BlackQueen:
+		case BLACK_QUEEN:
 			s += "♕"
 			break
-		case BlackKing:
+		case BLACK_KING:
 			s += "♔"
 			break
 		default:
@@ -284,12 +272,12 @@ func (b board) toString() string {
 	return s
 }
 
-func squareIndexByCoord(s string) (int, error) {
+func squareIndexByCoord(s SquareCoord) (SquareIndex, error) {
 	var f File
 	var r Rank
 	coordParts := []rune(s)
 	if len(coordParts) != 2 {
-		return -1, fmt.Errorf("Invalid chess notation: %v", s)
+		return 0, fmt.Errorf("Invalid chess notation: %v", s)
 	}
 	switch strings.ToLower(string(coordParts[0])) {
 	case "a":
@@ -309,32 +297,78 @@ func squareIndexByCoord(s string) (int, error) {
 	case "h":
 		f = FILE_H
 	default:
-		return -1, fmt.Errorf("Invalid chess file: %v", string(coordParts[0]))
+		return 0, fmt.Errorf("Invalid chess file: %v", string(coordParts[0]))
 	}
 	switch string(coordParts[1]) {
 	case "1":
-		r = RANK_1
+		r = RANK_ONE
 	case "2":
-		r = RANK_2
+		r = RANK_TWO
 	case "3":
-		r = RANK_3
+		r = RANK_THREE
 	case "4":
-		r = RANK_4
+		r = RANK_FOUR
 	case "5":
-		r = RANK_5
+		r = RANK_FIVE
 	case "6":
-		r = RANK_6
+		r = RANK_SIX
 	case "7":
-		r = RANK_7
+		r = RANK_SEVEN
 	case "8":
-		r = RANK_8
+		r = RANK_EIGHT
 	default:
-		return -1, fmt.Errorf("Invalid chess rank: %v", string(coordParts[1]))
+		return 0, fmt.Errorf("Invalid chess rank: %v", string(coordParts[1]))
 
 	}
 	return squareIndexByFileRank(f, r), nil
 }
 
-func squareIndexByFileRank(f File, r Rank) int {
-	return (21 + int(f)) + int(r)*10
+func squareIndexByFileRank(f File, r Rank) SquareIndex {
+	return (21 + SquareIndex(f)) + SquareIndex(r)*10
+}
+
+func rankBySquareIndex(s SquareIndex) Rank {
+	r := RANK_NONE
+	switch (s / 10) % 10 {
+	case 2:
+		return RANK_EIGHT
+	case 3:
+		return RANK_SEVEN
+	case 4:
+		return RANK_SIX
+	case 5:
+		return RANK_FIVE
+	case 6:
+		return RANK_FOUR
+	case 7:
+		return RANK_THREE
+	case 8:
+		return RANK_TWO
+	case 9:
+		return RANK_ONE
+	}
+	return r
+}
+
+func fileBySquareIndex(s SquareIndex) File {
+	f := FILE_NONE
+	switch s % 10 {
+	case 1:
+		return FILE_A
+	case 2:
+		return FILE_B
+	case 3:
+		return FILE_C
+	case 4:
+		return FILE_D
+	case 5:
+		return FILE_E
+	case 6:
+		return FILE_F
+	case 7:
+		return FILE_G
+	case 8:
+		return FILE_H
+	}
+	return f
 }
