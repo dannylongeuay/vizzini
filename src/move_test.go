@@ -39,7 +39,7 @@ func TestGenerateMoves(t *testing.T) {
 		movesLength int
 		moves       []testMove
 	}{
-		{STARTING_FEN, WHITE, 20,
+		{STARTING_FEN, WHITE, 22,
 			[]testMove{
 				{"a2", "a3", QUIET},
 				{"b2", "b3", QUIET},
@@ -61,9 +61,11 @@ func TestGenerateMoves(t *testing.T) {
 				{"g1", "h3", QUIET},
 				{"b1", "a3", QUIET},
 				{"b1", "c3", QUIET},
+				{"e1", "g1", KING_CASTLE},
+				{"e1", "c1", QUEEN_CASTLE},
 			},
 		},
-		{STARTING_FEN, BLACK, 20,
+		{STARTING_FEN, BLACK, 22,
 			[]testMove{
 				{"a7", "a6", QUIET},
 				{"b7", "b6", QUIET},
@@ -85,6 +87,8 @@ func TestGenerateMoves(t *testing.T) {
 				{"g8", "h6", QUIET},
 				{"b8", "a6", QUIET},
 				{"b8", "c6", QUIET},
+				{"e8", "g8", KING_CASTLE},
+				{"e8", "c8", QUEEN_CASTLE},
 			},
 		},
 	}
@@ -472,8 +476,11 @@ func TestGenerateKingMoves(t *testing.T) {
 		movesLength int
 		moves       []testMove
 	}{
-		{STARTING_FEN, WHITE, "e1", 0,
-			[]testMove{},
+		{STARTING_FEN, WHITE, "e1", 2,
+			[]testMove{
+				{"e1", "g1", KING_CASTLE},
+				{"e1", "c1", QUEEN_CASTLE},
+			},
 		},
 		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", MAX_KING_MOVES,
 			[]testMove{
@@ -497,7 +504,7 @@ func TestGenerateKingMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateSlidingMoves(tt.color, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
+		moves := b.generateKingMoves(tt.color, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}

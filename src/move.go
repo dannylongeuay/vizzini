@@ -6,8 +6,11 @@ type move struct {
 	kind   MoveKind
 }
 
-var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
 var KNIGHT_MOVE_DISTS = []int{8, 12, 19, 21}
+
+var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
+
+var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
 var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
 var CARD_DIAG_MOVE_DISTS = []int{
 	HORIZONTAL_MOVE_DIST,
@@ -15,7 +18,6 @@ var CARD_DIAG_MOVE_DISTS = []int{
 	POS_DIAG_MOVE_DIST,
 	NEG_DIAG_MOVE_DIST,
 }
-var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
 
 func (b board) generateMoves(side Color) []move {
 	moves := make([]move, 0, MAX_GENERATED_MOVES)
@@ -54,8 +56,7 @@ func (b board) generateMoves(side Color) []move {
 		case WHITE_KING:
 			fallthrough
 		case BLACK_KING:
-			// TODO: add castling moves
-			kingMoves := b.generateSlidingMoves(side, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
+			kingMoves := b.generateKingMoves(side, squareIndex, CARD_DIAG_MOVE_DISTS, MAX_KING_MOVES, KING_MOVE_RANGE)
 			moves = append(moves, kingMoves...)
 			break
 		}
@@ -200,6 +201,48 @@ func (b board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDis
 				moves = append(moves, move)
 			}
 		}
+	}
+	return moves
+}
+
+func (b board) generateKingMoves(side Color, squareIndex SquareIndex, moveDists []int, maxMoves int, moveRange int) []move {
+	moves := make([]move, 0, maxMoves)
+	normalMoves := b.generateSlidingMoves(side, squareIndex, moveDists, maxMoves, moveRange)
+	moves = append(moves, normalMoves...)
+	kingsideCastleAvail := false
+	queensideCastleAvail := false
+	if side == WHITE {
+		if b.castleRights&1<<3 == 1<<3 {
+			kingsideCastleAvail = true
+		}
+		if b.castleRights&1<<2 == 1<<2 {
+			queensideCastleAvail = true
+		}
+	} else {
+		if b.castleRights&1<<1 == 1<<1 {
+			kingsideCastleAvail = true
+		}
+		if b.castleRights&1 == 1 {
+			queensideCastleAvail = true
+		}
+	}
+	if kingsideCastleAvail {
+		targetIndex := KING_CASTLE_MOVE_DIST + squareIndex
+		move := move{
+			origin: squareIndex,
+			target: targetIndex,
+			kind:   KING_CASTLE,
+		}
+		moves = append(moves, move)
+	}
+	if queensideCastleAvail {
+		targetIndex := SquareIndex(KING_CASTLE_MOVE_DIST*NEGATIVE_DIR + int(squareIndex))
+		move := move{
+			origin: squareIndex,
+			target: targetIndex,
+			kind:   QUEEN_CASTLE,
+		}
+		moves = append(moves, move)
 	}
 	return moves
 }
