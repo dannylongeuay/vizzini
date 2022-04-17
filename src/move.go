@@ -7,6 +7,15 @@ type move struct {
 }
 
 var PAWN_MOVES_CAPTURE_DIST = [2]int{9, 11}
+var KNIGHT_MOVES_DIST = [4]int{8, 12, 19, 21}
+var VERTICAL_DIRECTIONS = [2]int{UP, DOWN}
+var CARDINAL_DIRECTIONS = [4]int{UP, DOWN, LEFT, RIGHT}
+var DIAGONAL_DIRECTIONS = [4][2]int{
+	{LEFT, UP},
+	{RIGHT, UP},
+	{LEFT, DOWN},
+	{RIGHT, DOWN},
+}
 
 func (b board) generateMoves(side Color) []move {
 	moves := make([]move, 0, 256)
@@ -21,6 +30,8 @@ func (b board) generateMoves(side Color) []move {
 		case WHITE_KNIGHT:
 			fallthrough
 		case BLACK_KNIGHT:
+			knightMoves := b.generateKnightMoves(side, squareIndex)
+			moves = append(moves, knightMoves...)
 			break
 		case WHITE_BISHOP:
 			fallthrough
@@ -44,7 +55,7 @@ func (b board) generateMoves(side Color) []move {
 }
 
 func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, 256)
+	moves := make([]move, 0, 16)
 	dir := DOWN
 	rank := rankBySquareIndex(squareIndex)
 	doublePushRank := RANK_SEVEN
@@ -119,6 +130,32 @@ func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 				kind:   EP_CAPTURE,
 			}
 			moves = append(moves, move)
+		}
+	}
+	return moves
+}
+
+func (b board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
+	moves := make([]move, 0, 8)
+	for _, dir := range VERTICAL_DIRECTIONS {
+		for _, moveDist := range KNIGHT_MOVES_DIST {
+			target := SquareIndex(moveDist*dir) + squareIndex
+			if b.squares[target] == EMPTY {
+				move := move{
+					origin: squareIndex,
+					target: target,
+					kind:   QUIET,
+				}
+				moves = append(moves, move)
+
+			} else if b.colorBySquareIndex(target) == side^1 {
+				move := move{
+					origin: squareIndex,
+					target: target,
+					kind:   CAPTURE,
+				}
+				moves = append(moves, move)
+			}
 		}
 	}
 	return moves

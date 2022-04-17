@@ -39,7 +39,7 @@ func TestGenerateMoves(t *testing.T) {
 		movesLength int
 		moves       []testMove
 	}{
-		{STARTING_FEN, WHITE, 16,
+		{STARTING_FEN, WHITE, 20,
 			[]testMove{
 				{"a2", "a3", QUIET},
 				{"b2", "b3", QUIET},
@@ -57,9 +57,13 @@ func TestGenerateMoves(t *testing.T) {
 				{"f2", "f4", DOUBLE_PAWN_PUSH},
 				{"g2", "g4", DOUBLE_PAWN_PUSH},
 				{"h2", "h4", DOUBLE_PAWN_PUSH},
+				{"g1", "f3", QUIET},
+				{"g1", "h3", QUIET},
+				{"b1", "a3", QUIET},
+				{"b1", "c3", QUIET},
 			},
 		},
-		{STARTING_FEN, BLACK, 16,
+		{STARTING_FEN, BLACK, 20,
 			[]testMove{
 				{"a7", "a6", QUIET},
 				{"b7", "b6", QUIET},
@@ -77,6 +81,10 @@ func TestGenerateMoves(t *testing.T) {
 				{"f7", "f5", DOUBLE_PAWN_PUSH},
 				{"g7", "g5", DOUBLE_PAWN_PUSH},
 				{"h7", "h5", DOUBLE_PAWN_PUSH},
+				{"g8", "f6", QUIET},
+				{"g8", "h6", QUIET},
+				{"b8", "a6", QUIET},
+				{"b8", "c6", QUIET},
 			},
 		},
 	}
@@ -180,6 +188,68 @@ func TestGeneratePawnMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := b.generatePawnMoves(tt.color, squareIndex)
+		if len(moves) != tt.movesLength {
+			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
+		}
+		for _, testMove := range tt.moves {
+			contains, err := containsTestMove(moves, testMove)
+			if err != nil {
+				t.Error(err)
+			}
+			if !contains {
+				t.Errorf("unable to find move %v in %v", testMove, moves)
+			}
+		}
+	}
+}
+
+func TestGenerateKnightMoves(t *testing.T) {
+	tests := []struct {
+		fen         string
+		color       Color
+		squareCoord SquareCoord
+		movesLength int
+		moves       []testMove
+	}{
+		{STARTING_FEN, WHITE, "g1", 2,
+			[]testMove{
+				{"g1", "f3", QUIET},
+				{"g1", "h3", QUIET},
+			},
+		},
+		{"rnbqkbnr/ppp1p1pp/8/3p1p2/3N4/8/PPPPPPPP/RNBQKB1R w KQkq - 0 3", WHITE, "d4", 6,
+			[]testMove{
+				{"d4", "b3", QUIET},
+				{"d4", "b5", QUIET},
+				{"d4", "c6", QUIET},
+				{"d4", "e6", QUIET},
+				{"d4", "f5", CAPTURE},
+				{"d4", "f3", QUIET},
+			},
+		},
+		{"r1bqkbnr/ppp1p1pp/8/3p4/3n1p2/2N1P1P1/PPPPQP1P/R1B1KB1R b KQkq - 1 6", BLACK, "d4", 8,
+			[]testMove{
+				{"d4", "b3", QUIET},
+				{"d4", "b5", QUIET},
+				{"d4", "c6", QUIET},
+				{"d4", "e6", QUIET},
+				{"d4", "f5", QUIET},
+				{"d4", "f3", QUIET},
+				{"d4", "e2", CAPTURE},
+				{"d4", "c2", CAPTURE},
+			},
+		},
+	}
+	for _, tt := range tests {
+		b, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
+		}
+		squareIndex, err := squareIndexByCoord(tt.squareCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		moves := b.generateKnightMoves(tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
