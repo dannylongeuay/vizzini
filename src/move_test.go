@@ -149,7 +149,7 @@ func TestGeneratePawnMoves(t *testing.T) {
 				{"d5", "e4", CAPTURE},
 			},
 		},
-		{"rnbqkb1r/pppp2Pp/4pn2/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5", WHITE, "g7", 12,
+		{"rnbqkb1r/pppp2Pp/4pn2/8/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5", WHITE, "g7", MAX_PAWN_MOVES,
 			[]testMove{
 				{"g7", "f8", KNIGHT_PROMOTION_CAPTURE},
 				{"g7", "f8", BISHOP_PROMOTION_CAPTURE},
@@ -227,7 +227,7 @@ func TestGenerateKnightMoves(t *testing.T) {
 				{"d4", "f3", QUIET},
 			},
 		},
-		{"r1bqkbnr/ppp1p1pp/8/3p4/3n1p2/2N1P1P1/PPPPQP1P/R1B1KB1R b KQkq - 1 6", BLACK, "d4", 8,
+		{"r1bqkbnr/ppp1p1pp/8/3p4/3n1p2/2N1P1P1/PPPPQP1P/R1B1KB1R b KQkq - 1 6", BLACK, "d4", MAX_KNIGHT_MOVES,
 			[]testMove{
 				{"d4", "b3", QUIET},
 				{"d4", "b5", QUIET},
@@ -299,6 +299,22 @@ func TestGenerateBishopMoves(t *testing.T) {
 				{"c4", "g8", CAPTURE},
 			},
 		},
+		{"rn2kbnr/p2qp1p1/1p1p1p1p/1bpBP3/7P/P5P1/1PPP1P1R/RNBQK1N1 w Qkq - 3 9", WHITE, "d5", MAX_BISHOP_MOVES,
+			[]testMove{
+				{"d5", "c6", QUIET},
+				{"d5", "b7", QUIET},
+				{"d5", "a8", CAPTURE},
+				{"d5", "e6", QUIET},
+				{"d5", "f7", QUIET},
+				{"d5", "g8", CAPTURE},
+				{"d5", "c4", QUIET},
+				{"d5", "b3", QUIET},
+				{"d5", "a2", QUIET},
+				{"d5", "e4", QUIET},
+				{"d5", "f3", QUIET},
+				{"d5", "g2", QUIET},
+				{"d5", "h1", QUIET},
+			}},
 	}
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)

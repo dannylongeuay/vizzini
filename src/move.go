@@ -190,3 +190,8 @@ func (b board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
 	}
 	return moves
 }
+
+func (b board) generateRookMoves(side Color, squareIndex SquareIndex) []move {
+	moves := make([]move, 0, MAX_ROOK_MOVES)
+	return moves
+}
