@@ -39,7 +39,7 @@ func TestGenerateMoves(t *testing.T) {
 		movesLength int
 		moves       []testMove
 	}{
-		{STARTING_FEN, WHITE, 22,
+		{STARTING_FEN, WHITE, 20,
 			[]testMove{
 				{"a2", "a3", QUIET},
 				{"b2", "b3", QUIET},
@@ -61,11 +61,9 @@ func TestGenerateMoves(t *testing.T) {
 				{"g1", "h3", QUIET},
 				{"b1", "a3", QUIET},
 				{"b1", "c3", QUIET},
-				{"e1", "g1", KING_CASTLE},
-				{"e1", "c1", QUEEN_CASTLE},
 			},
 		},
-		{STARTING_FEN, BLACK, 22,
+		{STARTING_FEN, BLACK, 20,
 			[]testMove{
 				{"a7", "a6", QUIET},
 				{"b7", "b6", QUIET},
@@ -87,8 +85,6 @@ func TestGenerateMoves(t *testing.T) {
 				{"g8", "h6", QUIET},
 				{"b8", "a6", QUIET},
 				{"b8", "c6", QUIET},
-				{"e8", "g8", KING_CASTLE},
-				{"e8", "c8", QUEEN_CASTLE},
 			},
 		},
 	}
@@ -476,11 +472,8 @@ func TestGenerateKingMoves(t *testing.T) {
 		movesLength int
 		moves       []testMove
 	}{
-		{STARTING_FEN, WHITE, "e1", 2,
-			[]testMove{
-				{"e1", "g1", KING_CASTLE},
-				{"e1", "c1", QUEEN_CASTLE},
-			},
+		{STARTING_FEN, WHITE, "e1", 0,
+			[]testMove{},
 		},
 		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", MAX_KING_MOVES,
 			[]testMove{
@@ -492,6 +485,52 @@ func TestGenerateKingMoves(t *testing.T) {
 				{"e4", "f3", QUIET},
 				{"e4", "f4", QUIET},
 				{"e4", "f5", QUIET},
+			},
+		},
+		{"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4", WHITE, "e1", 3,
+			[]testMove{
+				{"e1", "e2", QUIET},
+				{"e1", "f1", QUIET},
+				{"e1", "g1", KING_CASTLE},
+			},
+		},
+		{"r1bqk2r/ppppbppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 6 5", WHITE, "g1", 1,
+			[]testMove{
+				{"g1", "h1", QUIET},
+			},
+		},
+		{"r1bqkb1r/ppp2ppp/2np1n2/8/4P3/2NQ4/PPP2PPP/R1B1KBNR w KQkq - 2 6", WHITE, "e1", 3,
+			[]testMove{
+				{"e1", "d1", QUIET},
+				{"e1", "d2", QUIET},
+				{"e1", "e2", QUIET},
+			},
+		},
+		{"r1bqk2r/ppp1bppp/2np1n2/6B1/4P3/2NQ4/PPP2PPP/R3KBNR w KQkq - 4 7", WHITE, "e1", 4,
+			[]testMove{
+				{"e1", "d1", QUIET},
+				{"e1", "d2", QUIET},
+				{"e1", "e2", QUIET},
+				{"e1", "c1", QUEEN_CASTLE},
+			},
+		},
+		{"r1bq1rk1/ppp1bppp/2np1n2/6B1/4P3/2NQ4/PPP2PPP/2KR1BNR w - - 6 8", WHITE, "c1", 2,
+			[]testMove{
+				{"c1", "b1", QUIET},
+				{"c1", "d2", QUIET},
+			},
+		},
+		{"rnbqk2r/pppp1ppp/4pn2/8/1Q1P4/5N2/PPP1PPPP/RNB1KB1R b KQkq - 2 4", BLACK, "e8", 2,
+			[]testMove{
+				{"e8", "f8", QUIET},
+				{"e8", "e7", QUIET},
+			},
+		},
+		{"rnbqk2r/pppp2pp/4pp2/4N3/1Q1P4/4P2n/PPP1BPPP/RNB1K2R w KQkq - 0 8", WHITE, "e1", 3,
+			[]testMove{
+				{"e1", "d1", QUIET},
+				{"e1", "d2", QUIET},
+				{"e1", "f1", QUIET},
 			},
 		},
 	}

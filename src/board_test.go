@@ -11,9 +11,9 @@ type testSquareChecks struct {
 }
 
 type testPieceChecks struct {
-	color              Color
-	pieceIndexesLength int
-	pieceCoords        []SquareCoord
+	square      Square
+	piecesCount int
+	pieceCoords []SquareCoord
 }
 
 func containsPieceIndex(indexes []SquareIndex, testIndex SquareIndex) bool {
@@ -75,13 +75,41 @@ func TestNewBoard(t *testing.T) {
 				{FILE_NONE, RANK_NONE, INVALID},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareCoord{
+				{WHITE_PAWN, 8, []SquareCoord{
 					"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-					"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 				}},
-				{BLACK, 16, []SquareCoord{
-					"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"b1", "g1",
+				}},
+				{WHITE_BISHOP, 2, []SquareCoord{
+					"c1", "f1",
+				}},
+				{WHITE_ROOK, 2, []SquareCoord{
+					"a1", "h1",
+				}},
+				{WHITE_QUEEN, 1, []SquareCoord{
+					"d1",
+				}},
+				{WHITE_KING, 1, []SquareCoord{
+					"e1",
+				}},
+				{BLACK_PAWN, 8, []SquareCoord{
 					"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+				}},
+				{BLACK_KNIGHT, 2, []SquareCoord{
+					"b8", "g8",
+				}},
+				{BLACK_BISHOP, 2, []SquareCoord{
+					"c8", "f8",
+				}},
+				{BLACK_ROOK, 2, []SquareCoord{
+					"a8", "h8",
+				}},
+				{BLACK_QUEEN, 1, []SquareCoord{
+					"d8",
+				}},
+				{BLACK_KING, 1, []SquareCoord{
+					"e8",
 				}},
 			},
 		},
@@ -91,7 +119,7 @@ func TestNewBoard(t *testing.T) {
 				{FILE_E, RANK_FOUR, WHITE_PAWN},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareCoord{
+				{WHITE_PAWN, 8, []SquareCoord{
 					"e4",
 				}},
 			},
@@ -102,7 +130,7 @@ func TestNewBoard(t *testing.T) {
 				{FILE_C, RANK_FIVE, BLACK_PAWN},
 			},
 			[]testPieceChecks{
-				{BLACK, 16, []SquareCoord{
+				{BLACK_PAWN, 8, []SquareCoord{
 					"c5",
 				}},
 			},
@@ -113,8 +141,11 @@ func TestNewBoard(t *testing.T) {
 				{FILE_F, RANK_THREE, WHITE_KNIGHT},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareCoord{
-					"e4", "f3",
+				{WHITE_PAWN, 8, []SquareCoord{
+					"e4",
+				}},
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"f3",
 				}},
 			},
 		},
@@ -140,11 +171,20 @@ func TestNewBoard(t *testing.T) {
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE, 15, []SquareCoord{
-					"h8", "d3", "f3",
+				{WHITE_QUEEN, 2, []SquareCoord{
+					"h8",
 				}},
-				{BLACK, 13, []SquareCoord{
-					"e6", "f6", "b2",
+				{WHITE_BISHOP, 2, []SquareCoord{
+					"d3",
+				}},
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"f3",
+				}},
+				{BLACK_PAWN, 6, []SquareCoord{
+					"e6", "b2",
+				}},
+				{BLACK_KNIGHT, 2, []SquareCoord{
+					"f6",
 				}},
 			},
 		},
@@ -155,11 +195,23 @@ func TestNewBoard(t *testing.T) {
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE, 14, []SquareCoord{
-					"h8", "d3", "f3",
+				{WHITE_QUEEN, 2, []SquareCoord{
+					"h8",
 				}},
-				{BLACK, 13, []SquareCoord{
-					"e6", "f6", "a1",
+				{WHITE_BISHOP, 2, []SquareCoord{
+					"d3",
+				}},
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"f3",
+				}},
+				{BLACK_PAWN, 5, []SquareCoord{
+					"e6",
+				}},
+				{BLACK_QUEEN, 2, []SquareCoord{
+					"a1",
+				}},
+				{BLACK_KNIGHT, 2, []SquareCoord{
+					"f6",
 				}},
 			},
 		},
@@ -177,16 +229,16 @@ func TestNewBoard(t *testing.T) {
 			}
 		}
 		for _, check := range tt.pieceChecks {
-			if len(b.pieceIndexes[check.color]) != check.pieceIndexesLength {
-				t.Errorf("piece indexes length: %v != %v", len(b.pieceIndexes[check.color]), check.pieceIndexesLength)
+			if len(b.pieceIndexes[check.square]) != check.piecesCount {
+				t.Errorf("piece indexes length: %v != %v", len(b.pieceIndexes[check.square]), check.piecesCount)
 			}
 			for _, pieceCoord := range check.pieceCoords {
 				pieceIndex, err := squareIndexByCoord(pieceCoord)
 				if err != nil {
 					t.Error(err)
 				}
-				if !containsPieceIndex(b.pieceIndexes[check.color], pieceIndex) {
-					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceIndexes[check.color])
+				if !containsPieceIndex(b.pieceIndexes[check.square], pieceIndex) {
+					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceIndexes[check.square])
 
 				}
 			}

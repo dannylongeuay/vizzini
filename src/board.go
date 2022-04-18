@@ -19,7 +19,7 @@ var SquareIndexes64 = [64]SquareIndex{
 
 type board struct {
 	squares      []Square
-	pieceIndexes [][]SquareIndex // pieces[color] = [...]
+	pieceIndexes map[Square][]SquareIndex // piecesIndexes[WHITE_PAWN] = [81, 82, ...]
 	sideToMove   Color
 	fiftyMove    int
 	/*
@@ -44,9 +44,7 @@ func newBoard(fen string) (*board, error) {
 
 	b := board{}
 	b.squares = make([]Square, BOARD_SQUARES)
-	b.pieceIndexes = make([][]SquareIndex, 2)
-	b.pieceIndexes[WHITE] = make([]SquareIndex, 0, 16)
-	b.pieceIndexes[BLACK] = make([]SquareIndex, 0, 16)
+	b.pieceIndexes = make(map[Square][]SquareIndex)
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
@@ -107,11 +105,8 @@ func newBoard(fen string) (*board, error) {
 			}
 			count, err := strconv.Atoi(string(char))
 			if err != nil {
-				color := WHITE
-				if b.squares[squareIndex] > 6 {
-					color = BLACK
-				}
-				b.pieceIndexes[color] = append(b.pieceIndexes[color], squareIndex)
+				square := b.squares[squareIndex]
+				b.pieceIndexes[square] = append(b.pieceIndexes[square], squareIndex)
 				squareIndex64++
 			} else {
 				for i := 0; i < count; i++ {
@@ -177,34 +172,7 @@ func newBoard(fen string) (*board, error) {
 }
 
 func (b board) colorBySquareIndex(s SquareIndex) Color {
-	c := COLOR_NONE
-	switch b.squares[s] {
-	case WHITE_PAWN:
-		fallthrough
-	case WHITE_KNIGHT:
-		fallthrough
-	case WHITE_BISHOP:
-		fallthrough
-	case WHITE_ROOK:
-		fallthrough
-	case WHITE_QUEEN:
-		fallthrough
-	case WHITE_KING:
-		return WHITE
-	case BLACK_PAWN:
-		fallthrough
-	case BLACK_KNIGHT:
-		fallthrough
-	case BLACK_BISHOP:
-		fallthrough
-	case BLACK_ROOK:
-		fallthrough
-	case BLACK_QUEEN:
-		fallthrough
-	case BLACK_KING:
-		return BLACK
-	}
-	return c
+	return colorBySquare(b.squares[s])
 }
 
 func (b board) squareKnightAttackers(side Color, squareIndex SquareIndex) []SquareIndex {
@@ -395,6 +363,37 @@ func (b board) toString() string {
 	s += sep
 	s += " A  B  C  D  E  F  G  H"
 	return s
+}
+
+func colorBySquare(s Square) Color {
+	c := COLOR_NONE
+	switch s {
+	case WHITE_PAWN:
+		fallthrough
+	case WHITE_KNIGHT:
+		fallthrough
+	case WHITE_BISHOP:
+		fallthrough
+	case WHITE_ROOK:
+		fallthrough
+	case WHITE_QUEEN:
+		fallthrough
+	case WHITE_KING:
+		return WHITE
+	case BLACK_PAWN:
+		fallthrough
+	case BLACK_KNIGHT:
+		fallthrough
+	case BLACK_BISHOP:
+		fallthrough
+	case BLACK_ROOK:
+		fallthrough
+	case BLACK_QUEEN:
+		fallthrough
+	case BLACK_KING:
+		return BLACK
+	}
+	return c
 }
 
 func squareIndexByCoord(s SquareCoord) (SquareIndex, error) {

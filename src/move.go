@@ -15,44 +15,50 @@ var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
 
 func (b board) generateMoves(side Color) []move {
 	moves := make([]move, 0, MAX_GENERATED_MOVES)
-	for _, squareIndex := range b.pieceIndexes[side] {
-		switch b.squares[squareIndex] {
-		case WHITE_PAWN:
-			fallthrough
-		case BLACK_PAWN:
-			pawnMoves := b.generatePawnMoves(side, squareIndex)
-			moves = append(moves, pawnMoves...)
-			break
-		case WHITE_KNIGHT:
-			fallthrough
-		case BLACK_KNIGHT:
-			knightMoves := b.generateKnightMoves(side, squareIndex)
-			moves = append(moves, knightMoves...)
-			break
-		case WHITE_BISHOP:
-			fallthrough
-		case BLACK_BISHOP:
-			bishopMoves := b.generateBishopMoves(side, squareIndex)
-			moves = append(moves, bishopMoves...)
-			break
-		case WHITE_ROOK:
-			fallthrough
-		case BLACK_ROOK:
-			rookMoves := b.generateRookMoves(side, squareIndex)
-			moves = append(moves, rookMoves...)
-			break
-		case WHITE_QUEEN:
-			fallthrough
-		case BLACK_QUEEN:
-			queenMoves := b.generateQueenMoves(side, squareIndex)
-			moves = append(moves, queenMoves...)
-			break
-		case WHITE_KING:
-			fallthrough
-		case BLACK_KING:
-			kingMoves := b.generateKingMoves(side, squareIndex)
-			moves = append(moves, kingMoves...)
-			break
+	for square, squareIndexes := range b.pieceIndexes {
+		squareColor := colorBySquare(square)
+		if squareColor != side {
+			continue
+		}
+		for _, squareIndex := range squareIndexes {
+			switch square {
+			case WHITE_PAWN:
+				fallthrough
+			case BLACK_PAWN:
+				pawnMoves := b.generatePawnMoves(side, squareIndex)
+				moves = append(moves, pawnMoves...)
+				break
+			case WHITE_KNIGHT:
+				fallthrough
+			case BLACK_KNIGHT:
+				knightMoves := b.generateKnightMoves(side, squareIndex)
+				moves = append(moves, knightMoves...)
+				break
+			case WHITE_BISHOP:
+				fallthrough
+			case BLACK_BISHOP:
+				bishopMoves := b.generateBishopMoves(side, squareIndex)
+				moves = append(moves, bishopMoves...)
+				break
+			case WHITE_ROOK:
+				fallthrough
+			case BLACK_ROOK:
+				rookMoves := b.generateRookMoves(side, squareIndex)
+				moves = append(moves, rookMoves...)
+				break
+			case WHITE_QUEEN:
+				fallthrough
+			case BLACK_QUEEN:
+				queenMoves := b.generateQueenMoves(side, squareIndex)
+				moves = append(moves, queenMoves...)
+				break
+			case WHITE_KING:
+				fallthrough
+			case BLACK_KING:
+				kingMoves := b.generateKingMoves(side, squareIndex)
+				moves = append(moves, kingMoves...)
+				break
+			}
 		}
 	}
 	return moves
@@ -224,21 +230,21 @@ func (b board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 	kingsideCastleAvail := false
 	queensideCastleAvail := false
 	if side == WHITE {
-		if b.castleRights&1<<3 == 1<<3 {
+		if b.castleRights&(1<<3) == 1<<3 {
 			kingsideCastleAvail = true
 		}
-		if b.castleRights&1<<2 == 1<<2 {
+		if b.castleRights&(1<<2) == 1<<2 {
 			queensideCastleAvail = true
 		}
 	} else {
-		if b.castleRights&1<<1 == 1<<1 {
+		if b.castleRights&(1<<1) == 1<<1 {
 			kingsideCastleAvail = true
 		}
 		if b.castleRights&1 == 1 {
 			queensideCastleAvail = true
 		}
 	}
-	if kingsideCastleAvail {
+	if kingsideCastleAvail && b.canCastle(side, POSITIVE_DIR, squareIndex) {
 		targetIndex := KING_CASTLE_MOVE_DIST + squareIndex
 		move := move{
 			origin: squareIndex,
@@ -247,7 +253,7 @@ func (b board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 		}
 		moves = append(moves, move)
 	}
-	if queensideCastleAvail {
+	if queensideCastleAvail && b.canCastle(side, NEGATIVE_DIR, squareIndex) {
 		targetIndex := SquareIndex(KING_CASTLE_MOVE_DIST*NEGATIVE_DIR + int(squareIndex))
 		move := move{
 			origin: squareIndex,
@@ -257,4 +263,26 @@ func (b board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 		moves = append(moves, move)
 	}
 	return moves
+}
+
+func (b board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
+	rookDist := 3
+	if dir == NEGATIVE_DIR {
+		rookDist = 4
+	}
+	for i := 0; i <= rookDist; i++ {
+		checkIndex := SquareIndex(i*dir) + squareIndex
+		// Check that king is not in check and travel squares are not attacked
+		if i < 3 {
+			attackers := b.squareAttackers(side, checkIndex)
+			if len(attackers) > 0 {
+				return false
+			}
+		}
+		// Check that squares are empty between king and rook
+		if i > 0 && i < rookDist && b.squares[checkIndex] != EMPTY {
+			return false
+		}
+	}
+	return true
 }
