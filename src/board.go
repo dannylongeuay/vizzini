@@ -33,6 +33,7 @@ type board struct {
 	epIndex      SquareIndex
 	halfMove     int
 	fullMove     int
+	hash         uint64
 }
 
 func newBoard(fen string) (*board, error) {
@@ -167,6 +168,8 @@ func newBoard(fen string) (*board, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	b.generateBoardHash()
 
 	return &b, nil
 }

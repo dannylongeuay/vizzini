@@ -272,16 +272,16 @@ func (b board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
 	}
 	for i := 0; i <= rookDist; i++ {
 		checkIndex := SquareIndex(i*dir) + squareIndex
+		// Check that squares are empty between king and rook
+		if i > 0 && i < rookDist && b.squares[checkIndex] != EMPTY {
+			return false
+		}
 		// Check that king is not in check and travel squares are not attacked
 		if i < 3 {
 			attackers := b.squareAttackers(side, checkIndex)
 			if len(attackers) > 0 {
 				return false
 			}
-		}
-		// Check that squares are empty between king and rook
-		if i > 0 && i < rookDist && b.squares[checkIndex] != EMPTY {
-			return false
 		}
 	}
 	return true

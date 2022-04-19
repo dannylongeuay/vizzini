@@ -1,8 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func main() {
+	seedKeys(time.Now().UTC().UnixNano())
 	board, err := newBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
