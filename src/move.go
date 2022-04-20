@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type move struct {
 	origin SquareIndex
 	target SquareIndex
@@ -27,37 +29,31 @@ func (b board) generateMoves(side Color) []move {
 			case BLACK_PAWN:
 				pawnMoves := b.generatePawnMoves(side, squareIndex)
 				moves = append(moves, pawnMoves...)
-				break
 			case WHITE_KNIGHT:
 				fallthrough
 			case BLACK_KNIGHT:
 				knightMoves := b.generateKnightMoves(side, squareIndex)
 				moves = append(moves, knightMoves...)
-				break
 			case WHITE_BISHOP:
 				fallthrough
 			case BLACK_BISHOP:
 				bishopMoves := b.generateBishopMoves(side, squareIndex)
 				moves = append(moves, bishopMoves...)
-				break
 			case WHITE_ROOK:
 				fallthrough
 			case BLACK_ROOK:
 				rookMoves := b.generateRookMoves(side, squareIndex)
 				moves = append(moves, rookMoves...)
-				break
 			case WHITE_QUEEN:
 				fallthrough
 			case BLACK_QUEEN:
 				queenMoves := b.generateQueenMoves(side, squareIndex)
 				moves = append(moves, queenMoves...)
-				break
 			case WHITE_KING:
 				fallthrough
 			case BLACK_KING:
 				kingMoves := b.generateKingMoves(side, squareIndex)
 				moves = append(moves, kingMoves...)
-				break
 			}
 		}
 	}
@@ -285,4 +281,151 @@ func (b board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
 		}
 	}
 	return true
+}
+
+func (b *board) clearSquare(square Square, squareIndex SquareIndex) error {
+	if square == EMPTY || square == INVALID || square != b.squares[squareIndex] {
+		return fmt.Errorf("clearing square %v at index %v is not allowed", square, squareIndex)
+	}
+	b.squares[squareIndex] = EMPTY
+	delete(b.pieceSets[square], squareIndex)
+	b.hashSquare(square, squareIndex)
+	return nil
+}
+
+func (b *board) setSquare(square Square, squareIndex SquareIndex) error {
+	if square == EMPTY || square == INVALID {
+		return fmt.Errorf("setting square %v at index %v is not allowed", square, squareIndex)
+	}
+	b.squares[squareIndex] = square
+	b.pieceSets[square][squareIndex] = true
+	b.hashSquare(square, squareIndex)
+	return nil
+}
+
+var CastleCheckIndexes = map[SquareIndex]CastleRights{
+	21: 14, // a8 : KQk
+	25: 12, // e8 : KQ
+	28: 13, // h8 : KQq
+	91: 11, // a1 : Kkq
+	95: 3,  // e1 : kq
+	98: 7,  // h1 : Qkq
+}
+
+func (b *board) updateCastleRights(squareIndex SquareIndex) {
+	castleBits, present := CastleCheckIndexes[squareIndex]
+	if present {
+		b.hashCastling()
+		b.castleRights &= castleBits
+		b.hashCastling()
+	}
+}
+
+func (b *board) makeMove(m move) error {
+	originSquare := b.squares[m.origin]
+	targetSquare := b.squares[m.target]
+
+	b.clearSquare(originSquare, m.origin)
+
+	if b.castleRights != 0 {
+		b.updateCastleRights(m.origin)
+		b.updateCastleRights(m.target)
+	}
+
+	b.halfMove++
+
+	switch originSquare {
+	case WHITE_PAWN:
+		fallthrough
+	case BLACK_PAWN:
+		b.halfMove = 0
+	case WHITE_KING:
+		b.whiteKingIndex = m.target
+	case BLACK_KING:
+		b.blackKingIndex = m.target
+	}
+
+	if targetSquare != EMPTY {
+		b.clearSquare(targetSquare, m.target)
+		b.halfMove = 0
+	}
+
+	switch m.kind {
+	case KING_CASTLE:
+		fallthrough
+	case QUEEN_CASTLE:
+		switch m.target {
+		case 97:
+			b.clearSquare(WHITE_ROOK, 98)
+			b.setSquare(WHITE_ROOK, 96)
+		case 93:
+			b.clearSquare(WHITE_ROOK, 91)
+			b.setSquare(WHITE_ROOK, 94)
+		case 27:
+			b.clearSquare(BLACK_ROOK, 28)
+			b.setSquare(BLACK_ROOK, 26)
+		case 23:
+			b.clearSquare(BLACK_ROOK, 21)
+			b.setSquare(BLACK_ROOK, 24)
+		}
+	case EP_CAPTURE:
+		if b.sideToMove == WHITE {
+			b.clearSquare(BLACK_PAWN, m.target+SquareIndex(VERTICAL_MOVE_DIST))
+		} else {
+			b.clearSquare(WHITE_PAWN, m.target-SquareIndex(VERTICAL_MOVE_DIST))
+		}
+		b.hashEnPassant()
+		b.epIndex = 0
+	case KNIGHT_PROMOTION_CAPTURE:
+		fallthrough
+	case KNIGHT_PROMOTION:
+		if b.sideToMove == WHITE {
+			originSquare = WHITE_KNIGHT
+		} else {
+			originSquare = BLACK_KNIGHT
+		}
+	case BISHOP_PROMOTION_CAPTURE:
+		fallthrough
+	case BISHOP_PROMOTION:
+		if b.sideToMove == WHITE {
+			originSquare = WHITE_BISHOP
+		} else {
+			originSquare = BLACK_BISHOP
+		}
+	case ROOK_PROMOTION_CAPTURE:
+		fallthrough
+	case ROOK_PROMOTION:
+		if b.sideToMove == WHITE {
+			originSquare = WHITE_ROOK
+		} else {
+			originSquare = BLACK_ROOK
+		}
+	case QUEEN_PROMOTION_CAPTURE:
+		fallthrough
+	case QUEEN_PROMOTION:
+		if b.sideToMove == WHITE {
+			originSquare = WHITE_QUEEN
+		} else {
+			originSquare = BLACK_QUEEN
+		}
+	}
+
+	b.setSquare(originSquare, m.target)
+
+	kingIndex := b.whiteKingIndex
+	if b.sideToMove == BLACK {
+		b.fullMove++
+		kingIndex = b.blackKingIndex
+	}
+
+	kingAttackers := b.squareAttackers(b.sideToMove, kingIndex)
+
+	if len(kingAttackers) > 0 {
+		return fmt.Errorf("king has %v attacker(s)", len(kingAttackers))
+	}
+
+	b.hashSide()
+	b.sideToMove ^= 1
+
+	return nil
 }

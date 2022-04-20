@@ -21,9 +21,8 @@ type board struct {
 	squares        []Square
 	pieceSets      map[Square]map[SquareIndex]bool
 	whiteKingIndex SquareIndex
-	blackKindIndex SquareIndex
+	blackKingIndex SquareIndex
 	sideToMove     Color
-	fiftyMove      int
 	/*
 		castleRights
 		0000 0001 = Black king can castle queenside
@@ -66,45 +65,32 @@ func newBoard(fen string) (*board, error) {
 			case "6":
 			case "7":
 			case "8":
-				break
 			case "P":
 				b.squares[squareIndex] = WHITE_PAWN
-				break
 			case "N":
 				b.squares[squareIndex] = WHITE_KNIGHT
-				break
 			case "B":
 				b.squares[squareIndex] = WHITE_BISHOP
-				break
 			case "R":
 				b.squares[squareIndex] = WHITE_ROOK
-				break
 			case "Q":
 				b.squares[squareIndex] = WHITE_QUEEN
-				break
 			case "K":
 				b.squares[squareIndex] = WHITE_KING
 				b.whiteKingIndex = squareIndex
-				break
 			case "p":
 				b.squares[squareIndex] = BLACK_PAWN
-				break
 			case "n":
 				b.squares[squareIndex] = BLACK_KNIGHT
-				break
 			case "b":
 				b.squares[squareIndex] = BLACK_BISHOP
-				break
 			case "r":
 				b.squares[squareIndex] = BLACK_ROOK
-				break
 			case "q":
 				b.squares[squareIndex] = BLACK_QUEEN
-				break
 			case "k":
 				b.squares[squareIndex] = BLACK_KING
-				b.blackKindIndex = squareIndex
-				break
+				b.blackKingIndex = squareIndex
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
 			}
@@ -136,19 +122,14 @@ func newBoard(fen string) (*board, error) {
 	for _, char := range []rune(castlingRights) {
 		switch string(char) {
 		case "-":
-			break
 		case "K":
 			b.castleRights |= 1 << 3
-			break
 		case "Q":
 			b.castleRights |= 1 << 2
-			break
 		case "k":
 			b.castleRights |= 1 << 1
-			break
 		case "q":
 			b.castleRights |= 1
-			break
 		default:
 			return nil, fmt.Errorf("Invalid castling rights in fen string: %v", string(char))
 		}
@@ -199,46 +180,32 @@ func (b board) toString() string {
 		switch square {
 		case EMPTY:
 			s += " "
-			break
 		case WHITE_PAWN:
 			s += "♟"
-			break
 		case WHITE_KNIGHT:
 			s += "♞"
-			break
 		case WHITE_BISHOP:
 			s += "♝"
-			break
 		case WHITE_ROOK:
 			s += "♜"
-			break
 		case WHITE_QUEEN:
 			s += "♛"
-			break
 		case WHITE_KING:
 			s += "♚"
-			break
 		case BLACK_PAWN:
 			s += "♙"
-			break
 		case BLACK_KNIGHT:
 			s += "♘"
-			break
 		case BLACK_BISHOP:
 			s += "♗"
-			break
 		case BLACK_ROOK:
 			s += "♖"
-			break
 		case BLACK_QUEEN:
 			s += "♕"
-			break
 		case BLACK_KING:
 			s += "♔"
-			break
 		default:
 			s += "♠"
-			break
 		}
 		s += " "
 	}

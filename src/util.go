@@ -136,3 +136,47 @@ func fileBySquareIndex(s SquareIndex) File {
 	}
 	return f
 }
+
+func coordBySquareIndex(s SquareIndex) SquareCoord {
+	var coord SquareCoord
+
+	switch s % 10 {
+	case 1:
+		coord += "a"
+	case 2:
+		coord += "b"
+	case 3:
+		coord += "c"
+	case 4:
+		coord += "d"
+	case 5:
+		coord += "e"
+	case 6:
+		coord += "f"
+	case 7:
+		coord += "g"
+	case 8:
+		coord += "h"
+	}
+
+	switch (s / 10) % 10 {
+	case 2:
+		coord += "8"
+	case 3:
+		coord += "7"
+	case 4:
+		coord += "6"
+	case 5:
+		coord += "5"
+	case 6:
+		coord += "4"
+	case 7:
+		coord += "3"
+	case 8:
+		coord += "2"
+	case 9:
+		coord += "1"
+	}
+
+	return coord
+}

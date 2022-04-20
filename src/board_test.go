@@ -232,6 +232,9 @@ func TestNewBoard(t *testing.T) {
 			t.Error(err)
 		}
 		whiteKingIndex, err := squareIndexByCoord(tt.whiteKingCoord)
+		if b.whiteKingIndex != whiteKingIndex {
+			t.Errorf("white king index: %v != %v", b.whiteKingIndex, whiteKingIndex)
+		}
 		if err != nil {
 			t.Error(err)
 		}
@@ -239,6 +242,9 @@ func TestNewBoard(t *testing.T) {
 			t.Errorf("white king square: %v != %v", b.squares[whiteKingIndex], WHITE_KING)
 		}
 		blackKingIndex, err := squareIndexByCoord(tt.blackKingCoord)
+		if b.blackKingIndex != blackKingIndex {
+			t.Errorf("black king index: %v != %v", b.blackKingIndex, blackKingIndex)
+		}
 		if err != nil {
 			t.Error(err)
 		}

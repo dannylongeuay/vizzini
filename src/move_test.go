@@ -2,27 +2,42 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
-func containsTestMove(moves []move, testMove testMove) (bool, error) {
+func newMoveFromTestMove(testMove testMove) (move, error) {
+	m := move{}
+
 	o, err := squareIndexByCoord(testMove.origin)
 	if err != nil {
-		return false, err
+		return m, err
 	}
+
 	t, err := squareIndexByCoord(testMove.target)
+	if err != nil {
+		return m, err
+	}
+
+	m.origin = o
+	m.target = t
+	m.kind = testMove.kind
+
+	return m, nil
+}
+
+func containsTestMove(moves []move, testMove testMove) (bool, error) {
+	m, err := newMoveFromTestMove(testMove)
+
 	if err != nil {
 		return false, err
 	}
-	m := move{
-		origin: o,
-		target: t,
-		kind:   testMove.kind,
-	}
+
 	for _, move := range moves {
 		if move == m {
 			return true, nil
 		}
 	}
+
 	return false, nil
 }
 
@@ -555,6 +570,144 @@ func TestGenerateKingMoves(t *testing.T) {
 			if !contains {
 				t.Errorf("unable to find move %v in %v", testMove, moves)
 			}
+		}
+	}
+}
+
+func TestMakeMove(t *testing.T) {
+	tests := []struct {
+		startFen string
+		move     testMove
+		endFen   string
+	}{
+		{
+			STARTING_FEN,
+			testMove{"e2", "e4", DOUBLE_PAWN_PUSH},
+			"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+		},
+		{
+			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
+			testMove{"a1", "a3", QUIET},
+			"rnbqkbnr/pppp1ppp/8/4p3/P7/R7/1PPPPPPP/1NBQKBNR b Kkq - 1 2",
+		},
+		{
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			testMove{"b5", "c6", CAPTURE},
+			"r1bqk1nr/ppppbppp/2B5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4",
+		},
+		{
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			testMove{"e1", "g1", KING_CASTLE},
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
+		},
+		{
+			"rnbqkbnr/pp2pppp/8/2pP4/8/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 3",
+			testMove{"d5", "c6", EP_CAPTURE},
+			"rnbqkbnr/pp2pppp/2P5/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", QUEEN_PROMOTION_CAPTURE},
+			"Qnbqkbnr/p3pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR b KQk - 0 5",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", ROOK_PROMOTION_CAPTURE},
+			"Rnbqkbnr/p3pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR b KQk - 0 5",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", BISHOP_PROMOTION_CAPTURE},
+			"Bnbqkbnr/p3pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR b KQk - 0 5",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", KNIGHT_PROMOTION_CAPTURE},
+			"Nnbqkbnr/p3pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR b KQk - 0 5",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP3pP/R1BQKBNR b KQkq - 0 7",
+			testMove{"g2", "h1", QUEEN_PROMOTION_CAPTURE},
+			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP4P/R1BQKBNq w Qkq - 0 8",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", QUEEN_PROMOTION},
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBqR w KQkq - 0 8",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", ROOK_PROMOTION},
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBrR w KQkq - 0 8",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", BISHOP_PROMOTION},
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBbR w KQkq - 0 8",
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", KNIGHT_PROMOTION},
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBnR w KQkq - 0 8",
+		},
+	}
+	seedKeys(time.Now().UTC().UnixNano())
+	for _, tt := range tests {
+		bStart, err := newBoard(tt.startFen)
+		if err != nil {
+			t.Error(err)
+		}
+		m, err := newMoveFromTestMove(tt.move)
+		if err != nil {
+			t.Error(err)
+		}
+		err = bStart.makeMove(m)
+		if err != nil {
+			t.Error(err)
+		}
+		bEnd, err := newBoard(tt.endFen)
+		if err != nil {
+			t.Error(err)
+		}
+		if bStart.whiteKingIndex != bEnd.whiteKingIndex {
+			t.Errorf("board white king index: %v != %v", bStart.whiteKingIndex, bEnd.whiteKingIndex)
+		}
+		if bStart.blackKingIndex != bEnd.blackKingIndex {
+			t.Errorf("board black king index: %v != %v", bStart.blackKingIndex, bEnd.blackKingIndex)
+		}
+		if bStart.sideToMove != bEnd.sideToMove {
+			t.Errorf("board side to move: %v != %v", bStart.sideToMove, bEnd.sideToMove)
+		}
+		if bStart.castleRights != bEnd.castleRights {
+			t.Errorf("board castle rights: %v != %v", bStart.castleRights, bEnd.castleRights)
+		}
+		if bStart.epIndex != bEnd.epIndex {
+			t.Errorf("board en passant index: %v != %v", bStart.epIndex, bEnd.epIndex)
+		}
+		if bStart.halfMove != bEnd.halfMove {
+			t.Errorf("board half move: %v != %v", bStart.halfMove, bEnd.halfMove)
+		}
+		if bStart.fullMove != bEnd.fullMove {
+			t.Errorf("board full move: %v != %v", bStart.fullMove, bEnd.fullMove)
+		}
+		for square, squareIndexes := range bStart.pieceSets {
+			for squareIndex := range squareIndexes {
+				_, present := bEnd.pieceSets[square][squareIndex]
+				if !present {
+					t.Errorf("board start piece %v at %v not present in %v", square, squareIndex, bEnd.pieceSets[square])
+				}
+			}
+		}
+		for square, squareIndexes := range bEnd.pieceSets {
+			for squareIndex := range squareIndexes {
+				_, present := bStart.pieceSets[square][squareIndex]
+				if !present {
+					t.Errorf("board end piece %v at %v not present in %v", square, squareIndex, bStart.pieceSets[square])
+				}
+			}
+		}
+		if bStart.hash != bEnd.hash {
+			t.Errorf("board hash: %v != %v", bStart.hash, bEnd.hash)
 		}
 	}
 }

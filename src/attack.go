@@ -52,17 +52,14 @@ func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) map[
 					fallthrough
 				case enemyQueen:
 					attackers[originIndex] = true
-					break
 				case enemyPawn:
 					if i == 1 && dir*-1 == pawnAttackDir {
 						attackers[originIndex] = true
 					}
-					break
 				case enemyKing:
 					if i == 1 {
 						attackers[originIndex] = true
 					}
-					break
 				}
 				// Reached invalid, friendly, or non-diagonal moving piece
 				break
@@ -98,12 +95,10 @@ func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) map[
 					fallthrough
 				case enemyQueen:
 					attackers[originIndex] = true
-					break
 				case enemyKing:
 					if i == 1 {
 						attackers[originIndex] = true
 					}
-					break
 				}
 				// Reached invalid, friendly, or non-cardinal moving piece
 				break
