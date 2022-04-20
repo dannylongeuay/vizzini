@@ -1,7 +1,7 @@
 package main
 
-func (b board) squareKnightAttackers(side Color, squareIndex SquareIndex) []SquareIndex {
-	attackers := make([]SquareIndex, 0, MAX_SQUARE_KNIGHT_ATTACKERS)
+func (b board) squareKnightAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
+	attackers := make(map[SquareIndex]bool, MAX_SQUARE_KNIGHT_ATTACKERS)
 
 	enemyKnight := BLACK_KNIGHT
 
@@ -13,15 +13,15 @@ func (b board) squareKnightAttackers(side Color, squareIndex SquareIndex) []Squa
 		for _, moveDist := range KNIGHT_MOVE_DISTS {
 			originIndex := SquareIndex(moveDist*dir) + squareIndex
 			if b.squares[originIndex] == enemyKnight {
-				attackers = append(attackers, originIndex)
+				attackers[originIndex] = true
 			}
 		}
 	}
 	return attackers
 }
 
-func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) []SquareIndex {
-	attackers := make([]SquareIndex, 0, MAX_SQUARE_DIAGONAL_ATTACKERS)
+func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
+	attackers := make(map[SquareIndex]bool, MAX_SQUARE_DIAGONAL_ATTACKERS)
 
 	pawnAttackDir := POSITIVE_DIR
 
@@ -51,16 +51,16 @@ func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) []Sq
 				case enemyBishop:
 					fallthrough
 				case enemyQueen:
-					attackers = append(attackers, originIndex)
+					attackers[originIndex] = true
 					break
 				case enemyPawn:
 					if i == 1 && dir*-1 == pawnAttackDir {
-						attackers = append(attackers, originIndex)
+						attackers[originIndex] = true
 					}
 					break
 				case enemyKing:
 					if i == 1 {
-						attackers = append(attackers, originIndex)
+						attackers[originIndex] = true
 					}
 					break
 				}
@@ -72,8 +72,8 @@ func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) []Sq
 	return attackers
 }
 
-func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) []SquareIndex {
-	attackers := make([]SquareIndex, 0, MAX_SQUARE_CARDINAL_ATTACKERS)
+func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
+	attackers := make(map[SquareIndex]bool, MAX_SQUARE_CARDINAL_ATTACKERS)
 
 	enemyRook := BLACK_ROOK
 	enemyQueen := BLACK_QUEEN
@@ -97,11 +97,11 @@ func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) []Sq
 				case enemyRook:
 					fallthrough
 				case enemyQueen:
-					attackers = append(attackers, originIndex)
+					attackers[originIndex] = true
 					break
 				case enemyKing:
 					if i == 1 {
-						attackers = append(attackers, originIndex)
+						attackers[originIndex] = true
 					}
 					break
 				}
@@ -113,13 +113,19 @@ func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) []Sq
 	return attackers
 }
 
-func (b board) squareAttackers(side Color, squareIndex SquareIndex) []SquareIndex {
-	attackers := make([]SquareIndex, 0, MAX_SQUARE_ATTACKERS)
+func (b board) squareAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
+	attackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
 	knightAttackers := b.squareKnightAttackers(side, squareIndex)
-	attackers = append(attackers, knightAttackers...)
+	for k, v := range knightAttackers {
+		attackers[k] = v
+	}
 	diagonalAttackers := b.squareDiagonalAttackers(side, squareIndex)
-	attackers = append(attackers, diagonalAttackers...)
+	for k, v := range diagonalAttackers {
+		attackers[k] = v
+	}
 	cardinalAttackers := b.squareCardinalAttackers(side, squareIndex)
-	attackers = append(attackers, cardinalAttackers...)
+	for k, v := range cardinalAttackers {
+		attackers[k] = v
+	}
 	return attackers
 }

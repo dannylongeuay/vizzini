@@ -18,10 +18,12 @@ var SquareIndexes64 = [64]SquareIndex{
 }
 
 type board struct {
-	squares      []Square
-	pieceIndexes map[Square][]SquareIndex // piecesIndexes[WHITE_PAWN] = [81, 82, ...]
-	sideToMove   Color
-	fiftyMove    int
+	squares        []Square
+	pieceSets      map[Square]map[SquareIndex]bool
+	whiteKingIndex SquareIndex
+	blackKindIndex SquareIndex
+	sideToMove     Color
+	fiftyMove      int
 	/*
 		castleRights
 		0000 0001 = Black king can castle queenside
@@ -45,7 +47,7 @@ func newBoard(fen string) (*board, error) {
 
 	b := board{}
 	b.squares = make([]Square, BOARD_SQUARES)
-	b.pieceIndexes = make(map[Square][]SquareIndex)
+	b.pieceSets = makePieceSets()
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
@@ -82,6 +84,7 @@ func newBoard(fen string) (*board, error) {
 				break
 			case "K":
 				b.squares[squareIndex] = WHITE_KING
+				b.whiteKingIndex = squareIndex
 				break
 			case "p":
 				b.squares[squareIndex] = BLACK_PAWN
@@ -100,6 +103,7 @@ func newBoard(fen string) (*board, error) {
 				break
 			case "k":
 				b.squares[squareIndex] = BLACK_KING
+				b.blackKindIndex = squareIndex
 				break
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
@@ -107,7 +111,7 @@ func newBoard(fen string) (*board, error) {
 			count, err := strconv.Atoi(string(char))
 			if err != nil {
 				square := b.squares[squareIndex]
-				b.pieceIndexes[square] = append(b.pieceIndexes[square], squareIndex)
+				b.pieceSets[square][squareIndex] = true
 				squareIndex64++
 			} else {
 				for i := 0; i < count; i++ {
@@ -242,4 +246,21 @@ func (b board) toString() string {
 	s += sep
 	s += " A  B  C  D  E  F  G  H"
 	return s
+}
+
+func makePieceSets() map[Square]map[SquareIndex]bool {
+	pieceSets := make(map[Square]map[SquareIndex]bool)
+	pieceSets[WHITE_PAWN] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_KNIGHT] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_BISHOP] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_ROOK] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_QUEEN] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_KING] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_PAWN] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_KNIGHT] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_BISHOP] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_ROOK] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_QUEEN] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_KING] = make(map[SquareIndex]bool)
+	return pieceSets
 }

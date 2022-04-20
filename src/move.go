@@ -15,12 +15,12 @@ var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
 
 func (b board) generateMoves(side Color) []move {
 	moves := make([]move, 0, MAX_GENERATED_MOVES)
-	for square, squareIndexes := range b.pieceIndexes {
+	for square, squareIndexes := range b.pieceSets {
 		squareColor := colorBySquare(square)
 		if squareColor != side {
 			continue
 		}
-		for _, squareIndex := range squareIndexes {
+		for squareIndex := range squareIndexes {
 			switch square {
 			case WHITE_PAWN:
 				fallthrough

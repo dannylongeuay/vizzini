@@ -16,15 +16,6 @@ type testPieceChecks struct {
 	pieceCoords []SquareCoord
 }
 
-func containsPieceIndex(indexes []SquareIndex, testIndex SquareIndex) bool {
-	for _, index := range indexes {
-		if index == testIndex {
-			return true
-		}
-	}
-	return false
-}
-
 func TestSquareByIndexes64(t *testing.T) {
 	tests := []struct {
 		index    int
@@ -44,16 +35,18 @@ func TestSquareByIndexes64(t *testing.T) {
 
 func TestNewBoard(t *testing.T) {
 	tests := []struct {
-		fen          string
-		sideToMove   Color
-		castleRights CastleRights
-		epIndex      SquareIndex
-		halfMove     int
-		fullMove     int
-		squareChecks []testSquareChecks
-		pieceChecks  []testPieceChecks
+		fen            string
+		whiteKingCoord SquareCoord
+		blackKingCoord SquareCoord
+		sideToMove     Color
+		castleRights   CastleRights
+		epIndex        SquareIndex
+		halfMove       int
+		fullMove       int
+		squareChecks   []testSquareChecks
+		pieceChecks    []testPieceChecks
 	}{
-		{STARTING_FEN, WHITE, 15, 0, 0, 1,
+		{STARTING_FEN, "e1", "e8", WHITE, 15, 0, 0, 1,
 			[]testSquareChecks{
 				{FILE_A, RANK_EIGHT, BLACK_ROOK},
 				{FILE_B, RANK_EIGHT, BLACK_KNIGHT},
@@ -131,7 +124,7 @@ func TestNewBoard(t *testing.T) {
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-			BLACK, 15, 75, 0, 1,
+			"e1", "e8", BLACK, 15, 75, 0, 1,
 			[]testSquareChecks{
 				{FILE_E, RANK_FOUR, WHITE_PAWN},
 			},
@@ -142,7 +135,7 @@ func TestNewBoard(t *testing.T) {
 			},
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
-			WHITE, 15, 43, 0, 2,
+			"e1", "e8", WHITE, 15, 43, 0, 2,
 			[]testSquareChecks{
 				{FILE_C, RANK_FIVE, BLACK_PAWN},
 			},
@@ -153,7 +146,7 @@ func TestNewBoard(t *testing.T) {
 			},
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
-			BLACK, 15, 0, 1, 2,
+			"e1", "e8", BLACK, 15, 0, 1, 2,
 			[]testSquareChecks{
 				{FILE_F, RANK_THREE, WHITE_KNIGHT},
 			},
@@ -167,22 +160,22 @@ func TestNewBoard(t *testing.T) {
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
-			WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w q - 0 1",
-			WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w k - 0 1",
-			WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Q - 0 1",
-			WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K - 0 1",
-			WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/PpPP1PPP/RNBQ1RK1 b q - 1 9",
-			BLACK, 1, 0, 1, 9,
+			"g1", "e8", BLACK, 1, 0, 1, 9,
 			[]testSquareChecks{
 				{FILE_B, RANK_TWO, BLACK_PAWN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
@@ -206,7 +199,7 @@ func TestNewBoard(t *testing.T) {
 			},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/P1PP1PPP/qNBQ1RK1 w q - 0 10",
-			WHITE, 1, 0, 0, 10,
+			"g1", "e8", WHITE, 1, 0, 0, 10,
 			[]testSquareChecks{
 				{FILE_A, RANK_ONE, BLACK_QUEEN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
@@ -238,6 +231,20 @@ func TestNewBoard(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+		whiteKingIndex, err := squareIndexByCoord(tt.whiteKingCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		if b.squares[whiteKingIndex] != WHITE_KING {
+			t.Errorf("white king square: %v != %v", b.squares[whiteKingIndex], WHITE_KING)
+		}
+		blackKingIndex, err := squareIndexByCoord(tt.blackKingCoord)
+		if err != nil {
+			t.Error(err)
+		}
+		if b.squares[blackKingIndex] != BLACK_KING {
+			t.Errorf("black king square: %v != %v", b.squares[blackKingIndex], BLACK_KING)
+		}
 		for _, check := range tt.squareChecks {
 			squareIndex := squareIndexByFileRank(check.file, check.rank)
 
@@ -246,17 +253,17 @@ func TestNewBoard(t *testing.T) {
 			}
 		}
 		for _, check := range tt.pieceChecks {
-			if len(b.pieceIndexes[check.square]) != check.piecesCount {
-				t.Errorf("piece indexes length: %v != %v", len(b.pieceIndexes[check.square]), check.piecesCount)
+			if len(b.pieceSets[check.square]) != check.piecesCount {
+				t.Errorf("piece indexes length: %v != %v", len(b.pieceSets[check.square]), check.piecesCount)
 			}
 			for _, pieceCoord := range check.pieceCoords {
 				pieceIndex, err := squareIndexByCoord(pieceCoord)
 				if err != nil {
 					t.Error(err)
 				}
-				if !containsPieceIndex(b.pieceIndexes[check.square], pieceIndex) {
-					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceIndexes[check.square])
-
+				_, present := b.pieceSets[check.square][pieceIndex]
+				if !present {
+					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceSets[check.square])
 				}
 			}
 		}

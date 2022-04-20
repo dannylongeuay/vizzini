@@ -40,7 +40,8 @@ func TestSquareKnightAttackers(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !containsPieceIndex(attackers, attackerIndex) {
+			_, present := attackers[attackerIndex]
+			if !present {
 				t.Errorf("attacker index %v not found in %v", attackerIndex, attackers)
 			}
 		}
@@ -89,7 +90,8 @@ func TestSquareDiagonalAttackers(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !containsPieceIndex(attackers, attackerIndex) {
+			_, present := attackers[attackerIndex]
+			if !present {
 				t.Errorf("attacker index %v not found in %v", attackerIndex, attackers)
 			}
 		}
@@ -132,7 +134,8 @@ func TestSquareCardinalAttackers(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !containsPieceIndex(attackers, attackerIndex) {
+			_, present := attackers[attackerIndex]
+			if !present {
 				t.Errorf("attacker index %v not found in %v", attackerIndex, attackers)
 			}
 		}
@@ -178,7 +181,8 @@ func TestSquareAttackers(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !containsPieceIndex(attackers, attackerIndex) {
+			_, present := attackers[attackerIndex]
+			if !present {
 				t.Errorf("attacker index %v not found in %v", attackerIndex, attackers)
 			}
 		}
