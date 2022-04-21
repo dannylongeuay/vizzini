@@ -4,6 +4,7 @@ const STARTING_FEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 
 
 const BOARD_SQUARES int = 120
 const MAX_MOVE_RANGE int = 8
+const MAX_GAME_MOVES uint16 = 300
 
 const KING_MOVE_RANGE int = 2
 const KING_CASTLE_MOVE_DIST = 2

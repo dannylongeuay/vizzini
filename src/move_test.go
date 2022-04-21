@@ -41,6 +41,50 @@ func containsTestMove(moves []move, testMove testMove) (bool, error) {
 	return false, nil
 }
 
+func compareBoardState(bStart *board, bEnd *board, t *testing.T) {
+	if bStart.whiteKingIndex != bEnd.whiteKingIndex {
+		t.Errorf("board white king index: %v != %v", bStart.whiteKingIndex, bEnd.whiteKingIndex)
+	}
+	if bStart.blackKingIndex != bEnd.blackKingIndex {
+		t.Errorf("board black king index: %v != %v", bStart.blackKingIndex, bEnd.blackKingIndex)
+	}
+	if bStart.sideToMove != bEnd.sideToMove {
+		t.Errorf("board side to move: %v != %v", bStart.sideToMove, bEnd.sideToMove)
+	}
+	if bStart.castleRights != bEnd.castleRights {
+		t.Errorf("board castle rights: %v != %v", bStart.castleRights, bEnd.castleRights)
+	}
+	if bStart.epIndex != bEnd.epIndex {
+		t.Errorf("board en passant index: %v != %v", bStart.epIndex, bEnd.epIndex)
+	}
+	if bStart.halfMove != bEnd.halfMove {
+		t.Errorf("board half move: %v != %v", bStart.halfMove, bEnd.halfMove)
+	}
+	if bStart.fullMove != bEnd.fullMove {
+		t.Errorf("board full move: %v != %v", bStart.fullMove, bEnd.fullMove)
+	}
+	for square, squareIndexes := range bStart.pieceSets {
+		for squareIndex := range squareIndexes {
+			_, present := bEnd.pieceSets[square][squareIndex]
+			if !present {
+				t.Errorf("board start piece %v at %v not present in %v", square, squareIndex, bEnd.pieceSets[square])
+			}
+		}
+	}
+	for square, squareIndexes := range bEnd.pieceSets {
+		for squareIndex := range squareIndexes {
+			_, present := bStart.pieceSets[square][squareIndex]
+			if !present {
+				t.Errorf("board end piece %v at %v not present in %v", square, squareIndex, bStart.pieceSets[square])
+			}
+		}
+	}
+	if bStart.hash != bEnd.hash {
+		t.Errorf("board hash: %v != %v", bStart.hash, bEnd.hash)
+	}
+
+}
+
 type testMove struct {
 	origin SquareCoord
 	target SquareCoord
@@ -490,15 +534,25 @@ func TestGenerateKingMoves(t *testing.T) {
 		{STARTING_FEN, WHITE, "e1", 0,
 			[]testMove{},
 		},
-		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", MAX_KING_MOVES,
+		{"rn1q2nr/p2kb1pp/1p6/8/4K3/2N2p1N/PPPP4/R1BQ1B1R w - - 0 14", WHITE, "e4", MAX_KING_MOVES,
 			[]testMove{
 				{"e4", "d3", QUIET},
 				{"e4", "d4", QUIET},
 				{"e4", "d5", QUIET},
 				{"e4", "e3", QUIET},
+				{"e4", "e5", QUIET},
+				{"e4", "f3", CAPTURE},
+				{"e4", "f4", QUIET},
+				{"e4", "f5", QUIET},
+			},
+		},
+		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", 6,
+			[]testMove{
+				{"e4", "d3", QUIET},
+				{"e4", "d5", QUIET},
+				{"e4", "e3", QUIET},
 				{"e4", "e5", CAPTURE},
 				{"e4", "f3", QUIET},
-				{"e4", "f4", QUIET},
 				{"e4", "f5", QUIET},
 			},
 		},
@@ -535,11 +589,8 @@ func TestGenerateKingMoves(t *testing.T) {
 				{"c1", "d2", QUIET},
 			},
 		},
-		{"rnbqk2r/pppp1ppp/4pn2/8/1Q1P4/5N2/PPP1PPPP/RNB1KB1R b KQkq - 2 4", BLACK, "e8", 2,
-			[]testMove{
-				{"e8", "f8", QUIET},
-				{"e8", "e7", QUIET},
-			},
+		{"rnbqk2r/pppp1ppp/4pn2/8/1Q1P4/5N2/PPP1PPPP/RNB1KB1R b KQkq - 2 4", BLACK, "e8", 0,
+			[]testMove{},
 		},
 		{"rnbqk2r/pppp2pp/4pp2/4N3/1Q1P4/4P2n/PPP1BPPP/RNB1K2R w KQkq - 0 8", WHITE, "e1", 3,
 			[]testMove{
@@ -669,45 +720,207 @@ func TestMakeMove(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if bStart.whiteKingIndex != bEnd.whiteKingIndex {
-			t.Errorf("board white king index: %v != %v", bStart.whiteKingIndex, bEnd.whiteKingIndex)
+		compareBoardState(bStart, bEnd, t)
+	}
+}
+
+func TestUndoMove(t *testing.T) {
+	tests := []struct {
+		fen  string
+		move testMove
+	}{
+		{
+			STARTING_FEN,
+			testMove{"e2", "e4", DOUBLE_PAWN_PUSH},
+		},
+		{
+			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
+			testMove{"a1", "a3", QUIET},
+		},
+		{
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			testMove{"b5", "c6", CAPTURE},
+		},
+		{
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			testMove{"e1", "g1", KING_CASTLE},
+		},
+		{
+			"rnbqkbnr/pp2pppp/8/2pP4/8/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 3",
+			testMove{"d5", "c6", EP_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", QUEEN_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", ROOK_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", BISHOP_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			testMove{"b7", "a8", KNIGHT_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP3pP/R1BQKBNR b KQkq - 0 7",
+			testMove{"g2", "h1", QUEEN_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", QUEEN_PROMOTION},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", ROOK_PROMOTION},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", BISHOP_PROMOTION},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			testMove{"g2", "g1", KNIGHT_PROMOTION},
+		},
+	}
+	seedKeys(time.Now().UTC().UnixNano())
+	for _, tt := range tests {
+		bStart, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
 		}
-		if bStart.blackKingIndex != bEnd.blackKingIndex {
-			t.Errorf("board black king index: %v != %v", bStart.blackKingIndex, bEnd.blackKingIndex)
+		bEnd, err := newBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
 		}
-		if bStart.sideToMove != bEnd.sideToMove {
-			t.Errorf("board side to move: %v != %v", bStart.sideToMove, bEnd.sideToMove)
+		m, err := newMoveFromTestMove(tt.move)
+		if err != nil {
+			t.Error(err)
 		}
-		if bStart.castleRights != bEnd.castleRights {
-			t.Errorf("board castle rights: %v != %v", bStart.castleRights, bEnd.castleRights)
+		err = bStart.makeMove(m)
+		if err != nil {
+			t.Error(err)
 		}
-		if bStart.epIndex != bEnd.epIndex {
-			t.Errorf("board en passant index: %v != %v", bStart.epIndex, bEnd.epIndex)
+		err = bStart.undoMove()
+		if err != nil {
+			t.Error(err)
 		}
-		if bStart.halfMove != bEnd.halfMove {
-			t.Errorf("board half move: %v != %v", bStart.halfMove, bEnd.halfMove)
+		compareBoardState(bStart, bEnd, t)
+	}
+}
+
+func TestUndoMoves(t *testing.T) {
+	tests := []struct {
+		startFen  string
+		endFen    string
+		undoCount int
+		moves     []testMove
+	}{
+		{
+			STARTING_FEN,
+			STARTING_FEN,
+			2,
+			[]testMove{
+				{"e2", "e4", DOUBLE_PAWN_PUSH},
+				{"e7", "e5", DOUBLE_PAWN_PUSH},
+			},
+		},
+		{
+			STARTING_FEN,
+			"rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+			1,
+			[]testMove{
+				{"e2", "e4", DOUBLE_PAWN_PUSH},
+				{"e7", "e5", DOUBLE_PAWN_PUSH},
+				{"g1", "f3", QUIET},
+				{"b8", "c6", QUIET},
+			},
+		},
+		{
+			STARTING_FEN,
+			"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+			2,
+			[]testMove{
+				{"e2", "e4", DOUBLE_PAWN_PUSH},
+				{"e7", "e5", DOUBLE_PAWN_PUSH},
+				{"g1", "f3", QUIET},
+				{"b8", "c6", QUIET},
+				{"f1", "b5", QUIET},
+				{"g8", "f6", QUIET},
+			},
+		},
+		{
+			STARTING_FEN,
+			"r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			2,
+			[]testMove{
+				{"e2", "e4", DOUBLE_PAWN_PUSH},
+				{"e7", "e5", DOUBLE_PAWN_PUSH},
+				{"g1", "f3", QUIET},
+				{"b8", "c6", QUIET},
+				{"f1", "b5", QUIET},
+				{"g8", "f6", QUIET},
+				{"e1", "g1", KING_CASTLE},
+				{"f8", "e7", QUIET},
+			},
+		},
+		{
+			STARTING_FEN,
+			"r1bqk2r/ppppbppp/2B2n2/4p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 0 5",
+			1,
+			[]testMove{
+				{"e2", "e4", DOUBLE_PAWN_PUSH},
+				{"e7", "e5", DOUBLE_PAWN_PUSH},
+				{"g1", "f3", QUIET},
+				{"b8", "c6", QUIET},
+				{"f1", "b5", QUIET},
+				{"g8", "f6", QUIET},
+				{"e1", "g1", KING_CASTLE},
+				{"f8", "e7", QUIET},
+				{"b5", "c6", CAPTURE},
+				{"d7", "c6", CAPTURE},
+			},
+		},
+	}
+	seedKeys(time.Now().UTC().UnixNano())
+	for _, tt := range tests {
+		bStart, err := newBoard(tt.startFen)
+		if err != nil {
+			t.Error(err)
 		}
-		if bStart.fullMove != bEnd.fullMove {
-			t.Errorf("board full move: %v != %v", bStart.fullMove, bEnd.fullMove)
+		bEnd, err := newBoard(tt.endFen)
+		if err != nil {
+			t.Error(err)
 		}
-		for square, squareIndexes := range bStart.pieceSets {
-			for squareIndex := range squareIndexes {
-				_, present := bEnd.pieceSets[square][squareIndex]
-				if !present {
-					t.Errorf("board start piece %v at %v not present in %v", square, squareIndex, bEnd.pieceSets[square])
+		for _, tm := range tt.moves {
+			legalMoves := bStart.generateMoves(bStart.sideToMove)
+			m, err := newMoveFromTestMove(tm)
+			if err != nil {
+				t.Error(err)
+			}
+			isLegal := false
+			for _, lm := range legalMoves {
+				if lm == m {
+					isLegal = true
 				}
 			}
-		}
-		for square, squareIndexes := range bEnd.pieceSets {
-			for squareIndex := range squareIndexes {
-				_, present := bStart.pieceSets[square][squareIndex]
-				if !present {
-					t.Errorf("board end piece %v at %v not present in %v", square, squareIndex, bStart.pieceSets[square])
-				}
+			if !isLegal {
+				t.Errorf("%v is not a valid move", tm)
+			}
+			err = bStart.makeMove(m)
+			if err != nil {
+				t.Error(err)
 			}
 		}
-		if bStart.hash != bEnd.hash {
-			t.Errorf("board hash: %v != %v", bStart.hash, bEnd.hash)
+		for i := 0; i < tt.undoCount; i++ {
+			err = bStart.undoMove()
+			if err != nil {
+				t.Error(err)
+			}
 		}
+		compareBoardState(bStart, bEnd, t)
 	}
 }

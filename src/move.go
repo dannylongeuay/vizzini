@@ -15,7 +15,7 @@ var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
 var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
 var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
 
-func (b board) generateMoves(side Color) []move {
+func (b *board) generateMoves(side Color) []move {
 	moves := make([]move, 0, MAX_GENERATED_MOVES)
 	for square, squareIndexes := range b.pieceSets {
 		squareColor := colorBySquare(square)
@@ -60,7 +60,20 @@ func (b board) generateMoves(side Color) []move {
 	return moves
 }
 
-func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
+func (b *board) generateLegalMoves(moves []move, maxSize int) []move {
+	legalMoves := make([]move, 0, maxSize)
+	for _, m := range moves {
+		err := b.makeMove(m)
+		b.undoMove()
+		if err != nil {
+			continue
+		}
+		legalMoves = append(legalMoves, m)
+	}
+	return legalMoves
+}
+
+func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 	moves := make([]move, 0, MAX_PAWN_MOVES)
 	dir := POSITIVE_DIR
 	rank := rankBySquareIndex(squareIndex)
@@ -138,10 +151,10 @@ func (b board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 			moves = append(moves, move)
 		}
 	}
-	return moves
+	return b.generateLegalMoves(moves, MAX_PAWN_MOVES)
 }
 
-func (b board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
+func (b *board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
 	moves := make([]move, 0, MAX_KNIGHT_MOVES)
 	for _, dir := range MOVE_DIRECTIONS {
 		for _, moveDist := range KNIGHT_MOVE_DISTS {
@@ -164,10 +177,10 @@ func (b board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
 			}
 		}
 	}
-	return moves
+	return b.generateLegalMoves(moves, MAX_KNIGHT_MOVES)
 }
 
-func (b board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDists []int, maxMoves int, moveRange int) []move {
+func (b *board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDists []int, maxMoves int, moveRange int) []move {
 	moves := make([]move, 0, maxMoves)
 	for _, dir := range MOVE_DIRECTIONS {
 		for _, moveDist := range moveDists {
@@ -198,17 +211,17 @@ func (b board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDis
 			}
 		}
 	}
-	return moves
+	return b.generateLegalMoves(moves, maxMoves)
 }
-func (b board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
+func (b *board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
 	return b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
 }
 
-func (b board) generateRookMoves(side Color, squareIndex SquareIndex) []move {
+func (b *board) generateRookMoves(side Color, squareIndex SquareIndex) []move {
 	return b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
 }
 
-func (b board) generateQueenMoves(side Color, squareIndex SquareIndex) []move {
+func (b *board) generateQueenMoves(side Color, squareIndex SquareIndex) []move {
 	moves := make([]move, 0, MAX_QUEEN_MOVES)
 	diagonalMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
 	moves = append(moves, diagonalMoves...)
@@ -217,7 +230,7 @@ func (b board) generateQueenMoves(side Color, squareIndex SquareIndex) []move {
 	return moves
 }
 
-func (b board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
+func (b *board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 	moves := make([]move, 0, MAX_KING_MOVES)
 	diagonalMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_KING_MOVES/2, KING_MOVE_RANGE)
 	moves = append(moves, diagonalMoves...)
@@ -261,7 +274,7 @@ func (b board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 	return moves
 }
 
-func (b board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
+func (b *board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
 	rookDist := 3
 	if dir == NEGATIVE_DIR {
 		rookDist = 4
@@ -324,6 +337,17 @@ func (b *board) updateCastleRights(squareIndex SquareIndex) {
 func (b *board) makeMove(m move) error {
 	originSquare := b.squares[m.origin]
 	targetSquare := b.squares[m.target]
+
+	u := undo{
+		mv:             m,
+		capturedSquare: targetSquare,
+		castleRights:   b.castleRights,
+		epIndex:        b.epIndex,
+		halfMove:       b.halfMove,
+		hash:           b.hash,
+	}
+	b.undos[b.undoIndex] = u
+	b.undoIndex++
 
 	b.clearSquare(originSquare, m.origin)
 
@@ -420,12 +444,95 @@ func (b *board) makeMove(m move) error {
 
 	kingAttackers := b.squareAttackers(b.sideToMove, kingIndex)
 
+	b.hashSide()
+	b.sideToMove ^= 1
+
 	if len(kingAttackers) > 0 {
 		return fmt.Errorf("king has %v attacker(s)", len(kingAttackers))
 	}
 
-	b.hashSide()
-	b.sideToMove ^= 1
+	return nil
+}
 
+func (b *board) undoMove() error {
+	if b.undoIndex <= 0 {
+		return fmt.Errorf("invalid undo index: %v", b.undoIndex)
+	}
+	b.undoIndex--
+	u := b.undos[b.undoIndex]
+
+	b.sideToMove ^= 1
+	targetSquare := b.squares[u.mv.target]
+
+	if b.sideToMove == BLACK {
+		b.fullMove--
+	}
+
+	b.clearSquare(targetSquare, u.mv.target)
+
+	if u.capturedSquare != EMPTY {
+		b.setSquare(u.capturedSquare, u.mv.target)
+	}
+
+	switch u.mv.kind {
+	case KING_CASTLE:
+		fallthrough
+	case QUEEN_CASTLE:
+		switch u.mv.target {
+		case 97:
+			b.clearSquare(WHITE_ROOK, 96)
+			b.setSquare(WHITE_ROOK, 98)
+		case 93:
+			b.clearSquare(WHITE_ROOK, 94)
+			b.setSquare(WHITE_ROOK, 91)
+		case 27:
+			b.clearSquare(BLACK_ROOK, 26)
+			b.setSquare(BLACK_ROOK, 28)
+		case 23:
+			b.clearSquare(BLACK_ROOK, 24)
+			b.setSquare(BLACK_ROOK, 21)
+		}
+	case EP_CAPTURE:
+		epCaptureIndex := u.mv.target - SquareIndex(VERTICAL_MOVE_DIST)
+		epSquare := WHITE_PAWN
+		if b.sideToMove == WHITE {
+			epCaptureIndex = u.mv.target + SquareIndex(VERTICAL_MOVE_DIST)
+			epSquare = BLACK_PAWN
+		}
+		b.setSquare(epSquare, epCaptureIndex)
+	case KNIGHT_PROMOTION_CAPTURE:
+		fallthrough
+	case KNIGHT_PROMOTION:
+		fallthrough
+	case BISHOP_PROMOTION_CAPTURE:
+		fallthrough
+	case BISHOP_PROMOTION:
+		fallthrough
+	case ROOK_PROMOTION_CAPTURE:
+		fallthrough
+	case ROOK_PROMOTION:
+		fallthrough
+	case QUEEN_PROMOTION_CAPTURE:
+		fallthrough
+	case QUEEN_PROMOTION:
+		if b.sideToMove == WHITE {
+			targetSquare = WHITE_PAWN
+		} else {
+			targetSquare = BLACK_PAWN
+		}
+	}
+	b.setSquare(targetSquare, u.mv.origin)
+
+	switch targetSquare {
+	case WHITE_KING:
+		b.whiteKingIndex = u.mv.origin
+	case BLACK_KING:
+		b.blackKingIndex = u.mv.origin
+	}
+
+	b.castleRights = u.castleRights
+	b.epIndex = u.epIndex
+	b.halfMove = u.halfMove
+	b.hash = u.hash
 	return nil
 }

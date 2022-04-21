@@ -71,6 +71,9 @@ func TestSquareDiagonalAttackers(t *testing.T) {
 		{"k6B/8/8/2B5/3q4/4P3/1Q6/7K b - - 0 1", BLACK, "d4", MAX_SQUARE_DIAGONAL_ATTACKERS,
 			[]SquareCoord{"b2", "c5", "e3", "h8"},
 		},
+		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "d4", 1,
+			[]SquareCoord{"e5"},
+		},
 	}
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)

@@ -17,6 +17,15 @@ var SquareIndexes64 = [64]SquareIndex{
 	91, 92, 93, 94, 95, 96, 97, 98,
 }
 
+type undo struct {
+	mv             move
+	capturedSquare Square
+	castleRights   CastleRights
+	epIndex        SquareIndex
+	halfMove       int
+	hash           uint64
+}
+
 type board struct {
 	squares        []Square
 	pieceSets      map[Square]map[SquareIndex]bool
@@ -35,6 +44,8 @@ type board struct {
 	halfMove     int
 	fullMove     int
 	hash         uint64
+	undoIndex    int
+	undos        []undo
 }
 
 func newBoard(fen string) (*board, error) {
@@ -47,6 +58,7 @@ func newBoard(fen string) (*board, error) {
 	b := board{}
 	b.squares = make([]Square, BOARD_SQUARES)
 	b.pieceSets = makePieceSets()
+	b.undos = make([]undo, MAX_GAME_MOVES)
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
