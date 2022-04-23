@@ -11,32 +11,42 @@ type testSquareChecks struct {
 }
 
 type testPieceChecks struct {
-	color              Color
-	pieceIndexesLength int
-	pieceCoords        []SquareCoord
+	square      Square
+	piecesCount int
+	pieceCoords []SquareCoord
 }
 
-func containsPieceIndex(indexes []SquareIndex, testIndex SquareIndex) bool {
-	for _, index := range indexes {
-		if index == testIndex {
-			return true
+func TestSquareByIndexes64(t *testing.T) {
+	tests := []struct {
+		index    int
+		expected SquareIndex
+	}{
+		{0, 21},
+		{63, 98},
+	}
+	for _, tt := range tests {
+
+		actual := SquareIndexes64[tt.index]
+		if actual != tt.expected {
+			t.Errorf("square: %v != %v", actual, tt.expected)
 		}
 	}
-	return false
 }
 
 func TestNewBoard(t *testing.T) {
 	tests := []struct {
-		fen          string
-		sideToMove   Color
-		castleRights CastleRights
-		epIndex      SquareIndex
-		halfMove     int
-		fullMove     int
-		squareChecks []testSquareChecks
-		pieceChecks  []testPieceChecks
+		fen            string
+		whiteKingCoord SquareCoord
+		blackKingCoord SquareCoord
+		sideToMove     Color
+		castleRights   CastleRights
+		epIndex        SquareIndex
+		halfMove       int
+		fullMove       int
+		squareChecks   []testSquareChecks
+		pieceChecks    []testPieceChecks
 	}{
-		{STARTING_FEN, WHITE, 15, 0, 0, 1,
+		{STARTING_FEN, "e1", "e8", WHITE, 15, 0, 0, 1,
 			[]testSquareChecks{
 				{FILE_A, RANK_EIGHT, BLACK_ROOK},
 				{FILE_B, RANK_EIGHT, BLACK_KNIGHT},
@@ -75,91 +85,143 @@ func TestNewBoard(t *testing.T) {
 				{FILE_NONE, RANK_NONE, INVALID},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareCoord{
+				{WHITE_PAWN, 8, []SquareCoord{
 					"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-					"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 				}},
-				{BLACK, 16, []SquareCoord{
-					"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"b1", "g1",
+				}},
+				{WHITE_BISHOP, 2, []SquareCoord{
+					"c1", "f1",
+				}},
+				{WHITE_ROOK, 2, []SquareCoord{
+					"a1", "h1",
+				}},
+				{WHITE_QUEEN, 1, []SquareCoord{
+					"d1",
+				}},
+				{WHITE_KING, 1, []SquareCoord{
+					"e1",
+				}},
+				{BLACK_PAWN, 8, []SquareCoord{
 					"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+				}},
+				{BLACK_KNIGHT, 2, []SquareCoord{
+					"b8", "g8",
+				}},
+				{BLACK_BISHOP, 2, []SquareCoord{
+					"c8", "f8",
+				}},
+				{BLACK_ROOK, 2, []SquareCoord{
+					"a8", "h8",
+				}},
+				{BLACK_QUEEN, 1, []SquareCoord{
+					"d8",
+				}},
+				{BLACK_KING, 1, []SquareCoord{
+					"e8",
 				}},
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-			BLACK, 15, 75, 0, 1,
+			"e1", "e8", BLACK, 15, 75, 0, 1,
 			[]testSquareChecks{
 				{FILE_E, RANK_FOUR, WHITE_PAWN},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareCoord{
+				{WHITE_PAWN, 8, []SquareCoord{
 					"e4",
 				}},
 			},
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
-			WHITE, 15, 43, 0, 2,
+			"e1", "e8", WHITE, 15, 43, 0, 2,
 			[]testSquareChecks{
 				{FILE_C, RANK_FIVE, BLACK_PAWN},
 			},
 			[]testPieceChecks{
-				{BLACK, 16, []SquareCoord{
+				{BLACK_PAWN, 8, []SquareCoord{
 					"c5",
 				}},
 			},
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
-			BLACK, 15, 0, 1, 2,
+			"e1", "e8", BLACK, 15, 0, 1, 2,
 			[]testSquareChecks{
 				{FILE_F, RANK_THREE, WHITE_KNIGHT},
 			},
 			[]testPieceChecks{
-				{WHITE, 16, []SquareCoord{
-					"e4", "f3",
+				{WHITE_PAWN, 8, []SquareCoord{
+					"e4",
+				}},
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"f3",
 				}},
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
-			WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w q - 0 1",
-			WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w k - 0 1",
-			WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Q - 0 1",
-			WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K - 0 1",
-			WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			"e1", "e8", WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/PpPP1PPP/RNBQ1RK1 b q - 1 9",
-			BLACK, 1, 0, 1, 9,
+			"g1", "e8", BLACK, 1, 0, 1, 9,
 			[]testSquareChecks{
 				{FILE_B, RANK_TWO, BLACK_PAWN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE, 15, []SquareCoord{
-					"h8", "d3", "f3",
+				{WHITE_QUEEN, 2, []SquareCoord{
+					"h8",
 				}},
-				{BLACK, 13, []SquareCoord{
-					"e6", "f6", "b2",
+				{WHITE_BISHOP, 2, []SquareCoord{
+					"d3",
+				}},
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"f3",
+				}},
+				{BLACK_PAWN, 6, []SquareCoord{
+					"e6", "b2",
+				}},
+				{BLACK_KNIGHT, 2, []SquareCoord{
+					"f6",
 				}},
 			},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/P1PP1PPP/qNBQ1RK1 w q - 0 10",
-			WHITE, 1, 0, 0, 10,
+			"g1", "e8", WHITE, 1, 0, 0, 10,
 			[]testSquareChecks{
 				{FILE_A, RANK_ONE, BLACK_QUEEN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE, 14, []SquareCoord{
-					"h8", "d3", "f3",
+				{WHITE_QUEEN, 2, []SquareCoord{
+					"h8",
 				}},
-				{BLACK, 13, []SquareCoord{
-					"e6", "f6", "a1",
+				{WHITE_BISHOP, 2, []SquareCoord{
+					"d3",
+				}},
+				{WHITE_KNIGHT, 2, []SquareCoord{
+					"f3",
+				}},
+				{BLACK_PAWN, 5, []SquareCoord{
+					"e6",
+				}},
+				{BLACK_QUEEN, 2, []SquareCoord{
+					"a1",
+				}},
+				{BLACK_KNIGHT, 2, []SquareCoord{
+					"f6",
 				}},
 			},
 		},
@@ -169,6 +231,26 @@ func TestNewBoard(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+		whiteKingIndex, err := squareIndexByCoord(tt.whiteKingCoord)
+		if b.whiteKingIndex != whiteKingIndex {
+			t.Errorf("white king index: %v != %v", b.whiteKingIndex, whiteKingIndex)
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		if b.squares[whiteKingIndex] != WHITE_KING {
+			t.Errorf("white king square: %v != %v", b.squares[whiteKingIndex], WHITE_KING)
+		}
+		blackKingIndex, err := squareIndexByCoord(tt.blackKingCoord)
+		if b.blackKingIndex != blackKingIndex {
+			t.Errorf("black king index: %v != %v", b.blackKingIndex, blackKingIndex)
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		if b.squares[blackKingIndex] != BLACK_KING {
+			t.Errorf("black king square: %v != %v", b.squares[blackKingIndex], BLACK_KING)
+		}
 		for _, check := range tt.squareChecks {
 			squareIndex := squareIndexByFileRank(check.file, check.rank)
 
@@ -177,17 +259,17 @@ func TestNewBoard(t *testing.T) {
 			}
 		}
 		for _, check := range tt.pieceChecks {
-			if len(b.pieceIndexes[check.color]) != check.pieceIndexesLength {
-				t.Errorf("piece indexes length: %v != %v", len(b.pieceIndexes[check.color]), check.pieceIndexesLength)
+			if len(b.pieceSets[check.square]) != check.piecesCount {
+				t.Errorf("piece indexes length: %v != %v", len(b.pieceSets[check.square]), check.piecesCount)
 			}
 			for _, pieceCoord := range check.pieceCoords {
 				pieceIndex, err := squareIndexByCoord(pieceCoord)
 				if err != nil {
 					t.Error(err)
 				}
-				if !containsPieceIndex(b.pieceIndexes[check.color], pieceIndex) {
-					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceIndexes[check.color])
-
+				_, present := b.pieceSets[check.square][pieceIndex]
+				if !present {
+					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceSets[check.square])
 				}
 			}
 		}
@@ -263,85 +345,5 @@ _________________________
 	}
 	if board.toString() != expected {
 		t.Errorf("board to string: %v != %v", board.toString(), expected)
-	}
-}
-
-func TestSquareIndexByFileRank(t *testing.T) {
-	tests := []struct {
-		file     File
-		rank     Rank
-		expected SquareIndex
-	}{
-		{FILE_A, RANK_EIGHT, 21},
-		{FILE_H, RANK_ONE, 98},
-	}
-	for _, tt := range tests {
-		actual := squareIndexByFileRank(tt.file, tt.rank)
-		if actual != tt.expected {
-			t.Errorf("square: %v != %v", actual, tt.expected)
-		}
-	}
-}
-
-func TestSquareByIndexes64(t *testing.T) {
-	tests := []struct {
-		index    int
-		expected SquareIndex
-	}{
-		{0, 21},
-		{63, 98},
-	}
-	for _, tt := range tests {
-
-		actual := SquareIndexes64[tt.index]
-		if actual != tt.expected {
-			t.Errorf("square: %v != %v", actual, tt.expected)
-		}
-	}
-}
-
-func TestRankBySquareIndex(t *testing.T) {
-	tests := []struct {
-		squareIndex SquareIndex
-		expected    Rank
-	}{
-		{21, RANK_EIGHT},
-		{32, RANK_SEVEN},
-		{43, RANK_SIX},
-		{54, RANK_FIVE},
-		{65, RANK_FOUR},
-		{76, RANK_THREE},
-		{87, RANK_TWO},
-		{98, RANK_ONE},
-		{0, RANK_NONE},
-	}
-	for _, tt := range tests {
-		actual := rankBySquareIndex(tt.squareIndex)
-		if actual != tt.expected {
-			t.Errorf("file: %v != %v", actual, tt.expected)
-		}
-	}
-}
-
-func TestFileBySquareIndex(t *testing.T) {
-	tests := []struct {
-		squareIndex SquareIndex
-		expected    File
-	}{
-		{21, FILE_A},
-		{32, FILE_B},
-		{43, FILE_C},
-		{54, FILE_D},
-		{65, FILE_E},
-		{76, FILE_F},
-		{87, FILE_G},
-		{98, FILE_H},
-		{0, FILE_NONE},
-	}
-	for _, tt := range tests {
-		actual := fileBySquareIndex(tt.squareIndex)
-		if actual != tt.expected {
-			t.Errorf("file: %v != %v", actual, tt.expected)
-		}
 	}
 }

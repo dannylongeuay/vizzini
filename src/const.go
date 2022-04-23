@@ -4,6 +4,7 @@ const STARTING_FEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq 
 
 const BOARD_SQUARES int = 120
 const MAX_MOVE_RANGE int = 8
+const MAX_GAME_MOVES uint16 = 300
 
 const KING_MOVE_RANGE int = 2
 const KING_CASTLE_MOVE_DIST = 2
@@ -23,6 +24,11 @@ const MAX_BISHOP_MOVES int = 13
 const MAX_ROOK_MOVES int = 14
 const MAX_QUEEN_MOVES int = 27
 const MAX_KING_MOVES int = 8
+
+const MAX_SQUARE_ATTACKERS = 16
+const MAX_SQUARE_KNIGHT_ATTACKERS = 8
+const MAX_SQUARE_DIAGONAL_ATTACKERS = 4
+const MAX_SQUARE_CARDINAL_ATTACKERS = 4
 
 const (
 	INVALID Square = iota

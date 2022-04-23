@@ -17,12 +17,23 @@ var SquareIndexes64 = [64]SquareIndex{
 	91, 92, 93, 94, 95, 96, 97, 98,
 }
 
+type undo struct {
+	mv             move
+	capturedSquare Square
+	castleRights   CastleRights
+	epIndex        SquareIndex
+	halfMove       int
+	hash           uint64
+}
+
 type board struct {
-	squares      []Square
-	pieceIndexes [][]SquareIndex // pieces[color] = [...]
-	sideToMove   Color
-	fiftyMove    int
+	squares        []Square
+	pieceSets      map[Square]map[SquareIndex]bool
+	whiteKingIndex SquareIndex
+	blackKingIndex SquareIndex
+	sideToMove     Color
 	/*
+		castleRights
 		0000 0001 = Black king can castle queenside
 		0000 0010 = Black king can castle kingside
 		0000 0100 = White king can castle queenside
@@ -32,6 +43,9 @@ type board struct {
 	epIndex      SquareIndex
 	halfMove     int
 	fullMove     int
+	hash         uint64
+	undoIndex    int
+	undos        []undo
 }
 
 func newBoard(fen string) (*board, error) {
@@ -43,9 +57,8 @@ func newBoard(fen string) (*board, error) {
 
 	b := board{}
 	b.squares = make([]Square, BOARD_SQUARES)
-	b.pieceIndexes = make([][]SquareIndex, 2)
-	b.pieceIndexes[WHITE] = make([]SquareIndex, 0, 16)
-	b.pieceIndexes[BLACK] = make([]SquareIndex, 0, 16)
+	b.pieceSets = makePieceSets()
+	b.undos = make([]undo, MAX_GAME_MOVES)
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
@@ -64,53 +77,39 @@ func newBoard(fen string) (*board, error) {
 			case "6":
 			case "7":
 			case "8":
-				break
 			case "P":
 				b.squares[squareIndex] = WHITE_PAWN
-				break
 			case "N":
 				b.squares[squareIndex] = WHITE_KNIGHT
-				break
 			case "B":
 				b.squares[squareIndex] = WHITE_BISHOP
-				break
 			case "R":
 				b.squares[squareIndex] = WHITE_ROOK
-				break
 			case "Q":
 				b.squares[squareIndex] = WHITE_QUEEN
-				break
 			case "K":
 				b.squares[squareIndex] = WHITE_KING
-				break
+				b.whiteKingIndex = squareIndex
 			case "p":
 				b.squares[squareIndex] = BLACK_PAWN
-				break
 			case "n":
 				b.squares[squareIndex] = BLACK_KNIGHT
-				break
 			case "b":
 				b.squares[squareIndex] = BLACK_BISHOP
-				break
 			case "r":
 				b.squares[squareIndex] = BLACK_ROOK
-				break
 			case "q":
 				b.squares[squareIndex] = BLACK_QUEEN
-				break
 			case "k":
 				b.squares[squareIndex] = BLACK_KING
-				break
+				b.blackKingIndex = squareIndex
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
 			}
 			count, err := strconv.Atoi(string(char))
 			if err != nil {
-				color := WHITE
-				if b.squares[squareIndex] > 6 {
-					color = BLACK
-				}
-				b.pieceIndexes[color] = append(b.pieceIndexes[color], squareIndex)
+				square := b.squares[squareIndex]
+				b.pieceSets[square][squareIndex] = true
 				squareIndex64++
 			} else {
 				for i := 0; i < count; i++ {
@@ -135,19 +134,14 @@ func newBoard(fen string) (*board, error) {
 	for _, char := range []rune(castlingRights) {
 		switch string(char) {
 		case "-":
-			break
 		case "K":
 			b.castleRights |= 1 << 3
-			break
 		case "Q":
 			b.castleRights |= 1 << 2
-			break
 		case "k":
 			b.castleRights |= 1 << 1
-			break
 		case "q":
 			b.castleRights |= 1
-			break
 		default:
 			return nil, fmt.Errorf("Invalid castling rights in fen string: %v", string(char))
 		}
@@ -172,38 +166,13 @@ func newBoard(fen string) (*board, error) {
 		return nil, err
 	}
 
+	b.generateBoardHash()
+
 	return &b, nil
 }
 
 func (b board) colorBySquareIndex(s SquareIndex) Color {
-	c := COLOR_NONE
-	switch b.squares[s] {
-	case WHITE_PAWN:
-		fallthrough
-	case WHITE_KNIGHT:
-		fallthrough
-	case WHITE_BISHOP:
-		fallthrough
-	case WHITE_ROOK:
-		fallthrough
-	case WHITE_QUEEN:
-		fallthrough
-	case WHITE_KING:
-		return WHITE
-	case BLACK_PAWN:
-		fallthrough
-	case BLACK_KNIGHT:
-		fallthrough
-	case BLACK_BISHOP:
-		fallthrough
-	case BLACK_ROOK:
-		fallthrough
-	case BLACK_QUEEN:
-		fallthrough
-	case BLACK_KING:
-		return BLACK
-	}
-	return c
+	return colorBySquare(b.squares[s])
 }
 
 func (b board) toString() string {
@@ -223,46 +192,32 @@ func (b board) toString() string {
 		switch square {
 		case EMPTY:
 			s += " "
-			break
 		case WHITE_PAWN:
 			s += "♟"
-			break
 		case WHITE_KNIGHT:
 			s += "♞"
-			break
 		case WHITE_BISHOP:
 			s += "♝"
-			break
 		case WHITE_ROOK:
 			s += "♜"
-			break
 		case WHITE_QUEEN:
 			s += "♛"
-			break
 		case WHITE_KING:
 			s += "♚"
-			break
 		case BLACK_PAWN:
 			s += "♙"
-			break
 		case BLACK_KNIGHT:
 			s += "♘"
-			break
 		case BLACK_BISHOP:
 			s += "♗"
-			break
 		case BLACK_ROOK:
 			s += "♖"
-			break
 		case BLACK_QUEEN:
 			s += "♕"
-			break
 		case BLACK_KING:
 			s += "♔"
-			break
 		default:
 			s += "♠"
-			break
 		}
 		s += " "
 	}
@@ -272,103 +227,19 @@ func (b board) toString() string {
 	return s
 }
 
-func squareIndexByCoord(s SquareCoord) (SquareIndex, error) {
-	var f File
-	var r Rank
-	coordParts := []rune(s)
-	if len(coordParts) != 2 {
-		return 0, fmt.Errorf("Invalid chess notation: %v", s)
-	}
-	switch strings.ToLower(string(coordParts[0])) {
-	case "a":
-		f = FILE_A
-	case "b":
-		f = FILE_B
-	case "c":
-		f = FILE_C
-	case "d":
-		f = FILE_D
-	case "e":
-		f = FILE_E
-	case "f":
-		f = FILE_F
-	case "g":
-		f = FILE_G
-	case "h":
-		f = FILE_H
-	default:
-		return 0, fmt.Errorf("Invalid chess file: %v", string(coordParts[0]))
-	}
-	switch string(coordParts[1]) {
-	case "1":
-		r = RANK_ONE
-	case "2":
-		r = RANK_TWO
-	case "3":
-		r = RANK_THREE
-	case "4":
-		r = RANK_FOUR
-	case "5":
-		r = RANK_FIVE
-	case "6":
-		r = RANK_SIX
-	case "7":
-		r = RANK_SEVEN
-	case "8":
-		r = RANK_EIGHT
-	default:
-		return 0, fmt.Errorf("Invalid chess rank: %v", string(coordParts[1]))
-
-	}
-	return squareIndexByFileRank(f, r), nil
-}
-
-func squareIndexByFileRank(f File, r Rank) SquareIndex {
-	return (21 + SquareIndex(f)) + SquareIndex(r)*10
-}
-
-func rankBySquareIndex(s SquareIndex) Rank {
-	r := RANK_NONE
-	switch (s / 10) % 10 {
-	case 2:
-		return RANK_EIGHT
-	case 3:
-		return RANK_SEVEN
-	case 4:
-		return RANK_SIX
-	case 5:
-		return RANK_FIVE
-	case 6:
-		return RANK_FOUR
-	case 7:
-		return RANK_THREE
-	case 8:
-		return RANK_TWO
-	case 9:
-		return RANK_ONE
-	}
-	return r
-}
-
-func fileBySquareIndex(s SquareIndex) File {
-	f := FILE_NONE
-	switch s % 10 {
-	case 1:
-		return FILE_A
-	case 2:
-		return FILE_B
-	case 3:
-		return FILE_C
-	case 4:
-		return FILE_D
-	case 5:
-		return FILE_E
-	case 6:
-		return FILE_F
-	case 7:
-		return FILE_G
-	case 8:
-		return FILE_H
-	}
-	return f
+func makePieceSets() map[Square]map[SquareIndex]bool {
+	pieceSets := make(map[Square]map[SquareIndex]bool)
+	pieceSets[WHITE_PAWN] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_KNIGHT] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_BISHOP] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_ROOK] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_QUEEN] = make(map[SquareIndex]bool)
+	pieceSets[WHITE_KING] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_PAWN] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_KNIGHT] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_BISHOP] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_ROOK] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_QUEEN] = make(map[SquareIndex]bool)
+	pieceSets[BLACK_KING] = make(map[SquareIndex]bool)
+	return pieceSets
 }
