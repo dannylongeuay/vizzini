@@ -171,6 +171,43 @@ func newBoard(fen string) (*board, error) {
 	return &b, nil
 }
 
+func (b board) copyBoard() board {
+	squares := make([]Square, len(b.squares))
+	for i, square := range b.squares {
+		squares[i] = square
+	}
+
+	pieceSets := make(map[Square]map[SquareIndex]bool, len(b.pieceSets))
+	for square, ps := range b.pieceSets {
+		pieceSet := make(map[SquareIndex]bool, len(ps))
+		for squareIndex := range ps {
+			pieceSet[squareIndex] = true
+		}
+		pieceSets[square] = pieceSet
+	}
+
+	undos := make([]undo, len(b.undos))
+	for i, undo := range b.undos {
+		undos[i] = undo
+	}
+
+	cb := board{
+		squares:        squares,
+		pieceSets:      pieceSets,
+		whiteKingIndex: b.whiteKingIndex,
+		blackKingIndex: b.blackKingIndex,
+		sideToMove:     b.sideToMove,
+		castleRights:   b.castleRights,
+		epIndex:        b.epIndex,
+		halfMove:       b.halfMove,
+		fullMove:       b.fullMove,
+		hash:           b.hash,
+		undoIndex:      b.undoIndex,
+		undos:          undos,
+	}
+	return cb
+}
+
 func (b board) colorBySquareIndex(s SquareIndex) Color {
 	return colorBySquare(b.squares[s])
 }
