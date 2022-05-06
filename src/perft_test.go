@@ -31,8 +31,13 @@ func divide(b *board, depth int) map[string]int {
 	for _, m := range moves {
 		cb := b.copyBoard()
 		cb.makeMove(m)
+		var nodes int
+		if depth > 1 {
+			nodes = perft(&cb, depth-1)
+		} else {
+			nodes = 1
+		}
 		coord := fmt.Sprint(coordBySquareIndex(m.origin), coordBySquareIndex(m.target))
-		nodes := perft(&cb, depth-1)
 		results[coord] = nodes
 	}
 
@@ -48,7 +53,11 @@ func TestPerft(t *testing.T) {
 		{STARTING_FEN, 1, 20},
 		{STARTING_FEN, 2, 400},
 		{STARTING_FEN, 3, 8902},
+		{STARTING_FEN, 4, 197281},
+		// {STARTING_FEN, 5, 4865609},
+		// {STARTING_FEN, 6, 119060324},
 	}
+	seedKeys(181818)
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)
 		if err != nil {
@@ -61,34 +70,14 @@ func TestPerft(t *testing.T) {
 	}
 }
 
-// b1a3 	 1 	 20 	 400 	 8885 	 198572 	 4856835
-// b1c3 	 1 	 20 	 440 	 9755 	 234656 	 5708064
-// g1f3 	 1 	 20 	 440 	 9748 	 233491 	 5723523
-// g1h3 	 1 	 20 	 400 	 8881 	 198502 	 4877234
-// a2a4 	 1 	 20 	 420 	 9329 	 217832 	 5363555
-// a2a3 	 1 	 20 	 380 	 8457 	 181046 	 4463267
-// b2b4 	 1 	 20 	 421 	 9332 	 216145 	 5293555
-// b2b3 	 1 	 20 	 420 	 9345 	 215255 	 5310358
-// c2c4 	 1 	 20 	 441 	 9744 	 240082 	 5866666
-// c2c3 	 1 	 20 	 420 	 9272 	 222861 	 5417640
-// d2d4 	 1 	 20 	 560 	 12435 	 361790 	 8879566
-// d2d3 	 1 	 20 	 539 	 11959 	 328511 	 8073082
-// e2e4 	 1 	 20 	 600 	 13160 	 405385 	 9771632
-// e2e3 	 1 	 20 	 599 	 13134 	 402988 	 9726018
-// f2f4 	 1 	 20 	 401 	 8929 	 198473 	 4890429
-// f2f3 	 1 	 20 	 380 	 8457 	 178889 	 4404141
-// g2g4 	 1 	 20 	 421 	 9328 	 214048 	 5239875
-// g2g3 	 1 	 20 	 420 	 9345 	 217210 	 5346260
-// h2h4 	 1 	 20 	 420 	 9329 	 218829 	 5385554
-// h2h3 	 1 	 20  	 380 	 8457 	 181044 	 4463070
-
 func TestDivide(t *testing.T) {
 	tests := []struct {
-		fen      string
-		depth    int
-		expected map[string]int
+		fen             string
+		depth           int
+		expectedMoves   int
+		expectedResults map[string]int
 	}{
-		{STARTING_FEN, 3,
+		{STARTING_FEN, 3, 20,
 			map[string]int{
 				"b1a3": 400,
 				"b1c3": 440,
@@ -112,20 +101,178 @@ func TestDivide(t *testing.T) {
 				"h2h3": 380,
 			},
 		},
+		{"rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1", 2, 20,
+			map[string]int{
+				"a7a6": 22,
+				"a7a5": 22,
+				"b7b6": 22,
+				"b7b5": 22,
+				"c7c6": 22,
+				"c7c5": 22,
+				"d7d6": 22,
+				"d7d5": 22,
+				"e7e6": 22,
+				"e7e5": 22,
+				"f7f6": 22,
+				"f7f5": 22,
+				"g7g6": 22,
+				"g7g5": 22,
+				"h7h6": 22,
+				"h7h5": 22,
+				"b8a6": 22,
+				"b8c6": 22,
+				"g8f6": 22,
+				"g8h6": 22,
+			},
+		},
+		{"rnbqkbnr/1ppppppp/p7/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 2", 1, 22,
+			map[string]int{
+				"a2a3": 1,
+				"a2a4": 1,
+				"b2b3": 1,
+				"b2b4": 1,
+				"d2d3": 1,
+				"d2d4": 1,
+				"e2e3": 1,
+				"e2e4": 1,
+				"f2f3": 1,
+				"f2f4": 1,
+				"g2g3": 1,
+				"g2g4": 1,
+				"h2h3": 1,
+				"h2h4": 1,
+				"c3b1": 1,
+				"c3d5": 1,
+				"c3e4": 1,
+				"c3a4": 1,
+				"c3b5": 1,
+				"a1b1": 1,
+				"g1h3": 1,
+				"g1f3": 1,
+			},
+		},
+		{STARTING_FEN, 4, 20,
+			map[string]int{
+				"a2a3": 8457,
+				"a2a4": 9329,
+				"b2b3": 9345,
+				"b2b4": 9332,
+				"c2c3": 9272,
+				"c2c4": 9744,
+				"d2d3": 11959,
+				"d2d4": 12435,
+				"e2e3": 13134,
+				"e2e4": 13160,
+				"f2f3": 8457,
+				"f2f4": 8929,
+				"g2g3": 9345,
+				"g2g4": 9328,
+				"h2h3": 8457,
+				"h2h4": 9329,
+				"b1c3": 9755,
+				"b1a3": 8885,
+				"g1h3": 8881,
+				"g1f3": 9748,
+			},
+		},
+		{"rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1", 3, 20,
+			map[string]int{
+				"a7a6": 416,
+				"a7a5": 460,
+				"b7b6": 460,
+				"b7b5": 461,
+				"c7c6": 460,
+				"c7c5": 484,
+				"d7d6": 591,
+				"d7d5": 612,
+				"e7e6": 656,
+				"e7e5": 657,
+				"f7f6": 416,
+				"f7f5": 438,
+				"g7g6": 460,
+				"g7g5": 461,
+				"h7h6": 417,
+				"h7h5": 459,
+				"b8a6": 438,
+				"b8c6": 482,
+				"g8f6": 482,
+				"g8h6": 438,
+			},
+		},
+		{"rnbqkbnr/pppppp1p/8/6p1/8/5N2/PPPPPPPP/RNBQKB1R w KQkq - 0 2", 2, 22,
+			map[string]int{
+				"a2a3": 21,
+				"a2a4": 21,
+				"b2b3": 21,
+				"b2b4": 21,
+				"c2c3": 21,
+				"c2c4": 21,
+				"d2d3": 21,
+				"d2d4": 21,
+				"e2e3": 21,
+				"e2e4": 21,
+				"g2g3": 21,
+				"g2g4": 20,
+				"h2h3": 21,
+				"h2h4": 22,
+				"f3g5": 20,
+				"f3h4": 22,
+				"f3d4": 21,
+				"f3g1": 21,
+				"f3e5": 20,
+				"b1c3": 21,
+				"b1a3": 21,
+				"h1g1": 21,
+			},
+		},
+		{"rnbqkbnr/pppppp1p/8/6N1/8/8/PPPPPPPP/RNBQKB1R b KQkq - 0 2", 1, 20,
+			map[string]int{
+				"a7a6": 1,
+				"a7a5": 1,
+				"b7b6": 1,
+				"b7b5": 1,
+				"c7c6": 1,
+				"c7c5": 1,
+				"d7d6": 1,
+				"d7d5": 1,
+				"e7e6": 1,
+				"e7e5": 1,
+				"f7f6": 1,
+				"f7f5": 1,
+				"h7h6": 1,
+				"h7h5": 1,
+				"b8a6": 1,
+				"b8c6": 1,
+				"f8g7": 1,
+				"f8h6": 1,
+				"g8f6": 1,
+				"g8h6": 1,
+			},
+		},
 	}
+	seedKeys(181818)
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
 		}
-		results := divide(b, tt.depth)
-		for coord, nodes := range tt.expected {
-			n, ok := results[coord]
+		actualResults := divide(b, tt.depth)
+		if len(actualResults) != tt.expectedMoves {
+			t.Errorf("expected moves %v != %v", tt.expectedMoves, len(actualResults))
+		}
+		for coord, expectedNodes := range tt.expectedResults {
+			actualNodes, ok := actualResults[coord]
 			if !ok {
 				t.Errorf("coord %v not found", coord)
 			}
-			if n != nodes {
-				t.Errorf("coord %v nodes: %v != %v", coord, n, nodes)
+			if actualNodes != expectedNodes {
+				t.Errorf("coord %v nodes: %v != %v", coord, actualNodes, expectedNodes)
+			}
+		}
+		for coord := range actualResults {
+			_, ok := tt.expectedResults[coord]
+			if !ok {
+				t.Errorf("coord %v found but is not a valid move", coord)
 			}
 		}
 	}

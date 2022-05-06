@@ -236,6 +236,9 @@ func TestGeneratePawnMoves(t *testing.T) {
 				{"b2", "c1", QUEEN_PROMOTION_CAPTURE},
 			},
 		},
+		{"rnbqkbnr/1ppppppp/p7/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 2", WHITE, "c2", 0,
+			[]testMove{},
+		},
 	}
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)

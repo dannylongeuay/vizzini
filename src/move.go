@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 type move struct {
 	origin SquareIndex
@@ -22,7 +25,15 @@ func (b *board) generateMoves(side Color) []move {
 		if squareColor != side {
 			continue
 		}
-		for squareIndex := range squareIndexes {
+		var sortedKeys []int
+		for key := range squareIndexes {
+			sortedKeys = append(sortedKeys, int(key))
+		}
+
+		sort.Ints(sortedKeys)
+
+		for _, key := range sortedKeys {
+			squareIndex := SquareIndex(key)
 			switch square {
 			case WHITE_PAWN:
 				fallthrough
@@ -89,7 +100,8 @@ func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 	// Handle double pawn push
 	if rank == doublePushRank {
 		targetIndex := SquareIndex(VERTICAL_MOVE_DIST*2*dir) + squareIndex
-		if b.squares[targetIndex] == EMPTY {
+		jumpedIndex := SquareIndex(VERTICAL_MOVE_DIST*dir) + squareIndex
+		if b.squares[targetIndex] == EMPTY && b.squares[jumpedIndex] == EMPTY {
 			move := move{
 				origin: squareIndex,
 				target: targetIndex,
