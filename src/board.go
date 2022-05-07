@@ -173,9 +173,7 @@ func newBoard(fen string) (*board, error) {
 
 func (b board) copyBoard() board {
 	squares := make([]Square, len(b.squares))
-	for i, square := range b.squares {
-		squares[i] = square
-	}
+	copy(squares, b.squares)
 
 	pieceSets := make(map[Square]map[SquareIndex]bool, len(b.pieceSets))
 	for square, ps := range b.pieceSets {
@@ -187,9 +185,7 @@ func (b board) copyBoard() board {
 	}
 
 	undos := make([]undo, len(b.undos))
-	for i, undo := range b.undos {
-		undos[i] = undo
-	}
+	copy(undos, b.undos)
 
 	cb := board{
 		squares:        squares,

@@ -5,17 +5,18 @@ import (
 )
 
 func perft(b *board, depth int) int {
-	nodes := 0
+	var nodes int
 
-	moves := b.generateMoves(b.sideToMove)
-
-	if depth == 1 {
-		return len(moves)
+	if depth == 0 {
+		return 1
 	}
 
+	moves := b.generateMoves(b.sideToMove)
 	for _, m := range moves {
-		b.makeMove(m)
-		nodes += perft(b, depth-1)
+		err := b.makeMove(m)
+		if err == nil {
+			nodes += perft(b, depth-1)
+		}
 		b.undoMove()
 	}
 
