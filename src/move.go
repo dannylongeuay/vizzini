@@ -386,6 +386,25 @@ func (b *board) makeMove(m move) error {
 		b.halfMove = 0
 	}
 
+	if b.epIndex != 0 {
+		b.hashEnPassant()
+	}
+	b.epIndex = 0
+
+	if m.kind == DOUBLE_PAWN_PUSH {
+		if b.sideToMove == WHITE &&
+			(b.squares[m.target-SquareIndex(HORIZONTAL_MOVE_DIST)] == BLACK_PAWN ||
+				b.squares[m.target+SquareIndex(HORIZONTAL_MOVE_DIST)] == BLACK_PAWN) {
+			b.epIndex = m.target - SquareIndex(VERTICAL_MOVE_DIST)
+			b.hashEnPassant()
+		} else if b.sideToMove == BLACK &&
+			(b.squares[m.target-SquareIndex(HORIZONTAL_MOVE_DIST)] == WHITE_PAWN ||
+				b.squares[m.target+SquareIndex(HORIZONTAL_MOVE_DIST)] == WHITE_PAWN) {
+			b.epIndex = m.target - SquareIndex(VERTICAL_MOVE_DIST)
+			b.hashEnPassant()
+		}
+	}
+
 	switch m.kind {
 	case KING_CASTLE:
 		fallthrough
@@ -410,8 +429,6 @@ func (b *board) makeMove(m move) error {
 		} else {
 			b.clearSquare(WHITE_PAWN, m.target-SquareIndex(VERTICAL_MOVE_DIST))
 		}
-		b.hashEnPassant()
-		b.epIndex = 0
 	case KNIGHT_PROMOTION_CAPTURE:
 		fallthrough
 	case KNIGHT_PROMOTION:
