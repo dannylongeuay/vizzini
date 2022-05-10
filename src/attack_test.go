@@ -31,7 +31,8 @@ func TestSquareKnightAttackers(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		attackers := b.squareKnightAttackers(tt.side, squareIndex)
+		attackers := make(map[SquareIndex]bool, MAX_SQUARE_KNIGHT_ATTACKERS)
+		b.squareKnightAttackers(&attackers, tt.side, squareIndex)
 		if len(attackers) != tt.attackersLength {
 			t.Errorf("attackers length: %v != %v", len(attackers), tt.attackersLength)
 		}
@@ -84,7 +85,8 @@ func TestSquareDiagonalAttackers(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		attackers := b.squareDiagonalAttackers(tt.side, squareIndex)
+		attackers := make(map[SquareIndex]bool, MAX_SQUARE_DIAGONAL_ATTACKERS)
+		b.squareDiagonalAttackers(&attackers, tt.side, squareIndex)
 		if len(attackers) != tt.attackersLength {
 			t.Errorf("attackers length: %v != %v", len(attackers), tt.attackersLength)
 		}
@@ -128,7 +130,8 @@ func TestSquareCardinalAttackers(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		attackers := b.squareCardinalAttackers(tt.side, squareIndex)
+		attackers := make(map[SquareIndex]bool, MAX_SQUARE_CARDINAL_ATTACKERS)
+		b.squareCardinalAttackers(&attackers, tt.side, squareIndex)
 		if len(attackers) != tt.attackersLength {
 			t.Errorf("attackers length: %v != %v", len(attackers), tt.attackersLength)
 		}
@@ -175,7 +178,8 @@ func TestSquareAttackers(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		attackers := b.squareAttackers(tt.side, squareIndex)
+		attackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
+		b.squareAttackers(&attackers, tt.side, squareIndex)
 		if len(attackers) != tt.attackersLength {
 			t.Errorf("attackers length: %v != %v", len(attackers), tt.attackersLength)
 		}

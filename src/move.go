@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type move struct {
 	origin SquareIndex
@@ -27,54 +29,47 @@ func (b *board) generateMoves(side Color) []move {
 			case WHITE_PAWN:
 				fallthrough
 			case BLACK_PAWN:
-				pawnMoves := b.generatePawnMoves(side, squareIndex)
-				moves = append(moves, pawnMoves...)
+				b.generatePawnMoves(&moves, side, squareIndex)
 			case WHITE_KNIGHT:
 				fallthrough
 			case BLACK_KNIGHT:
-				knightMoves := b.generateKnightMoves(side, squareIndex)
-				moves = append(moves, knightMoves...)
+				b.generateKnightMoves(&moves, side, squareIndex)
 			case WHITE_BISHOP:
 				fallthrough
 			case BLACK_BISHOP:
-				bishopMoves := b.generateBishopMoves(side, squareIndex)
-				moves = append(moves, bishopMoves...)
+				b.generateBishopMoves(&moves, side, squareIndex)
 			case WHITE_ROOK:
 				fallthrough
 			case BLACK_ROOK:
-				rookMoves := b.generateRookMoves(side, squareIndex)
-				moves = append(moves, rookMoves...)
+				b.generateRookMoves(&moves, side, squareIndex)
 			case WHITE_QUEEN:
 				fallthrough
 			case BLACK_QUEEN:
-				queenMoves := b.generateQueenMoves(side, squareIndex)
-				moves = append(moves, queenMoves...)
+				b.generateQueenMoves(&moves, side, squareIndex)
 			case WHITE_KING:
 				fallthrough
 			case BLACK_KING:
-				kingMoves := b.generateKingMoves(side, squareIndex)
-				moves = append(moves, kingMoves...)
+				b.generateKingMoves(&moves, side, squareIndex)
 			}
 		}
 	}
 	return moves
 }
 
-func (b *board) generateLegalMoves(moves []move, maxSize int) []move {
-	legalMoves := make([]move, 0, maxSize)
-	for _, m := range moves {
-		err := b.makeMove(m)
-		b.undoMove()
-		if err != nil {
-			continue
-		}
-		legalMoves = append(legalMoves, m)
-	}
-	return legalMoves
-}
+// func (b *board) generateLegalMoves(moves []move, maxSize int) []move {
+// 	legalMoves := make([]move, 0, maxSize)
+// 	for _, m := range moves {
+// 		err := b.makeMove(m)
+// 		b.undoMove()
+// 		if err != nil {
+// 			continue
+// 		}
+// 		legalMoves = append(legalMoves, m)
+// 	}
+// 	return legalMoves
+// }
 
-func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, MAX_PAWN_MOVES)
+func (b *board) generatePawnMoves(moves *[]move, side Color, squareIndex SquareIndex) {
 	dir := POSITIVE_DIR
 	rank := rankBySquareIndex(squareIndex)
 	doublePushRank := RANK_SEVEN
@@ -89,13 +84,14 @@ func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 	// Handle double pawn push
 	if rank == doublePushRank {
 		targetIndex := SquareIndex(VERTICAL_MOVE_DIST*2*dir) + squareIndex
-		if b.squares[targetIndex] == EMPTY {
+		jumpedIndex := SquareIndex(VERTICAL_MOVE_DIST*dir) + squareIndex
+		if b.squares[targetIndex] == EMPTY && b.squares[jumpedIndex] == EMPTY {
 			move := move{
 				origin: squareIndex,
 				target: targetIndex,
 				kind:   DOUBLE_PAWN_PUSH,
 			}
-			moves = append(moves, move)
+			*moves = append(*moves, move)
 		}
 	}
 
@@ -117,7 +113,7 @@ func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 				target: targetIndex,
 				kind:   kind,
 			}
-			moves = append(moves, move)
+			*moves = append(*moves, move)
 		}
 	}
 
@@ -140,7 +136,7 @@ func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 					target: targetIndex,
 					kind:   kind,
 				}
-				moves = append(moves, move)
+				*moves = append(*moves, move)
 			}
 		} else if b.epIndex == targetIndex {
 			move := move{
@@ -148,14 +144,12 @@ func (b *board) generatePawnMoves(side Color, squareIndex SquareIndex) []move {
 				target: targetIndex,
 				kind:   EP_CAPTURE,
 			}
-			moves = append(moves, move)
+			*moves = append(*moves, move)
 		}
 	}
-	return b.generateLegalMoves(moves, MAX_PAWN_MOVES)
 }
 
-func (b *board) generateKnightMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, MAX_KNIGHT_MOVES)
+func (b *board) generateKnightMoves(moves *[]move, side Color, squareIndex SquareIndex) {
 	for _, dir := range MOVE_DIRECTIONS {
 		for _, moveDist := range KNIGHT_MOVE_DISTS {
 			targetIndex := SquareIndex(moveDist*dir) + squareIndex
@@ -165,7 +159,7 @@ func (b *board) generateKnightMoves(side Color, squareIndex SquareIndex) []move 
 					target: targetIndex,
 					kind:   QUIET,
 				}
-				moves = append(moves, move)
+				*moves = append(*moves, move)
 
 			} else if b.colorBySquareIndex(targetIndex) == side^1 {
 				move := move{
@@ -173,15 +167,13 @@ func (b *board) generateKnightMoves(side Color, squareIndex SquareIndex) []move 
 					target: targetIndex,
 					kind:   CAPTURE,
 				}
-				moves = append(moves, move)
+				*moves = append(*moves, move)
 			}
 		}
 	}
-	return b.generateLegalMoves(moves, MAX_KNIGHT_MOVES)
 }
 
-func (b *board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDists []int, maxMoves int, moveRange int) []move {
-	moves := make([]move, 0, maxMoves)
+func (b *board) generateSlidingMoves(moves *[]move, side Color, squareIndex SquareIndex, moveDists []int, moveRange int) {
 	for _, dir := range MOVE_DIRECTIONS {
 		for _, moveDist := range moveDists {
 			for i := 1; i < moveRange; i++ {
@@ -199,7 +191,7 @@ func (b *board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDi
 						target: targetIndex,
 						kind:   CAPTURE,
 					}
-					moves = append(moves, move)
+					*moves = append(*moves, move)
 					break
 				}
 				move := move{
@@ -207,35 +199,28 @@ func (b *board) generateSlidingMoves(side Color, squareIndex SquareIndex, moveDi
 					target: targetIndex,
 					kind:   QUIET,
 				}
-				moves = append(moves, move)
+				*moves = append(*moves, move)
 			}
 		}
 	}
-	return b.generateLegalMoves(moves, maxMoves)
-}
-func (b *board) generateBishopMoves(side Color, squareIndex SquareIndex) []move {
-	return b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
 }
 
-func (b *board) generateRookMoves(side Color, squareIndex SquareIndex) []move {
-	return b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
+func (b *board) generateBishopMoves(moves *[]move, side Color, squareIndex SquareIndex) {
+	b.generateSlidingMoves(moves, side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_MOVE_RANGE)
 }
 
-func (b *board) generateQueenMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, MAX_QUEEN_MOVES)
-	diagonalMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_BISHOP_MOVES, MAX_MOVE_RANGE)
-	moves = append(moves, diagonalMoves...)
-	cardinalMoves := b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_ROOK_MOVES, MAX_MOVE_RANGE)
-	moves = append(moves, cardinalMoves...)
-	return moves
+func (b *board) generateRookMoves(moves *[]move, side Color, squareIndex SquareIndex) {
+	b.generateSlidingMoves(moves, side, squareIndex, CARDINAL_MOVE_DISTS, MAX_MOVE_RANGE)
 }
 
-func (b *board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
-	moves := make([]move, 0, MAX_KING_MOVES)
-	diagonalMoves := b.generateSlidingMoves(side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_KING_MOVES/2, KING_MOVE_RANGE)
-	moves = append(moves, diagonalMoves...)
-	cardinalMoves := b.generateSlidingMoves(side, squareIndex, CARDINAL_MOVE_DISTS, MAX_KING_MOVES/2, KING_MOVE_RANGE)
-	moves = append(moves, cardinalMoves...)
+func (b *board) generateQueenMoves(moves *[]move, side Color, squareIndex SquareIndex) {
+	b.generateSlidingMoves(moves, side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_MOVE_RANGE)
+	b.generateSlidingMoves(moves, side, squareIndex, CARDINAL_MOVE_DISTS, MAX_MOVE_RANGE)
+}
+
+func (b *board) generateKingMoves(moves *[]move, side Color, squareIndex SquareIndex) {
+	b.generateSlidingMoves(moves, side, squareIndex, DIAGONAL_MOVE_DISTS, KING_MOVE_RANGE)
+	b.generateSlidingMoves(moves, side, squareIndex, CARDINAL_MOVE_DISTS, KING_MOVE_RANGE)
 	kingsideCastleAvail := false
 	queensideCastleAvail := false
 	if side == WHITE {
@@ -260,7 +245,7 @@ func (b *board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 			target: targetIndex,
 			kind:   KING_CASTLE,
 		}
-		moves = append(moves, move)
+		*moves = append(*moves, move)
 	}
 	if queensideCastleAvail && b.canCastle(side, NEGATIVE_DIR, squareIndex) {
 		targetIndex := SquareIndex(KING_CASTLE_MOVE_DIST*NEGATIVE_DIR + int(squareIndex))
@@ -269,9 +254,8 @@ func (b *board) generateKingMoves(side Color, squareIndex SquareIndex) []move {
 			target: targetIndex,
 			kind:   QUEEN_CASTLE,
 		}
-		moves = append(moves, move)
+		*moves = append(*moves, move)
 	}
-	return moves
 }
 
 func (b *board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
@@ -287,7 +271,8 @@ func (b *board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
 		}
 		// Check that king is not in check and travel squares are not attacked
 		if i < 3 {
-			attackers := b.squareAttackers(side, checkIndex)
+			attackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
+			b.squareAttackers(&attackers, side, checkIndex)
 			if len(attackers) > 0 {
 				return false
 			}
@@ -374,6 +359,25 @@ func (b *board) makeMove(m move) error {
 		b.halfMove = 0
 	}
 
+	if b.epIndex != 0 {
+		b.hashEnPassant()
+	}
+	b.epIndex = 0
+
+	if m.kind == DOUBLE_PAWN_PUSH {
+		if b.sideToMove == WHITE &&
+			(b.squares[m.target-SquareIndex(HORIZONTAL_MOVE_DIST)] == BLACK_PAWN ||
+				b.squares[m.target+SquareIndex(HORIZONTAL_MOVE_DIST)] == BLACK_PAWN) {
+			b.epIndex = m.target - SquareIndex(VERTICAL_MOVE_DIST)
+			b.hashEnPassant()
+		} else if b.sideToMove == BLACK &&
+			(b.squares[m.target-SquareIndex(HORIZONTAL_MOVE_DIST)] == WHITE_PAWN ||
+				b.squares[m.target+SquareIndex(HORIZONTAL_MOVE_DIST)] == WHITE_PAWN) {
+			b.epIndex = m.target - SquareIndex(VERTICAL_MOVE_DIST)
+			b.hashEnPassant()
+		}
+	}
+
 	switch m.kind {
 	case KING_CASTLE:
 		fallthrough
@@ -398,8 +402,6 @@ func (b *board) makeMove(m move) error {
 		} else {
 			b.clearSquare(WHITE_PAWN, m.target-SquareIndex(VERTICAL_MOVE_DIST))
 		}
-		b.hashEnPassant()
-		b.epIndex = 0
 	case KNIGHT_PROMOTION_CAPTURE:
 		fallthrough
 	case KNIGHT_PROMOTION:
@@ -442,7 +444,8 @@ func (b *board) makeMove(m move) error {
 		kingIndex = b.blackKingIndex
 	}
 
-	kingAttackers := b.squareAttackers(b.sideToMove, kingIndex)
+	kingAttackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
+	b.squareAttackers(&kingAttackers, b.sideToMove, kingIndex)
 
 	b.hashSide()
 	b.sideToMove ^= 1

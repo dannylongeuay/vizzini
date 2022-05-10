@@ -236,6 +236,9 @@ func TestGeneratePawnMoves(t *testing.T) {
 				{"b2", "c1", QUEEN_PROMOTION_CAPTURE},
 			},
 		},
+		{"rnbqkbnr/1ppppppp/p7/8/8/2N5/PPPPPPPP/R1BQKBNR w KQkq - 0 2", WHITE, "c2", 0,
+			[]testMove{},
+		},
 	}
 	for _, tt := range tests {
 		b, err := newBoard(tt.fen)
@@ -246,7 +249,8 @@ func TestGeneratePawnMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generatePawnMoves(tt.color, squareIndex)
+		moves := make([]move, 0, MAX_PAWN_MOVES)
+		b.generatePawnMoves(&moves, tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -308,7 +312,8 @@ func TestGenerateKnightMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateKnightMoves(tt.color, squareIndex)
+		moves := make([]move, 0, MAX_KNIGHT_MOVES)
+		b.generateKnightMoves(&moves, tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -384,7 +389,8 @@ func TestGenerateBishopMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateBishopMoves(tt.color, squareIndex)
+		moves := make([]move, 0, MAX_BISHOP_MOVES)
+		b.generateBishopMoves(&moves, tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -439,7 +445,8 @@ func TestGenerateRookMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateRookMoves(tt.color, squareIndex)
+		moves := make([]move, 0, MAX_ROOK_MOVES)
+		b.generateRookMoves(&moves, tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -507,7 +514,8 @@ func TestGenerateQueenMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateQueenMoves(tt.color, squareIndex)
+		moves := make([]move, 0, MAX_QUEEN_MOVES)
+		b.generateQueenMoves(&moves, tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -546,7 +554,8 @@ func TestGenerateKingMoves(t *testing.T) {
 				{"e4", "f5", QUIET},
 			},
 		},
-		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", 6,
+		// TODO: add illegal moves
+		{"rn1q2nr/p2kb1pp/1p6/4p1p1/4K3/8/PPPP1P1P/RNBQ1BNR w - - 0 10", WHITE, "e4", 8,
 			[]testMove{
 				{"e4", "d3", QUIET},
 				{"e4", "d5", QUIET},
@@ -589,7 +598,8 @@ func TestGenerateKingMoves(t *testing.T) {
 				{"c1", "d2", QUIET},
 			},
 		},
-		{"rnbqk2r/pppp1ppp/4pn2/8/1Q1P4/5N2/PPP1PPPP/RNB1KB1R b KQkq - 2 4", BLACK, "e8", 0,
+		// TODO: add illegal moves
+		{"rnbqk2r/pppp1ppp/4pn2/8/1Q1P4/5N2/PPP1PPPP/RNB1KB1R b KQkq - 2 4", BLACK, "e8", 2,
 			[]testMove{},
 		},
 		{"rnbqk2r/pppp2pp/4pp2/4N3/1Q1P4/4P2n/PPP1BPPP/RNB1K2R w KQkq - 0 8", WHITE, "e1", 3,
@@ -609,7 +619,8 @@ func TestGenerateKingMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.generateKingMoves(tt.color, squareIndex)
+		moves := make([]move, 0, MAX_KING_MOVES)
+		b.generateKingMoves(&moves, tt.color, squareIndex)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -635,6 +646,11 @@ func TestMakeMove(t *testing.T) {
 			STARTING_FEN,
 			testMove{"e2", "e4", DOUBLE_PAWN_PUSH},
 			"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+		},
+		{
+			"rnbqkbnr/pp1ppppp/8/2p1P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2",
+			testMove{"f7", "f5", DOUBLE_PAWN_PUSH},
+			"rnbqkbnr/pp1pp1pp/8/2p1Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",
 		},
 		{
 			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
