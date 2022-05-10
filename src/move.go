@@ -271,7 +271,8 @@ func (b *board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
 		}
 		// Check that king is not in check and travel squares are not attacked
 		if i < 3 {
-			attackers := b.squareAttackers(side, checkIndex)
+			attackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
+			b.squareAttackers(&attackers, side, checkIndex)
 			if len(attackers) > 0 {
 				return false
 			}
@@ -443,7 +444,8 @@ func (b *board) makeMove(m move) error {
 		kingIndex = b.blackKingIndex
 	}
 
-	kingAttackers := b.squareAttackers(b.sideToMove, kingIndex)
+	kingAttackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
+	b.squareAttackers(&kingAttackers, b.sideToMove, kingIndex)
 
 	b.hashSide()
 	b.sideToMove ^= 1

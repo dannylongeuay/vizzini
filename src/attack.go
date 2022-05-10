@@ -1,7 +1,7 @@
 package main
 
-func (b board) squareKnightAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
-	attackers := make(map[SquareIndex]bool, MAX_SQUARE_KNIGHT_ATTACKERS)
+func (b board) squareKnightAttackers(attackersPtr *map[SquareIndex]bool, side Color, squareIndex SquareIndex) {
+	attackers := *attackersPtr
 
 	enemyKnight := BLACK_KNIGHT
 
@@ -17,11 +17,10 @@ func (b board) squareKnightAttackers(side Color, squareIndex SquareIndex) map[Sq
 			}
 		}
 	}
-	return attackers
 }
 
-func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
-	attackers := make(map[SquareIndex]bool, MAX_SQUARE_DIAGONAL_ATTACKERS)
+func (b board) squareDiagonalAttackers(attackersPtr *map[SquareIndex]bool, side Color, squareIndex SquareIndex) {
+	attackers := *attackersPtr
 
 	pawnAttackDir := POSITIVE_DIR
 
@@ -66,11 +65,10 @@ func (b board) squareDiagonalAttackers(side Color, squareIndex SquareIndex) map[
 			}
 		}
 	}
-	return attackers
 }
 
-func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
-	attackers := make(map[SquareIndex]bool, MAX_SQUARE_CARDINAL_ATTACKERS)
+func (b board) squareCardinalAttackers(attackersPtr *map[SquareIndex]bool, side Color, squareIndex SquareIndex) {
+	attackers := *attackersPtr
 
 	enemyRook := BLACK_ROOK
 	enemyQueen := BLACK_QUEEN
@@ -105,22 +103,10 @@ func (b board) squareCardinalAttackers(side Color, squareIndex SquareIndex) map[
 			}
 		}
 	}
-	return attackers
 }
 
-func (b board) squareAttackers(side Color, squareIndex SquareIndex) map[SquareIndex]bool {
-	attackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
-	knightAttackers := b.squareKnightAttackers(side, squareIndex)
-	for k, v := range knightAttackers {
-		attackers[k] = v
-	}
-	diagonalAttackers := b.squareDiagonalAttackers(side, squareIndex)
-	for k, v := range diagonalAttackers {
-		attackers[k] = v
-	}
-	cardinalAttackers := b.squareCardinalAttackers(side, squareIndex)
-	for k, v := range cardinalAttackers {
-		attackers[k] = v
-	}
-	return attackers
+func (b board) squareAttackers(attackersPtr *map[SquareIndex]bool, side Color, squareIndex SquareIndex) {
+	b.squareKnightAttackers(attackersPtr, side, squareIndex)
+	b.squareDiagonalAttackers(attackersPtr, side, squareIndex)
+	b.squareCardinalAttackers(attackersPtr, side, squareIndex)
 }
