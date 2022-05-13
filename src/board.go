@@ -264,7 +264,6 @@ func (b Board) ToString() string {
 			s += "♠"
 		}
 		s += " "
-		i--
 	}
 	s += "| 1"
 	s += sep
