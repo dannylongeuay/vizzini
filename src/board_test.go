@@ -11,42 +11,25 @@ type testSquareChecks struct {
 }
 
 type testPieceChecks struct {
-	square      Square
-	piecesCount int
-	pieceCoords []SquareCoord
-}
-
-func TestSquareByIndexes64(t *testing.T) {
-	tests := []struct {
-		index    int
-		expected SquareIndex
-	}{
-		{0, 21},
-		{63, 98},
-	}
-	for _, tt := range tests {
-
-		actual := SquareIndexes64[tt.index]
-		if actual != tt.expected {
-			t.Errorf("square: %v != %v", actual, tt.expected)
-		}
-	}
+	square Square
+	count  int
+	coords []Coord
 }
 
 func TestNewBoard(t *testing.T) {
 	tests := []struct {
 		fen            string
-		whiteKingCoord SquareCoord
-		blackKingCoord SquareCoord
+		whiteKingCoord Coord
+		blackKingCoord Coord
 		sideToMove     Color
 		castleRights   CastleRights
-		epIndex        SquareIndex
+		epCoord        Coord
 		halfMove       int
 		fullMove       int
 		squareChecks   []testSquareChecks
 		pieceChecks    []testPieceChecks
 	}{
-		{STARTING_FEN, "e1", "e8", WHITE, 15, 0, 0, 1,
+		{STARTING_FEN, E1, E8, WHITE, 15, 0, 0, 1,
 			[]testSquareChecks{
 				{FILE_A, RANK_EIGHT, BLACK_ROOK},
 				{FILE_B, RANK_EIGHT, BLACK_KNIGHT},
@@ -85,194 +68,177 @@ func TestNewBoard(t *testing.T) {
 				{FILE_NONE, RANK_NONE, INVALID},
 			},
 			[]testPieceChecks{
-				{WHITE_PAWN, 8, []SquareCoord{
-					"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+				{WHITE_PAWN, 8, []Coord{
+					A2, B2, C2, D2, E2, F2, G2, H2,
 				}},
-				{WHITE_KNIGHT, 2, []SquareCoord{
-					"b1", "g1",
+				{WHITE_KNIGHT, 2, []Coord{
+					B1, G1,
 				}},
-				{WHITE_BISHOP, 2, []SquareCoord{
-					"c1", "f1",
+				{WHITE_BISHOP, 2, []Coord{
+					C1, F1,
 				}},
-				{WHITE_ROOK, 2, []SquareCoord{
-					"a1", "h1",
+				{WHITE_ROOK, 2, []Coord{
+					A1, H1,
 				}},
-				{WHITE_QUEEN, 1, []SquareCoord{
-					"d1",
+				{WHITE_QUEEN, 1, []Coord{
+					D1,
 				}},
-				{WHITE_KING, 1, []SquareCoord{
-					"e1",
+				{WHITE_KING, 1, []Coord{
+					E1,
 				}},
-				{BLACK_PAWN, 8, []SquareCoord{
-					"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+				{BLACK_PAWN, 8, []Coord{
+					A7, B7, C7, D7, E7, F7, G7, H7,
 				}},
-				{BLACK_KNIGHT, 2, []SquareCoord{
-					"b8", "g8",
+				{BLACK_KNIGHT, 2, []Coord{
+					B8, G8,
 				}},
-				{BLACK_BISHOP, 2, []SquareCoord{
-					"c8", "f8",
+				{BLACK_BISHOP, 2, []Coord{
+					C8, F8,
 				}},
-				{BLACK_ROOK, 2, []SquareCoord{
-					"a8", "h8",
+				{BLACK_ROOK, 2, []Coord{
+					A8, H8,
 				}},
-				{BLACK_QUEEN, 1, []SquareCoord{
-					"d8",
+				{BLACK_QUEEN, 1, []Coord{
+					D8,
 				}},
-				{BLACK_KING, 1, []SquareCoord{
-					"e8",
+				{BLACK_KING, 1, []Coord{
+					E8,
 				}},
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-			"e1", "e8", BLACK, 15, 75, 0, 1,
+			E1, E8, BLACK, 15, E3, 0, 1,
 			[]testSquareChecks{
 				{FILE_E, RANK_FOUR, WHITE_PAWN},
 			},
 			[]testPieceChecks{
-				{WHITE_PAWN, 8, []SquareCoord{
-					"e4",
+				{WHITE_PAWN, 8, []Coord{
+					E4,
 				}},
 			},
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
-			"e1", "e8", WHITE, 15, 43, 0, 2,
+			E1, E8, WHITE, 15, C6, 0, 2,
 			[]testSquareChecks{
 				{FILE_C, RANK_FIVE, BLACK_PAWN},
 			},
 			[]testPieceChecks{
-				{BLACK_PAWN, 8, []SquareCoord{
-					"c5",
+				{BLACK_PAWN, 8, []Coord{
+					C5,
 				}},
 			},
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
-			"e1", "e8", BLACK, 15, 0, 1, 2,
+			E1, E8, BLACK, 15, 0, 1, 2,
 			[]testSquareChecks{
 				{FILE_F, RANK_THREE, WHITE_KNIGHT},
 			},
 			[]testPieceChecks{
-				{WHITE_PAWN, 8, []SquareCoord{
-					"e4",
+				{WHITE_PAWN, 8, []Coord{
+					E4,
 				}},
-				{WHITE_KNIGHT, 2, []SquareCoord{
-					"f3",
+				{WHITE_KNIGHT, 2, []Coord{
+					F3,
 				}},
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
-			"e1", "e8", WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w q - 0 1",
-			"e1", "e8", WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w k - 0 1",
-			"e1", "e8", WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Q - 0 1",
-			"e1", "e8", WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K - 0 1",
-			"e1", "e8", WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/PpPP1PPP/RNBQ1RK1 b q - 1 9",
-			"g1", "e8", BLACK, 1, 0, 1, 9,
+			G1, E8, BLACK, 1, 0, 1, 9,
 			[]testSquareChecks{
 				{FILE_B, RANK_TWO, BLACK_PAWN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE_QUEEN, 2, []SquareCoord{
-					"h8",
+				{WHITE_QUEEN, 2, []Coord{
+					H8,
 				}},
-				{WHITE_BISHOP, 2, []SquareCoord{
-					"d3",
+				{WHITE_BISHOP, 2, []Coord{
+					D3,
 				}},
-				{WHITE_KNIGHT, 2, []SquareCoord{
-					"f3",
+				{WHITE_KNIGHT, 2, []Coord{
+					F3,
 				}},
-				{BLACK_PAWN, 6, []SquareCoord{
-					"e6", "b2",
+				{BLACK_PAWN, 6, []Coord{
+					E6, B2,
 				}},
-				{BLACK_KNIGHT, 2, []SquareCoord{
-					"f6",
+				{BLACK_KNIGHT, 2, []Coord{
+					F6,
 				}},
 			},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/P1PP1PPP/qNBQ1RK1 w q - 0 10",
-			"g1", "e8", WHITE, 1, 0, 0, 10,
+			G1, E8, WHITE, 1, 0, 0, 10,
 			[]testSquareChecks{
 				{FILE_A, RANK_ONE, BLACK_QUEEN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
 			[]testPieceChecks{
-				{WHITE_QUEEN, 2, []SquareCoord{
-					"h8",
+				{WHITE_QUEEN, 2, []Coord{
+					H8,
 				}},
-				{WHITE_BISHOP, 2, []SquareCoord{
-					"d3",
+				{WHITE_BISHOP, 2, []Coord{
+					D3,
 				}},
-				{WHITE_KNIGHT, 2, []SquareCoord{
-					"f3",
+				{WHITE_KNIGHT, 2, []Coord{
+					F3,
 				}},
-				{BLACK_PAWN, 5, []SquareCoord{
-					"e6",
+				{BLACK_PAWN, 5, []Coord{
+					E6,
 				}},
-				{BLACK_QUEEN, 2, []SquareCoord{
-					"a1",
+				{BLACK_QUEEN, 2, []Coord{
+					A1,
 				}},
-				{BLACK_KNIGHT, 2, []SquareCoord{
-					"f6",
+				{BLACK_KNIGHT, 2, []Coord{
+					F6,
 				}},
 			},
 		},
 	}
 	for _, tt := range tests {
-		b, err := newBoard(tt.fen)
+		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
 		}
-		whiteKingIndex, err := squareIndexByCoord(tt.whiteKingCoord)
-		if b.whiteKingIndex != whiteKingIndex {
-			t.Errorf("white king index: %v != %v", b.whiteKingIndex, whiteKingIndex)
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		if b.squares[whiteKingIndex] != WHITE_KING {
-			t.Errorf("white king square: %v != %v", b.squares[whiteKingIndex], WHITE_KING)
-		}
-		blackKingIndex, err := squareIndexByCoord(tt.blackKingCoord)
-		if b.blackKingIndex != blackKingIndex {
-			t.Errorf("black king index: %v != %v", b.blackKingIndex, blackKingIndex)
+		if b.whiteKingCoord != tt.whiteKingCoord {
+			t.Errorf("white king index: %v != %v", b.whiteKingCoord, tt.whiteKingCoord)
 		}
 		if err != nil {
 			t.Error(err)
 		}
-		if b.squares[blackKingIndex] != BLACK_KING {
-			t.Errorf("black king square: %v != %v", b.squares[blackKingIndex], BLACK_KING)
+		if b.squares[tt.whiteKingCoord] != WHITE_KING {
+			t.Errorf("white king square: %v != %v", b.squares[tt.whiteKingCoord], WHITE_KING)
 		}
-		for _, check := range tt.squareChecks {
-			squareIndex := squareIndexByFileRank(check.file, check.rank)
+		if b.blackKingCoord != tt.blackKingCoord {
+			t.Errorf("black king index: %v != %v", b.blackKingCoord, tt.blackKingCoord)
+		}
+		if err != nil {
+			t.Error(err)
+		}
+		if b.squares[tt.blackKingCoord] != BLACK_KING {
+			t.Errorf("black king square: %v != %v", b.squares[tt.blackKingCoord], BLACK_KING)
+		}
+		// for _, check := range tt.squareChecks {
+		// 	squareIndex := squareIndexByFileRank(check.file, check.rank)
 
-			if b.squares[squareIndex] != check.square {
-				t.Errorf("square: %v != %v", b.squares[squareIndex], check.square)
-			}
-		}
-		for _, check := range tt.pieceChecks {
-			if len(b.pieceSets[check.square]) != check.piecesCount {
-				t.Errorf("piece indexes length: %v != %v", len(b.pieceSets[check.square]), check.piecesCount)
-			}
-			for _, pieceCoord := range check.pieceCoords {
-				pieceIndex, err := squareIndexByCoord(pieceCoord)
-				if err != nil {
-					t.Error(err)
-				}
-				_, present := b.pieceSets[check.square][pieceIndex]
-				if !present {
-					t.Errorf("unable to find piece index %v in %v", pieceIndex, b.pieceSets[check.square])
-				}
-			}
-		}
+		// 	if b.squares[squareIndex] != check.square {
+		// 		t.Errorf("square: %v != %v", b.squares[squareIndex], check.square)
+		// 	}
+		// }
 
 		if b.sideToMove != tt.sideToMove {
 			t.Errorf("side: %v != %v", b.sideToMove, tt.sideToMove)
@@ -282,8 +248,8 @@ func TestNewBoard(t *testing.T) {
 			t.Errorf("castling rights: %v != %v", b.castleRights, tt.castleRights)
 		}
 
-		if b.epIndex != tt.epIndex {
-			t.Errorf("en passant index: %v != %v", b.epIndex, tt.epIndex)
+		if b.epCoord != tt.epCoord {
+			t.Errorf("en passant index: %v != %v", b.epCoord, tt.epCoord)
 		}
 
 		if b.halfMove != tt.halfMove {
@@ -292,28 +258,6 @@ func TestNewBoard(t *testing.T) {
 
 		if b.fullMove != tt.fullMove {
 			t.Errorf("full move clock: %v != %v", b.fullMove, tt.fullMove)
-		}
-	}
-}
-
-func TestColorBySquareIndex(t *testing.T) {
-	tests := []struct {
-		fen         string
-		squareIndex SquareIndex
-		expected    Color
-	}{
-		{STARTING_FEN, 21, BLACK},
-		{STARTING_FEN, 91, WHITE},
-		{STARTING_FEN, 55, COLOR_NONE},
-	}
-	for _, tt := range tests {
-		b, err := newBoard(tt.fen)
-		if err != nil {
-			t.Error(err)
-		}
-		actual := b.colorBySquareIndex(tt.squareIndex)
-		if actual != tt.expected {
-			t.Errorf("color: %v != %v", actual, tt.expected)
 		}
 	}
 }
@@ -339,11 +283,11 @@ _________________________
 _________________________
  A  B  C  D  E  F  G  H`
 
-	board, err := newBoard(STARTING_FEN)
+	board, err := NewBoard(STARTING_FEN)
 	if err != nil {
 		t.Error(err)
 	}
-	if board.toString() != expected {
-		t.Errorf("board to string: %v != %v", board.toString(), expected)
+	if board.ToString() != expected {
+		t.Errorf("board to string: %v \n\n!=\n %v", board.ToString(), expected)
 	}
 }

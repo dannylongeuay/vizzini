@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func perft(b *board, depth int) int {
+func perft(b *Board, depth int) int {
 	var nodes int
 
 	if depth == 0 {
@@ -38,7 +38,7 @@ func TestPerft(t *testing.T) {
 	}
 	seedKeys(181818)
 	for _, tt := range tests {
-		b, err := newBoard(tt.fen)
+		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
 		}

@@ -4,54 +4,54 @@ import (
 	"math/rand"
 )
 
-var SquareKeys [14][120]uint64
-var SideKey uint64
-var CastleKeys [16]uint64
+var SquareKeys [SQUARE_TYPES][BOARD_SQUARES]Hash
+var SideKey Hash
+var CastleKeys [CASTLING_RIGHTS_PERMUTATIONS]Hash
 
 func seedKeys(seed int64) {
 	rand.Seed(seed)
 
-	for x := 0; x < 14; x++ {
-		for y := 0; y < 120; y++ {
-			SquareKeys[x][y] = rand.Uint64()
+	for x := 0; x < SQUARE_TYPES; x++ {
+		for y := 0; y < BOARD_SQUARES; y++ {
+			SquareKeys[x][y] = Hash(rand.Uint64())
 		}
 	}
 
-	SideKey = rand.Uint64()
+	SideKey = Hash(rand.Uint64())
 
-	for i := 0; i < 16; i++ {
-		CastleKeys[i] = rand.Uint64()
+	for i := 0; i < CASTLING_RIGHTS_PERMUTATIONS; i++ {
+		CastleKeys[i] = Hash(rand.Uint64())
 	}
 }
 
-func (b *board) hashSquare(square Square, squareIndex SquareIndex) {
-	b.hash ^= SquareKeys[square][squareIndex]
+func (b *Board) hashSquare(square Square, coord Coord) {
+	b.hash ^= SquareKeys[square][coord]
 }
 
-func (b *board) hashSide() {
+func (b *Board) hashSide() {
 	b.hash ^= SideKey
 }
 
-func (b *board) hashEnPassant() {
-	b.hash ^= SquareKeys[EMPTY][b.epIndex]
+func (b *Board) hashEnPassant() {
+	b.hash ^= SquareKeys[EMPTY][b.epCoord]
 }
 
-func (b *board) hashCastling() {
+func (b *Board) hashCastling() {
 	b.hash ^= CastleKeys[b.castleRights]
 }
 
-func (b *board) generateBoardHash() {
+func (b *Board) generateBoardHash() {
 	b.hash = 0
-	for squareIndex, square := range b.squares {
+	for i, square := range b.squares {
 		if square == INVALID || square == EMPTY {
 			continue
 		}
-		b.hashSquare(square, SquareIndex(squareIndex))
+		b.hashSquare(square, Coord(i))
 	}
 	if b.sideToMove == WHITE {
 		b.hashSide()
 	}
-	if b.epIndex != 0 {
+	if b.epCoord != 0 {
 		b.hashEnPassant()
 	}
 	b.hashCastling()

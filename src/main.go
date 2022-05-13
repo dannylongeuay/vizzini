@@ -9,25 +9,25 @@ import (
 
 func main() {
 	seedKeys(time.Now().UTC().UnixNano())
-	board, err := newBoard(STARTING_FEN)
+	board, err := NewBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
 	}
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Println(board.toString())
+		fmt.Println(board.ToString())
 		fmt.Println()
 
 		moves := board.generateMoves(board.sideToMove)
 
-		var matchingMoves []move
+		var matchingMoves []Move
 		for {
 			fmt.Print("Submit target coord: ")
 			scanner.Scan()
 			input := scanner.Text()
 
 			for _, m := range moves {
-				if input == string(coordBySquareIndex(m.target)) {
+				if input == COORD_MAP[0] {
 					matchingMoves = append(matchingMoves, m)
 				}
 			}
@@ -54,7 +54,7 @@ func main() {
 			performedMoved := false
 
 			for _, m := range matchingMoves {
-				if input == string(coordBySquareIndex(m.origin)) {
+				if input == COORD_MAP[0] {
 					err := board.makeMove(m)
 					if err != nil {
 						fmt.Println(err)

@@ -36,147 +36,53 @@ func colorBySquare(s Square) Color {
 	return c
 }
 
-func squareIndexByCoord(s SquareCoord) (SquareIndex, error) {
-	var f File
-	var r Rank
+func StringToCoord(s string) (Coord, error) {
+	var coord Coord
+
 	coordParts := []rune(s)
 	if len(coordParts) != 2 {
 		return 0, fmt.Errorf("Invalid chess notation: %v", s)
 	}
+
 	switch strings.ToLower(string(coordParts[0])) {
 	case "a":
-		f = FILE_A
 	case "b":
-		f = FILE_B
+		coord += 1
 	case "c":
-		f = FILE_C
+		coord += 2
 	case "d":
-		f = FILE_D
+		coord += 3
 	case "e":
-		f = FILE_E
+		coord += 4
 	case "f":
-		f = FILE_F
+		coord += 5
 	case "g":
-		f = FILE_G
+		coord += 6
 	case "h":
-		f = FILE_H
+		coord += 7
 	default:
 		return 0, fmt.Errorf("Invalid chess file: %v", string(coordParts[0]))
 	}
+
 	switch string(coordParts[1]) {
 	case "1":
-		r = RANK_ONE
 	case "2":
-		r = RANK_TWO
+		coord += 8
 	case "3":
-		r = RANK_THREE
+		coord += 16
 	case "4":
-		r = RANK_FOUR
+		coord += 24
 	case "5":
-		r = RANK_FIVE
+		coord += 32
 	case "6":
-		r = RANK_SIX
+		coord += 40
 	case "7":
-		r = RANK_SEVEN
+		coord += 48
 	case "8":
-		r = RANK_EIGHT
+		coord += 56
 	default:
 		return 0, fmt.Errorf("Invalid chess rank: %v", string(coordParts[1]))
-
-	}
-	return squareIndexByFileRank(f, r), nil
-}
-
-func squareIndexByFileRank(f File, r Rank) SquareIndex {
-	return (21 + SquareIndex(f)) + SquareIndex(r)*10
-}
-
-func rankBySquareIndex(s SquareIndex) Rank {
-	r := RANK_NONE
-	switch (s / 10) % 10 {
-	case 2:
-		return RANK_EIGHT
-	case 3:
-		return RANK_SEVEN
-	case 4:
-		return RANK_SIX
-	case 5:
-		return RANK_FIVE
-	case 6:
-		return RANK_FOUR
-	case 7:
-		return RANK_THREE
-	case 8:
-		return RANK_TWO
-	case 9:
-		return RANK_ONE
-	}
-	return r
-}
-
-func fileBySquareIndex(s SquareIndex) File {
-	f := FILE_NONE
-	switch s % 10 {
-	case 1:
-		return FILE_A
-	case 2:
-		return FILE_B
-	case 3:
-		return FILE_C
-	case 4:
-		return FILE_D
-	case 5:
-		return FILE_E
-	case 6:
-		return FILE_F
-	case 7:
-		return FILE_G
-	case 8:
-		return FILE_H
-	}
-	return f
-}
-
-func coordBySquareIndex(s SquareIndex) SquareCoord {
-	var coord SquareCoord
-
-	switch s % 10 {
-	case 1:
-		coord += "a"
-	case 2:
-		coord += "b"
-	case 3:
-		coord += "c"
-	case 4:
-		coord += "d"
-	case 5:
-		coord += "e"
-	case 6:
-		coord += "f"
-	case 7:
-		coord += "g"
-	case 8:
-		coord += "h"
 	}
 
-	switch (s / 10) % 10 {
-	case 2:
-		coord += "8"
-	case 3:
-		coord += "7"
-	case 4:
-		coord += "6"
-	case 5:
-		coord += "5"
-	case 6:
-		coord += "4"
-	case 7:
-		coord += "3"
-	case 8:
-		coord += "2"
-	case 9:
-		coord += "1"
-	}
-
-	return coord
+	return coord, nil
 }
