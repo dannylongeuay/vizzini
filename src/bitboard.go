@@ -21,6 +21,20 @@ func (bb *Bitboard) ToString() string {
 	return s
 }
 
+func (bb *Bitboard) HasBit(c Coord) bool {
+	return bb.GetBit(c) > 0
+}
+
+func (bb *Bitboard) GetBit(c Coord) Bitboard {
+	return *bb & Bitboard(1<<c)
+}
+
 func (bb *Bitboard) SetBit(c Coord) {
 	*bb |= Bitboard(1 << c)
+}
+
+func (bb *Bitboard) ClearBit(c Coord) {
+	if bb.HasBit(c) {
+		*bb ^= Bitboard(1 << c)
+	}
 }

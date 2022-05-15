@@ -86,3 +86,17 @@ func StringToCoord(s string) (Coord, error) {
 
 	return coord, nil
 }
+
+func IntPow(a int, b int) int {
+	result := 1
+
+	for b > 0 {
+		if (b & 1) > 0 {
+			result *= a
+		}
+		b = b >> 1
+		a *= a
+	}
+
+	return result
+}
