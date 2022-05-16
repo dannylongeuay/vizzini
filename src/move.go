@@ -4,13 +4,6 @@ import (
 	"fmt"
 )
 
-var KNIGHT_MOVE_DISTS = []int{8, 12, 19, 21}
-
-var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
-
-var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
-var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
-
 func (b *Board) generateMoves(side Color) []Move {
 	moves := make([]Move, 0, MAX_GENERATED_MOVES)
 	return moves

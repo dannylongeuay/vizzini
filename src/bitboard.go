@@ -26,15 +26,13 @@ func (bb *Bitboard) HasBit(c Coord) bool {
 }
 
 func (bb *Bitboard) GetBit(c Coord) Bitboard {
-	return *bb & Bitboard(1<<c)
+	return *bb & COORD_MASK_BITBOARDS[c]
 }
 
 func (bb *Bitboard) SetBit(c Coord) {
-	*bb |= Bitboard(1 << c)
+	*bb |= COORD_MASK_BITBOARDS[c]
 }
 
 func (bb *Bitboard) ClearBit(c Coord) {
-	if bb.HasBit(c) {
-		*bb ^= Bitboard(1 << c)
-	}
+	*bb &= COORD_CLEAR_BITBOARDS[c]
 }

@@ -2,6 +2,14 @@ package main
 
 import "testing"
 
+func IsBitboardEqual(t *testing.T, a Bitboard, b Bitboard) bool {
+	if a != b {
+		t.Errorf("\nactual:%v\n\n!=\n\nexpected:%v", a.ToString(), b.ToString())
+		return false
+	}
+	return true
+}
+
 func TestBitboardToString(t *testing.T) {
 	expected := `
 1 0 0 0 0 0 0 1 
@@ -14,6 +22,7 @@ func TestBitboardToString(t *testing.T) {
 1 0 0 0 0 0 0 1 
 
 9295429630892703873`
+	InitBitboards()
 	var bitboard Bitboard
 	bitboard.SetBit(A1)
 	bitboard.SetBit(A8)
@@ -61,6 +70,7 @@ func TestBitboardHasBit(t *testing.T) {
 			true,
 		},
 	}
+	InitBitboards()
 	for _, tt := range tests {
 		actual := tt.bb.HasBit(tt.coord)
 		if actual != tt.expected {
@@ -77,6 +87,7 @@ func TestBitboardSetBit(t *testing.T) {
 		{[]Coord{A1, A2, A3}},
 		{[]Coord{H6, H7, H8}},
 	}
+	InitBitboards()
 	for _, tt := range tests {
 		var bb Bitboard
 		var expected Bitboard
@@ -85,8 +96,8 @@ func TestBitboardSetBit(t *testing.T) {
 			tmpBB := Bitboard(IntPow(2, int(c)))
 			expected |= tmpBB
 		}
-		if bb != expected {
-			t.Errorf("bitboard to string: %v\n\n!=\n%v", bb.ToString(), expected.ToString())
+		if !IsBitboardEqual(t, bb, expected) {
+			t.Errorf("incorrect set bits: %v", tt.coords)
 		}
 	}
 }
@@ -115,8 +126,8 @@ func TestBitboardClearBit(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt.bb.ClearBit(tt.coord)
-		if tt.bb != tt.expected {
-			t.Errorf("bitboard to string: %v\n\n!=\n%v", tt.bb.ToString(), tt.expected.ToString())
+		if !IsBitboardEqual(t, tt.bb, tt.expected) {
+			t.Errorf("incorrect clear bit at %v", COORD_MAP[tt.coord])
 		}
 	}
 }

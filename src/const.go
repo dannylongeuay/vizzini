@@ -2,22 +2,21 @@ package main
 
 const STARTING_FEN string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
+const PLAYERS int = 2
 const BOARD_SQUARES int = 64
+const RANKS int = 8
+const FILES int = 8
 const SQUARE_TYPES int = 14
 const CASTLING_RIGHTS_PERMUTATIONS = 16
-const MAX_MOVE_RANGE int = 8
 const MAX_GAME_MOVES uint16 = 300
 
 const KING_MOVE_RANGE int = 2
 const KING_CASTLE_MOVE_DIST = 2
 
-const VERTICAL_MOVE_DIST int = 10
-const HORIZONTAL_MOVE_DIST int = 1
-const POS_DIAG_MOVE_DIST int = 9
-const NEG_DIAG_MOVE_DIST int = 11
-
-const POSITIVE_DIR int = 1
-const NEGATIVE_DIR int = -1
+const SHIFT_NEG_DIAG int = 7
+const SHIFT_VERTICAL int = 8
+const SHIFT_POS_DIAG int = 9
+const SHIFT_HORIZONTAL int = 1
 
 const MAX_GENERATED_MOVES int = 512
 const MAX_PAWN_MOVES int = 12
@@ -68,14 +67,14 @@ const (
 )
 
 const (
-	RANK_EIGHT Rank = iota
-	RANK_SEVEN
-	RANK_SIX
-	RANK_FIVE
-	RANK_FOUR
-	RANK_THREE
+	RANK_ONE Rank = iota
 	RANK_TWO
-	RANK_ONE
+	RANK_THREE
+	RANK_FOUR
+	RANK_FIVE
+	RANK_SIX
+	RANK_SEVEN
+	RANK_EIGHT
 	RANK_NONE
 )
 
