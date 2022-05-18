@@ -10,6 +10,8 @@ var FILE_MASK_BITBOARDS [FILES]Bitboard
 var FILE_CLEAR_BITBOARDS [FILES]Bitboard
 
 var PAWN_ATTACKS [PLAYERS][BOARD_SQUARES]Bitboard
+var KNIGHT_ATTACKS [BOARD_SQUARES]Bitboard
+var KING_ATTACKS [BOARD_SQUARES]Bitboard
 
 func InitBitboards() {
 	for i := 0; i < BOARD_SQUARES; i++ {
@@ -28,6 +30,8 @@ func InitBitboards() {
 		FILE_CLEAR_BITBOARDS[file] = ^FILE_MASK_BITBOARDS[file]
 
 		InitPawnAttacksBitboard(i, &currentBitboard)
+		InitKnightAttacksBitboard(i, &currentBitboard)
+		InitKingAttacksBitboard(i, &currentBitboard)
 	}
 }
 
@@ -37,4 +41,36 @@ func InitPawnAttacksBitboard(i int, bb *Bitboard) {
 
 	PAWN_ATTACKS[BLACK][i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A]) >> SHIFT_POS_DIAG
 	PAWN_ATTACKS[BLACK][i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) >> SHIFT_NEG_DIAG
+}
+
+func InitKnightAttacksBitboard(i int, bb *Bitboard) {
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A] &
+		FILE_CLEAR_BITBOARDS[FILE_A]) << 6
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A] &
+		FILE_CLEAR_BITBOARDS[FILE_A]) >> 10
+
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A]) << 15
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A]) >> 17
+
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) << 17
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) >> 15
+
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_G] &
+		FILE_CLEAR_BITBOARDS[FILE_H]) << 10
+	KNIGHT_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_G] &
+		FILE_CLEAR_BITBOARDS[FILE_H]) >> 6
+}
+
+func InitKingAttacksBitboard(i int, bb *Bitboard) {
+	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A]) << SHIFT_NEG_DIAG
+	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A]) >> SHIFT_HORIZONTAL
+	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_A]) >> SHIFT_POS_DIAG
+
+	KING_ATTACKS[i] |= *bb << SHIFT_VERTICAL
+	KING_ATTACKS[i] |= *bb >> SHIFT_VERTICAL
+
+	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) << SHIFT_POS_DIAG
+	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) << SHIFT_HORIZONTAL
+	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) >> SHIFT_NEG_DIAG
+
 }

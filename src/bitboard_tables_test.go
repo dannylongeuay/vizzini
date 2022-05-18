@@ -65,3 +65,110 @@ func TestBitboardPawnAttacks(t *testing.T) {
 		}
 	}
 }
+
+func TestBitboardKnightAttacks(t *testing.T) {
+	tests := []struct {
+		coord   Coord
+		attacks []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				C5,
+				C3,
+				D6,
+				D2,
+				F6,
+				F2,
+				G5,
+				G3,
+			},
+		},
+		{
+			A1,
+			[]Coord{
+				C2,
+				B3,
+			},
+		},
+		{
+			G7,
+			[]Coord{
+				E8,
+				E6,
+				F5,
+				H5,
+			},
+		},
+		{
+			H3,
+			[]Coord{
+				G5,
+				G1,
+				F4,
+				F2,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		actual := KNIGHT_ATTACKS[tt.coord]
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect knight attacks at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
+
+func TestBitboardKingAttacks(t *testing.T) {
+	tests := []struct {
+		coord   Coord
+		attacks []Coord
+	}{
+		{
+			A4,
+			[]Coord{
+				A5,
+				A3,
+				B5,
+				B4,
+				B3,
+			},
+		},
+		{
+			B5,
+			[]Coord{
+				A6,
+				A5,
+				A4,
+				B6,
+				B4,
+				C6,
+				C5,
+				C4,
+			},
+		},
+		{
+			H8,
+			[]Coord{
+				H7,
+				G8,
+				G7,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		actual := KING_ATTACKS[tt.coord]
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect king attacks at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
