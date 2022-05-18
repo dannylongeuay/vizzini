@@ -12,26 +12,30 @@ var FILE_CLEAR_BITBOARDS [FILES]Bitboard
 var PAWN_ATTACKS [PLAYERS][BOARD_SQUARES]Bitboard
 var KNIGHT_ATTACKS [BOARD_SQUARES]Bitboard
 var KING_ATTACKS [BOARD_SQUARES]Bitboard
+var BISHOP_ATTACKS [BOARD_SQUARES]Bitboard
+var ROOK_ATTACKS [BOARD_SQUARES]Bitboard
 
 func InitBitboards() {
 	for i := 0; i < BOARD_SQUARES; i++ {
-		currentBitboard := Bitboard(1 << i)
+		bb := Bitboard(1 << i)
 
-		COORD_MASK_BITBOARDS[i] = currentBitboard
-		COORD_CLEAR_BITBOARDS[i] = ^currentBitboard
+		COORD_MASK_BITBOARDS[i] = bb
+		COORD_CLEAR_BITBOARDS[i] = ^bb
 
 		rank := i / RANKS
 		file := i % FILES
 
-		RANK_MASK_BITBOARDS[rank] |= currentBitboard
+		RANK_MASK_BITBOARDS[rank] |= bb
 		RANK_CLEAR_BITBOARDS[rank] = ^RANK_MASK_BITBOARDS[rank]
 
-		FILE_MASK_BITBOARDS[file] |= currentBitboard
+		FILE_MASK_BITBOARDS[file] |= bb
 		FILE_CLEAR_BITBOARDS[file] = ^FILE_MASK_BITBOARDS[file]
 
-		InitPawnAttacksBitboard(i, &currentBitboard)
-		InitKnightAttacksBitboard(i, &currentBitboard)
-		InitKingAttacksBitboard(i, &currentBitboard)
+		InitPawnAttacksBitboard(i, &bb)
+		InitKnightAttacksBitboard(i, &bb)
+		InitKingAttacksBitboard(i, &bb)
+		InitBishopAttacksBitboard(i)
+		InitRookAttacksBitboard(i)
 	}
 }
 
@@ -73,4 +77,86 @@ func InitKingAttacksBitboard(i int, bb *Bitboard) {
 	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) << SHIFT_HORIZONTAL
 	KING_ATTACKS[i] |= (*bb & FILE_CLEAR_BITBOARDS[FILE_H]) >> SHIFT_NEG_DIAG
 
+}
+
+func InitBishopAttacksBitboard(i int) {
+	r := i / RANKS
+	f := i % FILES
+
+	// POS DIAG FORWARD
+	rr := r + 1
+	ff := f + 1
+	for rr <= 6 && ff <= 6 {
+		c := Coord(rr*RANKS + ff)
+		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
+		rr++
+		ff++
+	}
+
+	// POS DIAG BACKWARD
+	rr = r - 1
+	ff = f - 1
+	for rr >= 1 && ff >= 1 {
+		c := Coord(rr*RANKS + ff)
+		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
+		rr--
+		ff--
+	}
+
+	// NEG DIAG FORWARD
+	rr = r - 1
+	ff = f + 1
+	for rr >= 1 && ff <= 6 {
+		c := Coord(rr*RANKS + ff)
+		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
+		rr--
+		ff++
+	}
+
+	// NEG DIAG BACKWARD
+	rr = r + 1
+	ff = f - 1
+	for rr <= 6 && ff >= 1 {
+		c := Coord(rr*RANKS + ff)
+		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
+		rr++
+		ff--
+	}
+}
+
+func InitRookAttacksBitboard(i int) {
+	r := i / RANKS
+	f := i % FILES
+
+	// POS VERTICAL
+	rr := r + 1
+	for rr <= 6 {
+		c := Coord(rr*RANKS + f)
+		ROOK_ATTACKS[i] |= Bitboard(1 << c)
+		rr++
+	}
+
+	// POS HORIZONTAL
+	ff := f + 1
+	for ff <= 6 {
+		c := Coord(r*RANKS + ff)
+		ROOK_ATTACKS[i] |= Bitboard(1 << c)
+		ff++
+	}
+
+	// NEG VERTICAL
+	rr = r - 1
+	for rr >= 1 {
+		c := Coord(rr*RANKS + f)
+		ROOK_ATTACKS[i] |= Bitboard(1 << c)
+		rr--
+	}
+
+	// NEG HORIZONTAL
+	ff = f - 1
+	for ff >= 1 {
+		c := Coord(r*RANKS + ff)
+		ROOK_ATTACKS[i] |= Bitboard(1 << c)
+		ff--
+	}
 }

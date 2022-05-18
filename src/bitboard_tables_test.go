@@ -172,3 +172,69 @@ func TestBitboardKingAttacks(t *testing.T) {
 		}
 	}
 }
+
+func TestBitboardBishopAttacks(t *testing.T) {
+	tests := []struct {
+		coord   Coord
+		attacks []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				F5,
+				G6,
+				D5,
+				C6,
+				B7,
+				D3,
+				C2,
+				F3,
+				G2,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		actual := BISHOP_ATTACKS[tt.coord]
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect bishop attacks at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
+func TestBitboardRookAttacks(t *testing.T) {
+	tests := []struct {
+		coord   Coord
+		attacks []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				E5,
+				E6,
+				E7,
+				E3,
+				E2,
+				B4,
+				C4,
+				D4,
+				F4,
+				G4,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		actual := ROOK_ATTACKS[tt.coord]
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect rook attacks at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
