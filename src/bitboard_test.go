@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func IsBitboardEqual(t *testing.T, a Bitboard, b Bitboard) bool {
 	if a != b {
@@ -128,6 +130,87 @@ func TestBitboardClearBit(t *testing.T) {
 		tt.bb.ClearBit(tt.coord)
 		if !IsBitboardEqual(t, tt.bb, tt.expected) {
 			t.Errorf("incorrect clear bit at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
+
+func TestBitboardCount(t *testing.T) {
+	tests := []struct {
+		expected int
+		coords   []Coord
+	}{
+		{
+			0,
+			[]Coord{},
+		},
+		{
+			1,
+			[]Coord{
+				A8,
+			},
+		},
+		{
+			2,
+			[]Coord{
+				A7,
+				H8,
+			},
+		},
+		{
+			5,
+			[]Coord{
+				A7,
+				H8,
+				B1,
+				C4,
+				F6,
+			},
+		},
+	}
+	for _, tt := range tests {
+		var bb Bitboard
+		for _, c := range tt.coords {
+			bb.SetBit(c)
+		}
+		actual := bb.Count()
+		if actual != tt.expected {
+			t.Errorf("incorrect count: %v != %v", actual, tt.expected)
+		}
+	}
+}
+
+func TestBitboardLSBIndex(t *testing.T) {
+	tests := []struct {
+		expected Coord
+		coords   []Coord
+	}{
+		{
+			A2,
+			[]Coord{
+				A2,
+				A3,
+				A4,
+			},
+		},
+		{
+			E4,
+			[]Coord{
+				E4,
+				H8,
+			},
+		},
+	}
+	for _, tt := range tests {
+		var bb Bitboard
+		for _, c := range tt.coords {
+			bb.SetBit(c)
+		}
+		actual, err := bb.LSBIndex()
+		if err != nil {
+			t.Error(err)
+		}
+		if Coord(actual) != tt.expected {
+			t.Errorf("incorrect lsb index: %v != %v", COORD_MAP[actual], COORD_MAP[tt.expected])
 		}
 	}
 }

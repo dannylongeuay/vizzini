@@ -36,3 +36,22 @@ func (bb *Bitboard) SetBit(c Coord) {
 func (bb *Bitboard) ClearBit(c Coord) {
 	*bb &= COORD_CLEAR_BITBOARDS[c]
 }
+
+func (bb Bitboard) Count() int {
+	var count int
+	for bb > 0 {
+		count++
+		bb &= bb - 1
+	}
+	return count
+}
+
+func (bb Bitboard) LSBIndex() (int, error) {
+	if bb == 0 {
+		return 0, fmt.Errorf("cannot retrieve LSB Index from bitboard that is zero")
+	}
+	tmpBB := (bb & -bb) - 1
+	count := tmpBB.Count()
+
+	return count, nil
+}

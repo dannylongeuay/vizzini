@@ -9,11 +9,34 @@ var RANK_CLEAR_BITBOARDS [RANKS]Bitboard
 var FILE_MASK_BITBOARDS [FILES]Bitboard
 var FILE_CLEAR_BITBOARDS [FILES]Bitboard
 
+var BISHOP_MASKS [BOARD_SQUARES]Bitboard
+var ROOK_MASKS [BOARD_SQUARES]Bitboard
+
 var PAWN_ATTACKS [PLAYERS][BOARD_SQUARES]Bitboard
 var KNIGHT_ATTACKS [BOARD_SQUARES]Bitboard
 var KING_ATTACKS [BOARD_SQUARES]Bitboard
-var BISHOP_ATTACKS [BOARD_SQUARES]Bitboard
-var ROOK_ATTACKS [BOARD_SQUARES]Bitboard
+
+var ROOK_SHIFTS = [BOARD_SQUARES]int{
+	12, 11, 11, 11, 11, 11, 11, 12,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	12, 11, 11, 11, 11, 11, 11, 12,
+}
+
+var BISHOP_SHIFTS = [BOARD_SQUARES]int{
+	6, 5, 5, 5, 5, 5, 5, 6,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	6, 5, 5, 5, 5, 5, 5, 6,
+}
 
 func InitBitboards() {
 	for i := 0; i < BOARD_SQUARES; i++ {
@@ -34,8 +57,8 @@ func InitBitboards() {
 		InitPawnAttacksBitboard(i, &bb)
 		InitKnightAttacksBitboard(i, &bb)
 		InitKingAttacksBitboard(i, &bb)
-		InitBishopAttacksBitboard(i)
-		InitRookAttacksBitboard(i)
+		InitBishopMasksBitboard(i)
+		InitRookMasksBitboard(i)
 	}
 }
 
@@ -79,84 +102,146 @@ func InitKingAttacksBitboard(i int, bb *Bitboard) {
 
 }
 
-func InitBishopAttacksBitboard(i int) {
+func InitBishopMasksBitboard(i int) {
 	r := i / RANKS
 	f := i % FILES
 
 	// POS DIAG FORWARD
-	rr := r + 1
-	ff := f + 1
-	for rr <= 6 && ff <= 6 {
+	for rr, ff := r+1, f+1; rr <= 6 && ff <= 6; rr, ff = rr+1, ff+1 {
 		c := Coord(rr*RANKS + ff)
-		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
-		rr++
-		ff++
+		BISHOP_MASKS[i] |= Bitboard(1 << c)
 	}
 
 	// POS DIAG BACKWARD
-	rr = r - 1
-	ff = f - 1
-	for rr >= 1 && ff >= 1 {
+	for rr, ff := r-1, f-1; rr >= 1 && ff >= 1; rr, ff = rr-1, ff-1 {
 		c := Coord(rr*RANKS + ff)
-		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
-		rr--
-		ff--
+		BISHOP_MASKS[i] |= Bitboard(1 << c)
 	}
 
 	// NEG DIAG FORWARD
-	rr = r - 1
-	ff = f + 1
-	for rr >= 1 && ff <= 6 {
+	for rr, ff := r-1, f+1; rr >= 1 && ff <= 6; rr, ff = rr-1, ff+1 {
 		c := Coord(rr*RANKS + ff)
-		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
-		rr--
-		ff++
+		BISHOP_MASKS[i] |= Bitboard(1 << c)
 	}
 
 	// NEG DIAG BACKWARD
-	rr = r + 1
-	ff = f - 1
-	for rr <= 6 && ff >= 1 {
+	for rr, ff := r+1, f-1; rr <= 6 && ff >= 1; rr, ff = rr+1, ff-1 {
 		c := Coord(rr*RANKS + ff)
-		BISHOP_ATTACKS[i] |= Bitboard(1 << c)
-		rr++
-		ff--
+		BISHOP_MASKS[i] |= Bitboard(1 << c)
 	}
 }
 
-func InitRookAttacksBitboard(i int) {
+func GenerateBishopAttacksBitboard(i int, blockers Bitboard) Bitboard {
+	var bb Bitboard
+	r := i / RANKS
+	f := i % FILES
+
+	// POS DIAG FORWARD
+	for rr, ff := r+1, f+1; rr <= 7 && ff <= 7; rr, ff = rr+1, ff+1 {
+		c := Coord(rr*RANKS + ff)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+
+	// POS DIAG BACKWARD
+	for rr, ff := r-1, f-1; rr >= 0 && ff >= 0; rr, ff = rr-1, ff-1 {
+		c := Coord(rr*RANKS + ff)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+
+	// NEG DIAG FORWARD
+	for rr, ff := r-1, f+1; rr >= 0 && ff <= 7; rr, ff = rr-1, ff+1 {
+		c := Coord(rr*RANKS + ff)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+
+	// NEG DIAG BACKWARD
+	for rr, ff := r+1, f-1; rr <= 7 && ff >= 0; rr, ff = rr+1, ff-1 {
+		c := Coord(rr*RANKS + ff)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+	return bb
+}
+
+func InitRookMasksBitboard(i int) {
 	r := i / RANKS
 	f := i % FILES
 
 	// POS VERTICAL
-	rr := r + 1
-	for rr <= 6 {
+	for rr := r + 1; rr <= 6; rr++ {
 		c := Coord(rr*RANKS + f)
-		ROOK_ATTACKS[i] |= Bitboard(1 << c)
-		rr++
+		ROOK_MASKS[i] |= Bitboard(1 << c)
 	}
 
 	// POS HORIZONTAL
-	ff := f + 1
-	for ff <= 6 {
+	for ff := f + 1; ff <= 6; ff++ {
 		c := Coord(r*RANKS + ff)
-		ROOK_ATTACKS[i] |= Bitboard(1 << c)
-		ff++
+		ROOK_MASKS[i] |= Bitboard(1 << c)
 	}
 
 	// NEG VERTICAL
-	rr = r - 1
-	for rr >= 1 {
+	for rr := r - 1; rr >= 1; rr-- {
 		c := Coord(rr*RANKS + f)
-		ROOK_ATTACKS[i] |= Bitboard(1 << c)
-		rr--
+		ROOK_MASKS[i] |= Bitboard(1 << c)
 	}
 
 	// NEG HORIZONTAL
-	ff = f - 1
-	for ff >= 1 {
+	for ff := f - 1; ff >= 1; ff-- {
 		c := Coord(r*RANKS + ff)
-		ROOK_ATTACKS[i] |= Bitboard(1 << c)
-		ff--
+		ROOK_MASKS[i] |= Bitboard(1 << c)
 	}
+}
+
+func GenerateRookAttacksBitboard(i int, blockers Bitboard) Bitboard {
+	var bb Bitboard
+	r := i / RANKS
+	f := i % FILES
+
+	// POS VERTICAL
+	for rr := r + 1; rr <= 7; rr++ {
+		c := Coord(rr*RANKS + f)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+
+	// POS HORIZONTAL
+	for ff := f + 1; ff <= 7; ff++ {
+		c := Coord(r*RANKS + ff)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+
+	// NEG VERTICAL
+	for rr := r - 1; rr >= 0; rr-- {
+		c := Coord(rr*RANKS + f)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+
+	// NEG HORIZONTAL
+	for ff := f - 1; ff >= 0; ff-- {
+		c := Coord(r*RANKS + ff)
+		bb |= Bitboard(1 << c)
+		if blockers&Bitboard(1<<c) > 0 {
+			break
+		}
+	}
+	return bb
 }

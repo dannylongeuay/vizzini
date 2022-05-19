@@ -173,7 +173,7 @@ func TestBitboardKingAttacks(t *testing.T) {
 	}
 }
 
-func TestBitboardBishopAttacks(t *testing.T) {
+func TestBitboardBishopMasks(t *testing.T) {
 	tests := []struct {
 		coord   Coord
 		attacks []Coord
@@ -195,17 +195,62 @@ func TestBitboardBishopAttacks(t *testing.T) {
 	}
 	InitBitboards()
 	for _, tt := range tests {
-		actual := BISHOP_ATTACKS[tt.coord]
+		actual := BISHOP_MASKS[tt.coord]
 		var expected Bitboard
 		for _, attackCoord := range tt.attacks {
 			expected.SetBit(attackCoord)
 		}
 		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect bishop masks at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
+
+func TestBitboardBishopAttackGeneration(t *testing.T) {
+	tests := []struct {
+		coord    Coord
+		blockers []Coord
+		attacks  []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				G6,
+				B1,
+				C6,
+			},
+			[]Coord{
+				F5,
+				G6,
+				D5,
+				C6,
+				D3,
+				C2,
+				B1,
+				F3,
+				G2,
+				H1,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		var blockers Bitboard
+		for _, c := range tt.blockers {
+			blockers.SetBit(c)
+		}
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		actual := GenerateBishopAttacksBitboard(int(tt.coord), blockers)
+		if !IsBitboardEqual(t, actual, expected) {
 			t.Errorf("incorrect bishop attacks at %v", COORD_MAP[tt.coord])
 		}
 	}
 }
-func TestBitboardRookAttacks(t *testing.T) {
+
+func TestBitboardRookMasks(t *testing.T) {
 	tests := []struct {
 		coord   Coord
 		attacks []Coord
@@ -228,11 +273,54 @@ func TestBitboardRookAttacks(t *testing.T) {
 	}
 	InitBitboards()
 	for _, tt := range tests {
-		actual := ROOK_ATTACKS[tt.coord]
+		actual := ROOK_MASKS[tt.coord]
 		var expected Bitboard
 		for _, attackCoord := range tt.attacks {
 			expected.SetBit(attackCoord)
 		}
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect rook masks at %v", COORD_MAP[tt.coord])
+		}
+	}
+}
+
+func TestBitboardRookAttackGeneration(t *testing.T) {
+	tests := []struct {
+		coord    Coord
+		blockers []Coord
+		attacks  []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				E6,
+				A4,
+				F4,
+			},
+			[]Coord{
+				E5,
+				E6,
+				E3,
+				E2,
+				E1,
+				A4,
+				B4,
+				C4,
+				D4,
+				F4,
+			},
+		},
+	}
+	for _, tt := range tests {
+		var blockers Bitboard
+		for _, c := range tt.blockers {
+			blockers.SetBit(c)
+		}
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		actual := GenerateRookAttacksBitboard(int(tt.coord), blockers)
 		if !IsBitboardEqual(t, actual, expected) {
 			t.Errorf("incorrect rook attacks at %v", COORD_MAP[tt.coord])
 		}
