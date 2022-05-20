@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBitboardPawnAttacks(t *testing.T) {
 	tests := []struct {
@@ -326,3 +328,103 @@ func TestBitboardRookAttackGeneration(t *testing.T) {
 		}
 	}
 }
+
+func TestBitboardBishopAttacks(t *testing.T) {
+	tests := []struct {
+		coord    Coord
+		blockers []Coord
+		attacks  []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				G6,
+				B1,
+				C6,
+			},
+			[]Coord{
+				F5,
+				G6,
+				D5,
+				C6,
+				D3,
+				C2,
+				B1,
+				F3,
+				G2,
+				H1,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		var blockers Bitboard
+		for _, c := range tt.blockers {
+			blockers.SetBit(c)
+		}
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		magicNumber := ((BISHOP_MASKS[tt.coord] & blockers) * BISHOP_MAGIC_NUMBERS[tt.coord]) >> (BOARD_SQUARES - BISHOP_SHIFTS[tt.coord])
+		actual := BISHOP_ATTACKS[tt.coord][magicNumber]
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect bishop attacks at %v", COORD_MAP[tt.coord])
+		}
+	}
+
+}
+
+func TestBitboardRookAttacks(t *testing.T) {
+	tests := []struct {
+		coord    Coord
+		blockers []Coord
+		attacks  []Coord
+	}{
+		{
+			E4,
+			[]Coord{
+				E6,
+				A4,
+				F4,
+			},
+			[]Coord{
+				E5,
+				E6,
+				E3,
+				E2,
+				E1,
+				A4,
+				B4,
+				C4,
+				D4,
+				F4,
+			},
+		},
+	}
+	InitBitboards()
+	for _, tt := range tests {
+		var blockers Bitboard
+		for _, c := range tt.blockers {
+			blockers.SetBit(c)
+		}
+		var expected Bitboard
+		for _, attackCoord := range tt.attacks {
+			expected.SetBit(attackCoord)
+		}
+		magicNumber := ((ROOK_MASKS[tt.coord] & blockers) * ROOK_MAGIC_NUMBERS[tt.coord]) >> (BOARD_SQUARES - ROOK_SHIFTS[tt.coord])
+		actual := ROOK_ATTACKS[tt.coord][magicNumber]
+		if !IsBitboardEqual(t, actual, expected) {
+			t.Errorf("incorrect rook attacks at %v", COORD_MAP[tt.coord])
+		}
+	}
+
+}
+
+// func TestBitboardFindMagicNumbers(t *testing.T) {
+// 	InitBitboards()
+// 	err := FindMagicNumbers()
+// 	if err != nil {
+// 		t.Error(err)
+// 	}
+// }
