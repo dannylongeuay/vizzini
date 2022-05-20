@@ -376,8 +376,7 @@ func TestBitboardBishopAttacks(t *testing.T) {
 		for _, attackCoord := range tt.attacks {
 			expected.SetBit(attackCoord)
 		}
-		magicNumber := ((BISHOP_MASKS[tt.coord] & blockers) * BISHOP_MAGIC_NUMBERS[tt.coord]) >> (BOARD_SQUARES - BISHOP_SHIFTS[tt.coord])
-		actual := BISHOP_ATTACKS[tt.coord][magicNumber]
+		actual := BishopAttacks(tt.coord, blockers)
 		if !IsBitboardEqual(t, actual, expected) {
 			t.Errorf("incorrect bishop attacks at %v", COORD_MAP[tt.coord])
 		}
@@ -435,8 +434,7 @@ func TestBitboardRookAttacks(t *testing.T) {
 		for _, attackCoord := range tt.attacks {
 			expected.SetBit(attackCoord)
 		}
-		magicNumber := ((ROOK_MASKS[tt.coord] & blockers) * ROOK_MAGIC_NUMBERS[tt.coord]) >> (BOARD_SQUARES - ROOK_SHIFTS[tt.coord])
-		actual := ROOK_ATTACKS[tt.coord][magicNumber]
+		actual := RookAttacks(tt.coord, blockers)
 		if !IsBitboardEqual(t, actual, expected) {
 			t.Errorf("incorrect rook attacks at %v", COORD_MAP[tt.coord])
 		}

@@ -424,6 +424,16 @@ func InitRookAttacksBitboard(i int) {
 	}
 }
 
+func BishopAttacks(c Coord, blockers Bitboard) Bitboard {
+	magicNumber := ((BISHOP_MASKS[c] & blockers) * BISHOP_MAGIC_NUMBERS[c]) >> (BOARD_SQUARES - BISHOP_SHIFTS[c])
+	return BISHOP_ATTACKS[c][magicNumber]
+}
+
+func RookAttacks(c Coord, blockers Bitboard) Bitboard {
+	magicNumber := ((ROOK_MASKS[c] & blockers) * ROOK_MAGIC_NUMBERS[c]) >> (BOARD_SQUARES - ROOK_SHIFTS[c])
+	return ROOK_ATTACKS[c][magicNumber]
+}
+
 func FindMagicNumbers() error {
 	rand.Seed(181818)
 

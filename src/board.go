@@ -49,21 +49,28 @@ var COORD_MAP = [64]string{
 
 type Board struct {
 	squares        []Square
+	bbWP           Bitboard
+	bbWN           Bitboard
+	bbWB           Bitboard
+	bbWR           Bitboard
+	bbWQ           Bitboard
+	bbWK           Bitboard
+	bbBP           Bitboard
+	bbBN           Bitboard
+	bbBB           Bitboard
+	bbBR           Bitboard
+	bbBQ           Bitboard
+	bbBK           Bitboard
 	whiteKingCoord Coord
 	blackKingCoord Coord
 	sideToMove     Color
-	/*
-		castleRights
-		 0000 	0 0 0 0
-		unused	K Q k q
-	*/
-	castleRights CastleRights
-	epCoord      Coord
-	halfMove     int
-	fullMove     int
-	hash         Hash
-	undoIndex    int
-	undos        []Undo
+	castleRights   CastleRights
+	epCoord        Coord
+	halfMove       int
+	fullMove       int
+	hash           Hash
+	undoIndex      int
+	undos          []Undo
 }
 
 func NewBoard(fen string) (*Board, error) {
@@ -150,13 +157,13 @@ func NewBoard(fen string) (*Board, error) {
 		switch string(char) {
 		case "-":
 		case "K":
-			b.castleRights |= 1 << 3
+			b.castleRights |= CASTLING_RIGHTS_WHITE_KING_MASK
 		case "Q":
-			b.castleRights |= 1 << 2
+			b.castleRights |= CASTLING_RIGHTS_WHITE_QUEEN_MASK
 		case "k":
-			b.castleRights |= 1 << 1
+			b.castleRights |= CASTLING_RIGHTS_BLACK_KING_MASK
 		case "q":
-			b.castleRights |= 1
+			b.castleRights |= CASTLING_RIGHTS_BLACK_QUEEN_MASK
 		default:
 			return nil, fmt.Errorf("Invalid castling rights in fen string: %v", string(char))
 		}

@@ -39,9 +39,9 @@ func (b *Board) makeMove(m Move) error {
 		mv:             m,
 		capturedSquare: targetSquare,
 		castleRights:   b.castleRights,
-		// epIndex:        b.epIndex,
-		halfMove: b.halfMove,
-		hash:     b.hash,
+		epCoord:        b.epCoord,
+		halfMove:       b.halfMove,
+		hash:           b.hash,
 	}
 	b.undos[b.undoIndex] = u
 	b.undoIndex++
@@ -246,7 +246,7 @@ func (b *Board) undoMove() error {
 	// }
 
 	// b.castleRights = u.castleRights
-	// b.epIndex = u.epIndex
+	b.epCoord = u.epCoord
 	b.halfMove = u.halfMove
 	b.hash = u.hash
 	return nil
