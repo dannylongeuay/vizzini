@@ -20,6 +20,8 @@ var ROOK_MASKS [BOARD_SQUARES]Bitboard
 var PAWN_ATTACKS [PLAYERS][BOARD_SQUARES]Bitboard
 var KNIGHT_ATTACKS [BOARD_SQUARES]Bitboard
 var KING_ATTACKS [BOARD_SQUARES]Bitboard
+
+// TODO: Make these fancy https://www.chessprogramming.org/Magic_Bitboards#Fancy
 var BISHOP_ATTACKS [BOARD_SQUARES][512]Bitboard
 var ROOK_ATTACKS [BOARD_SQUARES][4096]Bitboard
 
@@ -179,7 +181,13 @@ var BISHOP_MAGIC_NUMBERS = [BOARD_SQUARES]Bitboard{
 	9223979070486822979,
 }
 
+var INITIALIZED bool
+
 func InitBitboards() {
+	if INITIALIZED {
+		return
+	}
+
 	for i := 0; i < BOARD_SQUARES; i++ {
 		bb := Bitboard(1 << i)
 
@@ -208,6 +216,8 @@ func InitBitboards() {
 		InitBishopAttacksBitboard(i)
 		InitRookAttacksBitboard(i)
 	}
+
+	INITIALIZED = true
 }
 
 func InitPawnAttacksBitboard(i int, bb *Bitboard) {

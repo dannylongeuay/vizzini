@@ -355,6 +355,16 @@ func TestBitboardBishopAttacks(t *testing.T) {
 				H1,
 			},
 		},
+		{
+			H1,
+			[]Coord{
+				G2,
+				A3,
+			},
+			[]Coord{
+				G2,
+			},
+		},
 	}
 	InitBitboards()
 	for _, tt := range tests {
@@ -399,6 +409,19 @@ func TestBitboardRookAttacks(t *testing.T) {
 				C4,
 				D4,
 				F4,
+			},
+		},
+		{
+			A1,
+			[]Coord{
+				A3,
+				B1,
+				H8,
+			},
+			[]Coord{
+				A2,
+				A3,
+				B1,
 			},
 		},
 	}
