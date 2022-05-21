@@ -11,9 +11,9 @@ func perft(b *Board, depth int) int {
 		return 1
 	}
 
-	moves := b.generateMoves(b.sideToMove)
+	moves := b.GenerateMoves(b.sideToMove)
 	for _, m := range moves {
-		err := b.makeMove(m)
+		err := b.MakeMove(m)
 		if err == nil {
 			nodes += perft(b, depth-1)
 		}
@@ -36,7 +36,7 @@ func TestPerft(t *testing.T) {
 		{STARTING_FEN, 5, 4865609},
 		// {STARTING_FEN, 6, 119060324},
 	}
-	seedKeys(181818)
+	SeedKeys(181818)
 	for _, tt := range tests {
 		b, err := NewBoard(tt.fen)
 		if err != nil {

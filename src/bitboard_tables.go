@@ -510,14 +510,7 @@ func GetBlockersPermutation(index int, count int, mask Bitboard) Bitboard {
 	var blockers Bitboard
 
 	for i := 0; i < count; i++ {
-		lsbIndex, err := mask.LSBIndex()
-
-		if err != nil {
-			fmt.Println(index, err)
-		}
-
-		mask.ClearBit(Coord(lsbIndex))
-
+		lsbIndex := mask.PopLSB()
 		if index&(1<<i) > 0 {
 			blockers |= Bitboard(1 << lsbIndex)
 		}

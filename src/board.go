@@ -36,7 +36,7 @@ type Undo struct {
 	hash           Hash
 }
 
-var COORD_MAP = [64]string{
+var COORD_MAP = [BOARD_SQUARES]string{
 	"A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
 	"A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2",
 	"A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3",
@@ -45,6 +45,13 @@ var COORD_MAP = [64]string{
 	"A6", "B6", "C6", "D6", "E6", "F6", "G6", "H6",
 	"A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7",
 	"A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8",
+}
+
+var SQUARE_MAP = [SQUARE_TYPES]string{
+	"EMPTY", "WHITE_PAWN", "WHITE_KNIGHT", "WHITE_BISHOP",
+	"WHITE_ROOK", "WHITE_QUEEN", "WHITE_KING", "BLACK_PAWN",
+	"BLACK_KNIGHT", "BLACK_BISHOP", "BLACK_ROOK", "BLACK_QUEEN",
+	"BLACK_KING",
 }
 
 type Board struct {
@@ -61,6 +68,9 @@ type Board struct {
 	bbBR           Bitboard
 	bbBQ           Bitboard
 	bbBK           Bitboard
+	bbBlackPieces  Bitboard
+	bbWhitePieces  Bitboard
+	bbAllPieces    Bitboard
 	whiteKingCoord Coord
 	blackKingCoord Coord
 	sideToMove     Color
@@ -74,6 +84,7 @@ type Board struct {
 }
 
 func NewBoard(fen string) (*Board, error) {
+	InitBitboards()
 	fenParts := strings.Split(fen, " ")
 
 	if len(fenParts) != 6 {
@@ -88,7 +99,7 @@ func NewBoard(fen string) (*Board, error) {
 	if len(ranks) != 8 {
 		return nil, fmt.Errorf("Ranks: %v != 8", len(ranks))
 	}
-	squareIndex := BOARD_SQUARES - 1
+	coord := Coord(BOARD_SQUARES - 1)
 	for _, rank := range ranks {
 		runes := []rune(rank)
 		for r := len(runes) - 1; r >= 0; r-- {
@@ -103,45 +114,61 @@ func NewBoard(fen string) (*Board, error) {
 			case "7":
 			case "8":
 			case "P":
-				b.squares[squareIndex] = WHITE_PAWN
+				b.squares[coord] = WHITE_PAWN
+				b.bbWP.SetBit(coord)
 			case "N":
-				b.squares[squareIndex] = WHITE_KNIGHT
+				b.squares[coord] = WHITE_KNIGHT
+				b.bbWN.SetBit(coord)
 			case "B":
-				b.squares[squareIndex] = WHITE_BISHOP
+				b.squares[coord] = WHITE_BISHOP
+				b.bbWB.SetBit(coord)
 			case "R":
-				b.squares[squareIndex] = WHITE_ROOK
+				b.squares[coord] = WHITE_ROOK
+				b.bbWR.SetBit(coord)
 			case "Q":
-				b.squares[squareIndex] = WHITE_QUEEN
+				b.squares[coord] = WHITE_QUEEN
+				b.bbWQ.SetBit(coord)
 			case "K":
-				b.squares[squareIndex] = WHITE_KING
-				b.whiteKingCoord = Coord(squareIndex)
+				b.squares[coord] = WHITE_KING
+				b.bbWK.SetBit(coord)
+				b.whiteKingCoord = coord
 			case "p":
-				b.squares[squareIndex] = BLACK_PAWN
+				b.squares[coord] = BLACK_PAWN
+				b.bbBP.SetBit(coord)
 			case "n":
-				b.squares[squareIndex] = BLACK_KNIGHT
+				b.squares[coord] = BLACK_KNIGHT
+				b.bbBN.SetBit(coord)
 			case "b":
-				b.squares[squareIndex] = BLACK_BISHOP
+				b.squares[coord] = BLACK_BISHOP
+				b.bbBB.SetBit(coord)
 			case "r":
-				b.squares[squareIndex] = BLACK_ROOK
+				b.squares[coord] = BLACK_ROOK
+				b.bbBR.SetBit(coord)
 			case "q":
-				b.squares[squareIndex] = BLACK_QUEEN
+				b.squares[coord] = BLACK_QUEEN
+				b.bbBQ.SetBit(coord)
 			case "k":
-				b.squares[squareIndex] = BLACK_KING
-				b.blackKingCoord = Coord(squareIndex)
+				b.squares[coord] = BLACK_KING
+				b.bbBK.SetBit(coord)
+				b.blackKingCoord = coord
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", char)
 			}
 			count, err := strconv.Atoi(char)
 			if err != nil {
-				squareIndex--
+				coord--
 			} else {
 				for i := 0; i < count; i++ {
-					b.squares[squareIndex] = EMPTY
-					squareIndex--
+					b.squares[coord] = EMPTY
+					coord--
 				}
 			}
 		}
 	}
+
+	b.bbWhitePieces = b.bbWP | b.bbWN | b.bbWB | b.bbWR | b.bbWQ | b.bbWK
+	b.bbBlackPieces = b.bbBP | b.bbBN | b.bbBB | b.bbBR | b.bbBQ | b.bbBK
+	b.bbAllPieces = b.bbWhitePieces | b.bbBlackPieces
 
 	sideToMove := fenParts[1]
 	if sideToMove == "w" {
@@ -187,7 +214,7 @@ func NewBoard(fen string) (*Board, error) {
 		return nil, err
 	}
 
-	b.generateBoardHash()
+	b.GenerateBoardHash()
 
 	return &b, nil
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	seedKeys(time.Now().UTC().UnixNano())
+	SeedKeys(time.Now().UTC().UnixNano())
 	board, err := NewBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
@@ -18,7 +18,7 @@ func main() {
 		fmt.Println(board.ToString())
 		fmt.Println()
 
-		moves := board.generateMoves(board.sideToMove)
+		moves := board.GenerateMoves(board.sideToMove)
 
 		var matchingMoves []Move
 		for {
@@ -39,7 +39,7 @@ func main() {
 		}
 
 		if len(matchingMoves) == 1 {
-			err := board.makeMove(matchingMoves[0])
+			err := board.MakeMove(matchingMoves[0])
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -55,7 +55,7 @@ func main() {
 
 			for _, m := range matchingMoves {
 				if input == COORD_MAP[0] {
-					err := board.makeMove(m)
+					err := board.MakeMove(m)
 					if err != nil {
 						fmt.Println(err)
 					}

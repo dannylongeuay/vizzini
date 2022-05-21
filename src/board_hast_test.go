@@ -18,7 +18,7 @@ func TestGenerateBoardHash(t *testing.T) {
 			181818, 4998122769579152046},
 	}
 	for _, tt := range tests {
-		seedKeys(tt.seed)
+		SeedKeys(tt.seed)
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -48,7 +48,7 @@ func TestHashSquare(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		seedKeys(tt.seed)
+		SeedKeys(tt.seed)
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -56,13 +56,13 @@ func TestHashSquare(t *testing.T) {
 		if b.hash != tt.initial {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
 		}
-		b.hashSquare(tt.square, tt.coord)
+		b.HashSquare(tt.square, tt.coord)
 
 		if b.hash != tt.hashed {
 			t.Errorf("board hash: %v != %v", b.hash, tt.hashed)
 		}
 
-		b.hashSquare(tt.square, tt.coord)
+		b.HashSquare(tt.square, tt.coord)
 
 		if b.hash != tt.initial {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
@@ -87,7 +87,7 @@ func TestHashSide(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		seedKeys(tt.seed)
+		SeedKeys(tt.seed)
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -96,13 +96,13 @@ func TestHashSide(t *testing.T) {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
 		}
 
-		b.hashSide()
+		b.HashSide()
 
 		if b.hash != tt.hashed {
 			t.Errorf("board hash: %v != %v", b.hash, tt.hashed)
 		}
 
-		b.hashSide()
+		b.HashSide()
 
 		if b.hash != tt.initial {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
@@ -131,7 +131,7 @@ func TestHashCastling(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		seedKeys(tt.seed)
+		SeedKeys(tt.seed)
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -140,13 +140,13 @@ func TestHashCastling(t *testing.T) {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
 		}
 
-		b.hashCastling()
+		b.HashCastling()
 
 		if b.hash != tt.hashed {
 			t.Errorf("board hash: %v != %v", b.hash, tt.hashed)
 		}
 
-		b.hashCastling()
+		b.HashCastling()
 
 		if b.hash != tt.initial {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
@@ -171,7 +171,7 @@ func TestHashEnPassant(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		seedKeys(tt.seed)
+		SeedKeys(tt.seed)
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -180,13 +180,13 @@ func TestHashEnPassant(t *testing.T) {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)
 		}
 
-		b.hashEnPassant()
+		b.HashEnPassant()
 
 		if b.hash != tt.hashed {
 			t.Errorf("board hash: %v != %v", b.hash, tt.hashed)
 		}
 
-		b.hashEnPassant()
+		b.HashEnPassant()
 
 		if b.hash != tt.initial {
 			t.Errorf("board hash: %v != %v", b.hash, tt.initial)

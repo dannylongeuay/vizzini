@@ -205,11 +205,8 @@ func TestBitboardLSBIndex(t *testing.T) {
 		for _, c := range tt.coords {
 			bb.SetBit(c)
 		}
-		actual, err := bb.LSBIndex()
-		if err != nil {
-			t.Error(err)
-		}
-		if Coord(actual) != tt.expected {
+		actual := bb.LSBIndex()
+		if actual != tt.expected {
 			t.Errorf("incorrect lsb index: %v != %v", COORD_MAP[actual], COORD_MAP[tt.expected])
 		}
 	}

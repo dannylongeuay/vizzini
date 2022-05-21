@@ -6,7 +6,7 @@ const PLAYERS int = 2
 const BOARD_SQUARES int = 64
 const RANKS int = 8
 const FILES int = 8
-const SQUARE_TYPES int = 14
+const SQUARE_TYPES int = 13
 const MAX_GAME_MOVES uint16 = 300
 const MOVE_KINDS int = 15
 
@@ -48,7 +48,7 @@ const MAX_SQUARE_DIAGONAL_ATTACKERS = 4
 const MAX_SQUARE_CARDINAL_ATTACKERS = 4
 
 const (
-	INVALID Square = iota
+	EMPTY Square = iota
 	WHITE_PAWN
 	WHITE_KNIGHT
 	WHITE_BISHOP
@@ -61,7 +61,6 @@ const (
 	BLACK_ROOK
 	BLACK_QUEEN
 	BLACK_KING
-	EMPTY
 )
 
 const (

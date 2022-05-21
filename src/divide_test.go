@@ -8,11 +8,11 @@ import (
 func divide(b *Board, depth int) map[string]int {
 	results := make(map[string]int)
 
-	moves := b.generateMoves(b.sideToMove)
+	moves := b.GenerateMoves(b.sideToMove)
 
 	for _, m := range moves {
 		cb := b.CopyBoard()
-		err := cb.makeMove(m)
+		err := cb.MakeMove(m)
 		if err != nil {
 			continue
 		}
@@ -85,7 +85,7 @@ func TestDivide(t *testing.T) {
 			},
 		},
 	}
-	seedKeys(181818)
+	SeedKeys(181818)
 	for _, tt := range tests {
 		b, err := NewBoard(tt.fen)
 		if err != nil {

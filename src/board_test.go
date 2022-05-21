@@ -4,13 +4,13 @@ import (
 	"testing"
 )
 
-type testSquareChecks struct {
+type TestSquareChecks struct {
 	file   File
 	rank   Rank
 	square Square
 }
 
-type testPieceChecks struct {
+type TestPieceChecks struct {
 	square Square
 	count  int
 	coords []Coord
@@ -26,11 +26,11 @@ func TestNewBoard(t *testing.T) {
 		epCoord        Coord
 		halfMove       int
 		fullMove       int
-		squareChecks   []testSquareChecks
-		pieceChecks    []testPieceChecks
+		squareChecks   []TestSquareChecks
+		pieceChecks    []TestPieceChecks
 	}{
 		{STARTING_FEN, E1, E8, WHITE, 15, 0, 0, 1,
-			[]testSquareChecks{
+			[]TestSquareChecks{
 				{FILE_A, RANK_EIGHT, BLACK_ROOK},
 				{FILE_B, RANK_EIGHT, BLACK_KNIGHT},
 				{FILE_C, RANK_EIGHT, BLACK_BISHOP},
@@ -65,9 +65,8 @@ func TestNewBoard(t *testing.T) {
 				{FILE_F, RANK_ONE, WHITE_BISHOP},
 				{FILE_G, RANK_ONE, WHITE_KNIGHT},
 				{FILE_H, RANK_ONE, WHITE_ROOK},
-				{FILE_NONE, RANK_NONE, INVALID},
 			},
-			[]testPieceChecks{
+			[]TestPieceChecks{
 				{WHITE_PAWN, 8, []Coord{
 					A2, B2, C2, D2, E2, F2, G2, H2,
 				}},
@@ -108,10 +107,10 @@ func TestNewBoard(t *testing.T) {
 		},
 		{"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
 			E1, E8, BLACK, 15, E3, 0, 1,
-			[]testSquareChecks{
+			[]TestSquareChecks{
 				{FILE_E, RANK_FOUR, WHITE_PAWN},
 			},
-			[]testPieceChecks{
+			[]TestPieceChecks{
 				{WHITE_PAWN, 8, []Coord{
 					E4,
 				}},
@@ -119,10 +118,10 @@ func TestNewBoard(t *testing.T) {
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
 			E1, E8, WHITE, 15, C6, 0, 2,
-			[]testSquareChecks{
+			[]TestSquareChecks{
 				{FILE_C, RANK_FIVE, BLACK_PAWN},
 			},
-			[]testPieceChecks{
+			[]TestPieceChecks{
 				{BLACK_PAWN, 8, []Coord{
 					C5,
 				}},
@@ -130,10 +129,10 @@ func TestNewBoard(t *testing.T) {
 		},
 		{"rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
 			E1, E8, BLACK, 15, 0, 1, 2,
-			[]testSquareChecks{
+			[]TestSquareChecks{
 				{FILE_F, RANK_THREE, WHITE_KNIGHT},
 			},
-			[]testPieceChecks{
+			[]TestPieceChecks{
 				{WHITE_PAWN, 8, []Coord{
 					E4,
 				}},
@@ -143,27 +142,27 @@ func TestNewBoard(t *testing.T) {
 			},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1",
-			E1, E8, WHITE, 0, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 0, 0, 0, 1, []TestSquareChecks{}, []TestPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w q - 0 1",
-			E1, E8, WHITE, 1, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 1, 0, 0, 1, []TestSquareChecks{}, []TestPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w k - 0 1",
-			E1, E8, WHITE, 2, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 2, 0, 0, 1, []TestSquareChecks{}, []TestPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Q - 0 1",
-			E1, E8, WHITE, 4, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 4, 0, 0, 1, []TestSquareChecks{}, []TestPieceChecks{},
 		},
 		{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K - 0 1",
-			E1, E8, WHITE, 8, 0, 0, 1, []testSquareChecks{}, []testPieceChecks{},
+			E1, E8, WHITE, 8, 0, 0, 1, []TestSquareChecks{}, []TestPieceChecks{},
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/PpPP1PPP/RNBQ1RK1 b q - 1 9",
 			G1, E8, BLACK, 1, 0, 1, 9,
-			[]testSquareChecks{
+			[]TestSquareChecks{
 				{FILE_B, RANK_TWO, BLACK_PAWN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
-			[]testPieceChecks{
+			[]TestPieceChecks{
 				{WHITE_QUEEN, 2, []Coord{
 					H8,
 				}},
@@ -183,11 +182,11 @@ func TestNewBoard(t *testing.T) {
 		},
 		{"rnbqkb1Q/pp1p3p/4pn2/8/8/3B1N2/P1PP1PPP/qNBQ1RK1 w q - 0 10",
 			G1, E8, WHITE, 1, 0, 0, 10,
-			[]testSquareChecks{
+			[]TestSquareChecks{
 				{FILE_A, RANK_ONE, BLACK_QUEEN},
 				{FILE_H, RANK_EIGHT, WHITE_QUEEN},
 			},
-			[]testPieceChecks{
+			[]TestPieceChecks{
 				{WHITE_QUEEN, 2, []Coord{
 					H8,
 				}},

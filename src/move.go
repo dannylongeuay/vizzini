@@ -4,34 +4,63 @@ import (
 	"fmt"
 )
 
-func (b *Board) generateMoves(side Color) []Move {
-	moves := make([]Move, 0, MAX_GENERATED_MOVES)
-	return moves
+var MOVE_KIND_MAP = [MOVE_KINDS]string{
+	"QUIET", "DOUBLE_PAWN_PUSH", "KING_CASTLE",
+	"QUEEN_CASTLE", "CAPTURE", "EP_CAPTURE",
+	"KNIGHT_PROMOTION", "BISHOP_PROMOTION",
+	"ROOK_PROMOTION", "QUEEN_PROMOTION",
+	"KNIGHT_PROMOTION_CAPTURE", "BISHOP_PROMOTION_CAPTURE",
+	"ROOK_PROMOTION_CAPTURE", "QUEEN_PROMOTION_CAPTURE",
 }
 
-func (b *Board) generatePawnMoves(moves *[]Move, side Color) {
-	// Handle quiet move
-	// Handle double pawn push
-	// Handle captures
-	// Handle enPassant
+func AppendMove(moves *[]Move, originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) {
+	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
+	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT
+	moveOriginSquare := Move(originSquare) << MOVE_ORIGIN_SQUARE_SHIFT
+	moveDstSquare := Move(dstSquare) << MOVE_DST_SQUARE_SHIFT
+	move := moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
+	*moves = append(*moves, move)
 }
 
-func (b *Board) generateKnightMoves(moves *[]Move, side Color) {
+func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) Move {
+	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
+	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT
+	moveOriginSquare := Move(originSquare) << MOVE_ORIGIN_SQUARE_SHIFT
+	moveDstSquare := Move(dstSquare) << MOVE_DST_SQUARE_SHIFT
+	return moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
 }
 
-func (b *Board) generateBishopMoves(moves *[]Move, side Color) {
+type MoveUnpacked struct {
+	originCoord  Coord
+	dstCoord     Coord
+	originSquare Square
+	dstSquare    Square
+	moveKind     MoveKind
 }
 
-func (b *Board) generateRookMoves(moves *[]Move, side Color) {
+func (m *Move) ToString() string {
+	mu := m.Unpack()
+	mk := MOVE_KIND_MAP[mu.moveKind]
+	oc := COORD_MAP[mu.originCoord]
+	os := SQUARE_MAP[mu.originSquare]
+	dc := COORD_MAP[mu.dstCoord]
+	ds := SQUARE_MAP[mu.dstSquare]
+	s := fmt.Sprintf("%v: %v(%v) -> %v(%v)", mk, oc, os, dc, ds)
+	return s
 }
 
-func (b *Board) generateQueenMoves(moves *[]Move, side Color) {
+func (m *Move) Unpack() MoveUnpacked {
+	mu := MoveUnpacked{
+		originCoord:  Coord((*m & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT),
+		dstCoord:     Coord((*m & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT),
+		originSquare: Square((*m & MOVE_ORIGIN_SQUARE_MASK) >> MOVE_ORIGIN_SQUARE_SHIFT),
+		dstSquare:    Square((*m & MOVE_DST_SQUARE_MASK) >> MOVE_DST_SQUARE_SHIFT),
+		moveKind:     MoveKind(*m & MOVE_KIND_MASK),
+	}
+	return mu
 }
 
-func (b *Board) generateKingMoves(moves *[]Move, side Color) {
-}
-
-func (b *Board) makeMove(m Move) error {
+func (b *Board) MakeMove(m Move) error {
 	originSquare := b.squares[A1]
 	targetSquare := b.squares[A2]
 
