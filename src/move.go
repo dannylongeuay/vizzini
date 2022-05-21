@@ -13,15 +13,6 @@ var MOVE_KIND_MAP = [MOVE_KINDS]string{
 	"ROOK_PROMOTION_CAPTURE", "QUEEN_PROMOTION_CAPTURE",
 }
 
-func AppendMove(moves *[]Move, originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) {
-	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
-	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT
-	moveOriginSquare := Move(originSquare) << MOVE_ORIGIN_SQUARE_SHIFT
-	moveDstSquare := Move(dstSquare) << MOVE_DST_SQUARE_SHIFT
-	move := moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
-	*moves = append(*moves, move)
-}
-
 func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) Move {
 	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
 	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT

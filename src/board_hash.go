@@ -51,7 +51,7 @@ func (b *Board) GenerateBoardHash() {
 	if b.sideToMove == WHITE {
 		b.HashSide()
 	}
-	if b.epCoord != 0 {
+	if b.epCoord != A1 {
 		b.HashEnPassant()
 	}
 	b.HashCastling()
