@@ -17,7 +17,7 @@ func perft(b *Board, depth int) int {
 		if err == nil {
 			nodes += perft(b, depth-1)
 		}
-		b.undoMove()
+		b.UndoMove()
 	}
 
 	return nodes

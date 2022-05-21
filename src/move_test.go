@@ -46,22 +46,22 @@ func TestMakeMove(t *testing.T) {
 		},
 		{
 			"rnbqkbnr/pp1ppppp/8/2p1P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2",
-			MoveUnpacked{F7, F5, WHITE_PAWN, 0, DOUBLE_PAWN_PUSH},
+			MoveUnpacked{F7, F5, BLACK_PAWN, 0, DOUBLE_PAWN_PUSH},
 			"rnbqkbnr/pp1pp1pp/8/2p1Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",
 		},
 		{
 			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
-			MoveUnpacked{A1, A3, WHITE_PAWN, 0, QUIET},
+			MoveUnpacked{A1, A3, WHITE_ROOK, 0, QUIET},
 			"rnbqkbnr/pppp1ppp/8/4p3/P7/R7/1PPPPPPP/1NBQKBNR b Kkq - 1 2",
 		},
 		{
 			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-			MoveUnpacked{B5, C6, WHITE_PAWN, 0, CAPTURE},
+			MoveUnpacked{B5, C6, WHITE_BISHOP, 0, CAPTURE},
 			"r1bqk1nr/ppppbppp/2B5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4",
 		},
 		{
 			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-			MoveUnpacked{E1, G1, WHITE_PAWN, 0, KING_CASTLE},
+			MoveUnpacked{E1, G1, WHITE_KING, 0, KING_CASTLE},
 			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
 		},
 		{
@@ -91,27 +91,27 @@ func TestMakeMove(t *testing.T) {
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP3pP/R1BQKBNR b KQkq - 0 7",
-			MoveUnpacked{G2, H1, WHITE_PAWN, 0, QUEEN_PROMOTION_CAPTURE},
+			MoveUnpacked{G2, H1, BLACK_PAWN, 0, QUEEN_PROMOTION_CAPTURE},
 			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP4P/R1BQKBNq w Qkq - 0 8",
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, QUEEN_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, QUEEN_PROMOTION},
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBqR w KQkq - 0 8",
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, ROOK_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, ROOK_PROMOTION},
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBrR w KQkq - 0 8",
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, BISHOP_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, BISHOP_PROMOTION},
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBbR w KQkq - 0 8",
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, KNIGHT_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, KNIGHT_PROMOTION},
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBnR w KQkq - 0 8",
 		},
 	}
@@ -145,15 +145,15 @@ func TestUndoMove(t *testing.T) {
 		},
 		{
 			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
-			MoveUnpacked{A1, A3, WHITE_PAWN, 0, QUIET},
+			MoveUnpacked{A1, A3, WHITE_ROOK, 0, QUIET},
 		},
 		{
 			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-			MoveUnpacked{B5, C6, WHITE_PAWN, 0, CAPTURE},
+			MoveUnpacked{B5, C6, WHITE_BISHOP, 0, CAPTURE},
 		},
 		{
 			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-			MoveUnpacked{E1, G1, WHITE_PAWN, 0, KING_CASTLE},
+			MoveUnpacked{E1, G1, WHITE_KING, 0, KING_CASTLE},
 		},
 		{
 			"rnbqkbnr/pp2pppp/8/2pP4/8/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 3",
@@ -177,23 +177,23 @@ func TestUndoMove(t *testing.T) {
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP3pP/R1BQKBNR b KQkq - 0 7",
-			MoveUnpacked{G2, H1, WHITE_PAWN, 0, QUEEN_PROMOTION_CAPTURE},
+			MoveUnpacked{G2, H1, BLACK_PAWN, 0, QUEEN_PROMOTION_CAPTURE},
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, QUEEN_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, QUEEN_PROMOTION},
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, ROOK_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, ROOK_PROMOTION},
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, BISHOP_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, BISHOP_PROMOTION},
 		},
 		{
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-			MoveUnpacked{G2, G1, WHITE_PAWN, 0, KNIGHT_PROMOTION},
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, KNIGHT_PROMOTION},
 		},
 	}
 	SeedKeys(time.Now().UTC().UnixNano())
@@ -211,7 +211,7 @@ func TestUndoMove(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		err = bStart.undoMove()
+		err = bStart.UndoMove()
 		if err != nil {
 			t.Error(err)
 		}
@@ -320,7 +320,7 @@ func TestUndoMoves(t *testing.T) {
 			}
 		}
 		for i := 0; i < tt.undoCount; i++ {
-			err = bStart.undoMove()
+			err = bStart.UndoMove()
 			if err != nil {
 				t.Error(err)
 			}

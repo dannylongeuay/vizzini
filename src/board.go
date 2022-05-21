@@ -28,12 +28,11 @@ import (
 */
 
 type Undo struct {
-	mv             Move
-	capturedSquare Square
-	castleRights   CastleRights
-	epCoord        Coord
-	halfMove       int
-	hash           Hash
+	move         Move
+	castleRights CastleRights
+	epCoord      Coord
+	halfMove     int
+	hash         Hash
 }
 
 var COORD_MAP = [BOARD_SQUARES]string{
