@@ -54,7 +54,7 @@ func (m *Move) ToString() string {
 	os := SQUARE_MAP[mu.originSquare]
 	dc := COORD_MAP[mu.dstCoord]
 	ds := SQUARE_MAP[mu.dstSquare]
-	s := fmt.Sprintf("%v: %v(%v) -> %v(%v)", mk, oc, os, dc, ds)
+	s := fmt.Sprintf("Move{%v: %v(%v) -> %v(%v)}", mk, oc, os, dc, ds)
 	return s
 }
 
@@ -65,7 +65,7 @@ func (u *Undo) ToString() string {
 	hm := uu.halfMove
 	cr := uu.castleRights
 	ec := COORD_MAP[uu.epCoord]
-	s := fmt.Sprintf("ClearSquare: %v | HalfMove: %v | CastleRights: %v | EP Coord: %v | Move: %v", cs, hm, cr, ec, move.ToString())
+	s := fmt.Sprintf("Undo{ClearSquare: %v | HalfMove: %v | CastleRights: %v | EP Coord: %v | %v}", cs, hm, cr, ec, move.ToString())
 	return s
 }
 
@@ -129,7 +129,7 @@ func (b *Board) SetSquare(c Coord, sq Square) {
 
 func (b *Board) ClearSquare(c Coord, sq Square) {
 	if sq != b.squares[c] {
-		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v is not allowed", SQUARE_MAP[sq], SQUARE_MAP[b.squares[c]], COORD_MAP[c]))
+		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v\n\n%v", SQUARE_MAP[sq], SQUARE_MAP[b.squares[c]], COORD_MAP[c], b.ToString()))
 	}
 
 	b.squares[c] = EMPTY
@@ -376,10 +376,10 @@ func (b *Board) UndoMove() error {
 		}
 	case EP_CAPTURE:
 		if b.sideToMove == WHITE {
-			epCaptureCoord = uu.dstCoord + Coord(SHIFT_VERTICAL)
+			epCaptureCoord = uu.epCoord - Coord(SHIFT_VERTICAL)
 			epCaptureSquare = BLACK_PAWN
 		} else if b.sideToMove == BLACK {
-			epCaptureCoord = uu.dstCoord - Coord(SHIFT_VERTICAL)
+			epCaptureCoord = uu.epCoord + Coord(SHIFT_VERTICAL)
 			epCaptureSquare = WHITE_PAWN
 
 		}
