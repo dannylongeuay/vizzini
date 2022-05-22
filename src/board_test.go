@@ -24,7 +24,7 @@ func TestNewBoard(t *testing.T) {
 		sideToMove     Color
 		castleRights   CastleRights
 		epCoord        Coord
-		halfMove       int
+		halfMove       HalfMove
 		fullMove       int
 		squareChecks   []TestSquareChecks
 		pieceChecks    []TestPieceChecks
@@ -213,8 +213,8 @@ func TestNewBoard(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if b.whiteKingCoord != tt.whiteKingCoord {
-			t.Errorf("white king index: %v != %v", b.whiteKingCoord, tt.whiteKingCoord)
+		if b.kingCoords[WHITE] != tt.whiteKingCoord {
+			t.Errorf("white king index: %v != %v", b.kingCoords[WHITE], tt.whiteKingCoord)
 		}
 		if err != nil {
 			t.Error(err)
@@ -222,8 +222,8 @@ func TestNewBoard(t *testing.T) {
 		if b.squares[tt.whiteKingCoord] != WHITE_KING {
 			t.Errorf("white king square: %v != %v", b.squares[tt.whiteKingCoord], WHITE_KING)
 		}
-		if b.blackKingCoord != tt.blackKingCoord {
-			t.Errorf("black king index: %v != %v", b.blackKingCoord, tt.blackKingCoord)
+		if b.kingCoords[BLACK] != tt.blackKingCoord {
+			t.Errorf("black king index: %v != %v", b.kingCoords[BLACK], tt.blackKingCoord)
 		}
 		if err != nil {
 			t.Error(err)
@@ -231,14 +231,6 @@ func TestNewBoard(t *testing.T) {
 		if b.squares[tt.blackKingCoord] != BLACK_KING {
 			t.Errorf("black king square: %v != %v", b.squares[tt.blackKingCoord], BLACK_KING)
 		}
-		// for _, check := range tt.squareChecks {
-		// 	squareIndex := squareIndexByFileRank(check.file, check.rank)
-
-		// 	if b.squares[squareIndex] != check.square {
-		// 		t.Errorf("square: %v != %v", b.squares[squareIndex], check.square)
-		// 	}
-		// }
-
 		if b.sideToMove != tt.sideToMove {
 			t.Errorf("side: %v != %v", b.sideToMove, tt.sideToMove)
 		}

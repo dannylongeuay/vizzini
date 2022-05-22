@@ -27,14 +27,6 @@ import (
      A    B    C    D    E    F    G    H - file(s)
 */
 
-type Undo struct {
-	move         Move
-	castleRights CastleRights
-	epCoord      Coord
-	halfMove     int
-	hash         Hash
-}
-
 var COORD_MAP = [BOARD_SQUARES]string{
 	"A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
 	"A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2",
@@ -54,32 +46,31 @@ var SQUARE_MAP = [SQUARE_TYPES]string{
 }
 
 type Board struct {
-	squares        []Square
-	bbWP           Bitboard
-	bbWN           Bitboard
-	bbWB           Bitboard
-	bbWR           Bitboard
-	bbWQ           Bitboard
-	bbWK           Bitboard
-	bbBP           Bitboard
-	bbBN           Bitboard
-	bbBB           Bitboard
-	bbBR           Bitboard
-	bbBQ           Bitboard
-	bbBK           Bitboard
-	bbBlackPieces  Bitboard
-	bbWhitePieces  Bitboard
-	bbAllPieces    Bitboard
-	whiteKingCoord Coord
-	blackKingCoord Coord
-	sideToMove     Color
-	castleRights   CastleRights
-	epCoord        Coord
-	halfMove       int
-	fullMove       int
-	hash           Hash
-	undoIndex      int
-	undos          []Undo
+	squares       []Square
+	bbWP          Bitboard
+	bbWN          Bitboard
+	bbWB          Bitboard
+	bbWR          Bitboard
+	bbWQ          Bitboard
+	bbWK          Bitboard
+	bbBP          Bitboard
+	bbBN          Bitboard
+	bbBB          Bitboard
+	bbBR          Bitboard
+	bbBQ          Bitboard
+	bbBK          Bitboard
+	bbWhitePieces Bitboard
+	bbBlackPieces Bitboard
+	bbAllPieces   Bitboard
+	kingCoords    []Coord
+	sideToMove    Color
+	castleRights  CastleRights
+	epCoord       Coord
+	halfMove      HalfMove
+	fullMove      int
+	hash          Hash
+	undoIndex     int
+	undos         []Undo
 }
 
 func NewBoard(fen string) (*Board, error) {
@@ -93,6 +84,7 @@ func NewBoard(fen string) (*Board, error) {
 	b := Board{}
 	b.squares = make([]Square, BOARD_SQUARES)
 	b.undos = make([]Undo, MAX_GAME_MOVES)
+	b.kingCoords = make([]Coord, PLAYERS)
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
@@ -130,7 +122,7 @@ func NewBoard(fen string) (*Board, error) {
 			case "K":
 				b.squares[coord] = WHITE_KING
 				b.bbWK.SetBit(coord)
-				b.whiteKingCoord = coord
+				b.kingCoords[WHITE] = coord
 			case "p":
 				b.squares[coord] = BLACK_PAWN
 				b.bbBP.SetBit(coord)
@@ -149,7 +141,7 @@ func NewBoard(fen string) (*Board, error) {
 			case "k":
 				b.squares[coord] = BLACK_KING
 				b.bbBK.SetBit(coord)
-				b.blackKingCoord = coord
+				b.kingCoords[BLACK] = coord
 			default:
 				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", char)
 			}
@@ -164,10 +156,7 @@ func NewBoard(fen string) (*Board, error) {
 			}
 		}
 	}
-
-	b.bbWhitePieces = b.bbWP | b.bbWN | b.bbWB | b.bbWR | b.bbWQ | b.bbWK
-	b.bbBlackPieces = b.bbBP | b.bbBN | b.bbBB | b.bbBR | b.bbBQ | b.bbBK
-	b.bbAllPieces = b.bbWhitePieces | b.bbBlackPieces
+	b.UpdateUnionBitboards()
 
 	sideToMove := fenParts[1]
 	if sideToMove == "w" {
@@ -203,10 +192,11 @@ func NewBoard(fen string) (*Board, error) {
 		}
 	}
 
-	b.halfMove, err = strconv.Atoi(fenParts[4])
+	halfMove, err := strconv.Atoi(fenParts[4])
 	if err != nil {
 		return nil, err
 	}
+	b.halfMove = HalfMove(halfMove)
 
 	b.fullMove, err = strconv.Atoi(fenParts[5])
 	if err != nil {
@@ -218,6 +208,12 @@ func NewBoard(fen string) (*Board, error) {
 	return &b, nil
 }
 
+func (b *Board) UpdateUnionBitboards() {
+	b.bbWhitePieces = b.bbWP | b.bbWN | b.bbWB | b.bbWR | b.bbWQ | b.bbWK
+	b.bbBlackPieces = b.bbBP | b.bbBN | b.bbBB | b.bbBR | b.bbBQ | b.bbBK
+	b.bbAllPieces = b.bbWhitePieces | b.bbBlackPieces
+}
+
 func (b Board) CopyBoard() Board {
 	squares := make([]Square, len(b.squares))
 	copy(squares, b.squares)
@@ -225,18 +221,35 @@ func (b Board) CopyBoard() Board {
 	undos := make([]Undo, len(b.undos))
 	copy(undos, b.undos)
 
+	kingCoords := make([]Coord, len(b.kingCoords))
+	copy(kingCoords, b.kingCoords)
+
 	cb := Board{
-		squares:        squares,
-		whiteKingCoord: b.whiteKingCoord,
-		blackKingCoord: b.blackKingCoord,
-		sideToMove:     b.sideToMove,
-		castleRights:   b.castleRights,
-		epCoord:        b.epCoord,
-		halfMove:       b.halfMove,
-		fullMove:       b.fullMove,
-		hash:           b.hash,
-		undoIndex:      b.undoIndex,
-		undos:          undos,
+		squares:       squares,
+		bbWP:          b.bbWP,
+		bbWN:          b.bbWN,
+		bbWB:          b.bbWB,
+		bbWR:          b.bbWR,
+		bbWQ:          b.bbWQ,
+		bbWK:          b.bbWK,
+		bbBP:          b.bbBP,
+		bbBN:          b.bbBN,
+		bbBB:          b.bbBB,
+		bbBR:          b.bbBR,
+		bbBQ:          b.bbBQ,
+		bbBK:          b.bbBK,
+		bbWhitePieces: b.bbWhitePieces,
+		bbBlackPieces: b.bbBlackPieces,
+		bbAllPieces:   b.bbAllPieces,
+		kingCoords:    kingCoords,
+		sideToMove:    b.sideToMove,
+		castleRights:  b.castleRights,
+		epCoord:       b.epCoord,
+		halfMove:      b.halfMove,
+		fullMove:      b.fullMove,
+		hash:          b.hash,
+		undoIndex:     b.undoIndex,
+		undos:         undos,
 	}
 	return cb
 }
