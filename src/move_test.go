@@ -94,6 +94,11 @@ func TestMakeMove(t *testing.T) {
 			"rnbqkbnr/pp1pp1pp/8/2p1Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",
 		},
 		{
+			"rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
+			MoveUnpacked{B7, B5, BLACK_PAWN, 0, DOUBLE_PAWN_PUSH},
+			"rnbqkbnr/p1pppppp/8/1p6/2P5/8/PP1PPPPP/RNBQKBNR w KQkq - 0 2",
+		},
+		{
 			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
 			MoveUnpacked{A1, A3, WHITE_ROOK, 0, QUIET},
 			"rnbqkbnr/pppp1ppp/8/4p3/P7/R7/1PPPPPPP/1NBQKBNR b Kkq - 1 2",

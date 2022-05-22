@@ -115,7 +115,7 @@ func TestGeneratePawnMoves(t *testing.T) {
 		{"rnbqkbnr/pp2pppp/8/2ppP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", WHITE, E5, 2,
 			[]MoveUnpacked{
 				{E5, E6, WHITE_PAWN, 0, QUIET},
-				{E5, D6, WHITE_PAWN, BLACK_PAWN, EP_CAPTURE},
+				{E5, D6, WHITE_PAWN, 0, EP_CAPTURE},
 			},
 		},
 		{"rnbqkbnr/pp2pppp/3P4/2p5/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3", BLACK, E7, 3,

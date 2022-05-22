@@ -12,7 +12,7 @@ func AppendMove(moves *[]Move, originCoord Coord, dstCoord Coord, originSquare S
 func AppendQuietMoves(moves *[]Move, quiet Bitboard, originCoord Coord, originSquare Square) {
 	for quiet > 0 {
 		dstCoord := quiet.PopLSB()
-		AppendMove(moves, originCoord, dstCoord, originSquare, 0, QUIET)
+		AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUIET)
 	}
 }
 
@@ -40,14 +40,12 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color) {
 	originSquare := WHITE_PAWN
 	bbOpponentPieces := b.bbBlackPieces
 	doublePushRankMask := RANK_MASK_BITBOARDS[RANK_THREE]
-	epSquare := BLACK_PAWN
 	promotionRank := RANK_EIGHT
 	if side == BLACK {
 		bbP = b.bbBP
 		originSquare = BLACK_PAWN
 		doublePushRankMask = RANK_MASK_BITBOARDS[RANK_SIX]
 		bbOpponentPieces = b.bbWhitePieces
-		epSquare = WHITE_PAWN
 		promotionRank = RANK_ONE
 	}
 	for bbP > 0 {
@@ -74,22 +72,22 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color) {
 		// Special
 		for doublePush > 0 {
 			dstCoord := doublePush.PopLSB()
-			AppendMove(moves, originCoord, dstCoord, originSquare, 0, DOUBLE_PAWN_PUSH)
+			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, DOUBLE_PAWN_PUSH)
 		}
 		if b.epCoord != A1 {
 			epAttack := PAWN_ATTACKS[side][originCoord] & Bitboard(1<<b.epCoord)
 			for epAttack > 0 {
 				dstCoord := epAttack.PopLSB()
-				AppendMove(moves, originCoord, dstCoord, originSquare, epSquare, EP_CAPTURE)
+				AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, EP_CAPTURE)
 
 			}
 		}
 		for promotions > 0 {
 			dstCoord := promotions.PopLSB()
-			AppendMove(moves, originCoord, dstCoord, originSquare, 0, KNIGHT_PROMOTION)
-			AppendMove(moves, originCoord, dstCoord, originSquare, 0, BISHOP_PROMOTION)
-			AppendMove(moves, originCoord, dstCoord, originSquare, 0, ROOK_PROMOTION)
-			AppendMove(moves, originCoord, dstCoord, originSquare, 0, QUEEN_PROMOTION)
+			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, KNIGHT_PROMOTION)
+			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, BISHOP_PROMOTION)
+			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, ROOK_PROMOTION)
+			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUEEN_PROMOTION)
 		}
 		for promotionCaptures > 0 {
 			dstCoord := promotionCaptures.PopLSB()

@@ -33,7 +33,7 @@ func TestPerft(t *testing.T) {
 		{STARTING_FEN, 2, 400},
 		{STARTING_FEN, 3, 8902},
 		{STARTING_FEN, 4, 197281},
-		{STARTING_FEN, 5, 4865609},
+		// {STARTING_FEN, 5, 4865609},
 		// {STARTING_FEN, 6, 119060324},
 	}
 	SeedKeys(181818)

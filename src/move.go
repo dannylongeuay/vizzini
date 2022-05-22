@@ -319,13 +319,14 @@ func (b *Board) MakeMove(m Move) error {
 
 	// Move Legality Check
 	kingAttacked := b.CoordAttacked(b.kingCoords[b.sideToMove], b.sideToMove)
-	if kingAttacked {
-		return fmt.Errorf("king is attacked")
-	}
 
 	// Update Side
 	b.HashSide()
 	b.sideToMove ^= 1
+
+	if kingAttacked {
+		return fmt.Errorf("king is attacked")
+	}
 
 	return nil
 }
