@@ -192,58 +192,58 @@ func TestUndoMove(t *testing.T) {
 			STARTING_FEN,
 			MoveUnpacked{E2, E4, WHITE_PAWN, 0, DOUBLE_PAWN_PUSH},
 		},
-		// {
-		// 	"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
-		// 	MoveUnpacked{A1, A3, WHITE_ROOK, 0, QUIET},
-		// },
-		// {
-		// 	"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-		// 	MoveUnpacked{B5, C6, WHITE_BISHOP, 0, CAPTURE},
-		// },
-		// {
-		// 	"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-		// 	MoveUnpacked{E1, G1, WHITE_KING, 0, KING_CASTLE},
-		// },
-		// {
-		// 	"rnbqkbnr/pp2pppp/8/2pP4/8/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 3",
-		// 	MoveUnpacked{D5, C6, WHITE_PAWN, 0, EP_CAPTURE},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
-		// 	MoveUnpacked{B7, A8, WHITE_PAWN, 0, QUEEN_PROMOTION_CAPTURE},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
-		// 	MoveUnpacked{B7, A8, WHITE_PAWN, 0, ROOK_PROMOTION_CAPTURE},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
-		// 	MoveUnpacked{B7, A8, WHITE_PAWN, 0, BISHOP_PROMOTION_CAPTURE},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
-		// 	MoveUnpacked{B7, A8, WHITE_PAWN, 0, KNIGHT_PROMOTION_CAPTURE},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP3pP/R1BQKBNR b KQkq - 0 7",
-		// 	MoveUnpacked{G2, H1, BLACK_PAWN, 0, QUEEN_PROMOTION_CAPTURE},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-		// 	MoveUnpacked{G2, G1, BLACK_PAWN, 0, QUEEN_PROMOTION},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-		// 	MoveUnpacked{G2, G1, BLACK_PAWN, 0, ROOK_PROMOTION},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-		// 	MoveUnpacked{G2, G1, BLACK_PAWN, 0, BISHOP_PROMOTION},
-		// },
-		// {
-		// 	"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
-		// 	MoveUnpacked{G2, G1, BLACK_PAWN, 0, KNIGHT_PROMOTION},
-		// },
+		{
+			"rnbqkbnr/pppp1ppp/8/4p3/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
+			MoveUnpacked{A1, A3, WHITE_ROOK, 0, QUIET},
+		},
+		{
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			MoveUnpacked{B5, C6, WHITE_BISHOP, BLACK_KNIGHT, CAPTURE},
+		},
+		{
+			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+			MoveUnpacked{E1, G1, WHITE_KING, 0, KING_CASTLE},
+		},
+		{
+			"rnbqkbnr/pp2pppp/8/2pP4/8/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 3",
+			MoveUnpacked{D5, C6, WHITE_PAWN, 0, EP_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			MoveUnpacked{B7, A8, WHITE_PAWN, BLACK_ROOK, QUEEN_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			MoveUnpacked{B7, A8, WHITE_PAWN, BLACK_ROOK, ROOK_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			MoveUnpacked{B7, A8, WHITE_PAWN, BLACK_ROOK, BISHOP_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/6p1/8/PPPP1PPP/RNBQKBNR w KQkq - 0 5",
+			MoveUnpacked{B7, A8, WHITE_PAWN, BLACK_ROOK, KNIGHT_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/3P4/2N5/PPP3pP/R1BQKBNR b KQkq - 0 7",
+			MoveUnpacked{G2, H1, BLACK_PAWN, WHITE_ROOK, QUEEN_PROMOTION_CAPTURE},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, QUEEN_PROMOTION},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, ROOK_PROMOTION},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, BISHOP_PROMOTION},
+		},
+		{
+			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN1pP/R1BQKB1R b KQkq - 1 7",
+			MoveUnpacked{G2, G1, BLACK_PAWN, 0, KNIGHT_PROMOTION},
+		},
 	}
 	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {

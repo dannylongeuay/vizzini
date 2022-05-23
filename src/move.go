@@ -91,32 +91,46 @@ func (u *Undo) Unpack(mu *MoveUnpacked, uu *UndoUnpacked) {
 func (b *Board) SetSquare(c Coord, sq Square) {
 	b.squares[c] = sq
 	b.HashSquare(sq, c)
+	b.bbAllPieces.SetBit(c)
 	switch sq {
 	case WHITE_PAWN:
 		b.bbWP.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
 	case WHITE_KNIGHT:
 		b.bbWN.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
 	case WHITE_BISHOP:
 		b.bbWB.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
 	case WHITE_ROOK:
 		b.bbWR.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
 	case WHITE_QUEEN:
 		b.bbWQ.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
 	case WHITE_KING:
 		b.bbWK.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
 		b.kingCoords[b.sideToMove] = c
+		b.bbWhitePieces.SetBit(c)
 	case BLACK_PAWN:
 		b.bbBP.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
 	case BLACK_KNIGHT:
 		b.bbBN.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
 	case BLACK_BISHOP:
 		b.bbBB.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
 	case BLACK_ROOK:
 		b.bbBR.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
 	case BLACK_QUEEN:
 		b.bbBQ.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
 	case BLACK_KING:
 		b.bbBK.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
 		b.kingCoords[b.sideToMove] = c
 	default:
 		panic(fmt.Errorf("set square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
@@ -130,31 +144,44 @@ func (b *Board) ClearSquare(c Coord, sq Square) {
 
 	b.squares[c] = EMPTY
 	b.HashSquare(sq, c)
+	b.bbAllPieces.ClearBit(c)
 	switch sq {
 	case WHITE_PAWN:
 		b.bbWP.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
 	case WHITE_KNIGHT:
 		b.bbWN.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
 	case WHITE_BISHOP:
 		b.bbWB.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
 	case WHITE_ROOK:
 		b.bbWR.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
 	case WHITE_QUEEN:
 		b.bbWQ.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
 	case WHITE_KING:
 		b.bbWK.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
 	case BLACK_PAWN:
 		b.bbBP.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
 	case BLACK_KNIGHT:
 		b.bbBN.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
 	case BLACK_BISHOP:
 		b.bbBB.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
 	case BLACK_ROOK:
 		b.bbBR.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
 	case BLACK_QUEEN:
 		b.bbBQ.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
 	case BLACK_KING:
 		b.bbBK.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
 	default:
 		panic(fmt.Errorf("clear square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
 	}
@@ -290,7 +317,6 @@ func (b *Board) MakeMove(m Move) error {
 	if epCaptureSquare != EMPTY {
 		b.ClearSquare(epCaptureCoord, epCaptureSquare)
 	}
-	b.UpdateUnionBitboards()
 
 	// Update CastleRights
 	if b.castleRights != 0 {
@@ -403,7 +429,6 @@ func (b *Board) UndoMove() error {
 	if epCaptureSquare != EMPTY {
 		b.SetSquare(epCaptureCoord, epCaptureSquare)
 	}
-	b.UpdateUnionBitboards()
 
 	// Update CastleRights
 	b.HashCastling()

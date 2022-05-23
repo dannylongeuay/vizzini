@@ -1,11 +1,7 @@
 package main
 
 func AppendMove(moves *[]Move, originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) {
-	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
-	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT
-	moveOriginSquare := Move(originSquare) << MOVE_ORIGIN_SQUARE_SHIFT
-	moveDstSquare := Move(dstSquare) << MOVE_DST_SQUARE_SHIFT
-	move := moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
+	move := NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind)
 	*moves = append(*moves, move)
 }
 
