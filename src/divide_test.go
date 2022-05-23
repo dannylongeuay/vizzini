@@ -2,27 +2,31 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
-func divide(b *board, depth int) map[string]int {
+func divide(b *Board, depth int) map[string]int {
 	results := make(map[string]int)
 
-	moves := b.generateMoves(b.sideToMove)
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+	b.GenerateMoves(&moves, b.sideToMove)
 
 	for _, m := range moves {
-		cb := b.copyBoard()
-		err := cb.makeMove(m)
+		cb := b.CopyBoard()
+		err := cb.MakeMove(m)
 		if err != nil {
 			continue
 		}
 		var nodes int
 		if depth > 1 {
-			nodes = perft(&cb, depth-1)
+			nodes = Perft(&cb, depth-1)
 		} else {
 			nodes = 1
 		}
-		coord := fmt.Sprint(coordBySquareIndex(m.origin), coordBySquareIndex(m.target))
+		var mu MoveUnpacked
+		m.Unpack(&mu)
+		coord := fmt.Sprint(strings.ToLower(COORD_MAP[mu.originCoord]), strings.ToLower(COORD_MAP[mu.dstCoord]))
 		results[coord] = nodes
 	}
 
@@ -60,123 +64,61 @@ func TestDivide(t *testing.T) {
 				"g1f3": 9748,
 			},
 		},
-		{"rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1", 3, 20,
+		{STARTING_FEN, 5, 20,
 			map[string]int{
-				"a7a6": 529,
-				"a7a5": 585,
-				"b7b6": 585,
-				"b7b5": 586,
-				"c7c6": 586,
-				"c7c5": 661,
-				"d7d6": 752,
-				"d7d5": 728,
-				"e7e6": 835,
-				"e7e5": 891,
-				"f7f6": 530,
-				"f7f5": 557,
-				"g7g6": 584,
-				"g7g5": 567,
-				"h7h6": 533,
-				"h7h5": 587,
-				"b8a6": 557,
-				"b8c6": 613,
-				"g8f6": 613,
-				"g8h6": 556,
+				"a2a3": 181046,
+				"a2a4": 217832,
+				"b2b3": 215255,
+				"b2b4": 216145,
+				"c2c3": 222861,
+				"c2c4": 240082,
+				"d2d3": 328511,
+				"d2d4": 361790,
+				"e2e3": 402988,
+				"e2e4": 405385,
+				"f2f3": 178889,
+				"f2f4": 198473,
+				"g2g3": 217210,
+				"g2g4": 214048,
+				"h2h3": 181044,
+				"h2h4": 218829,
+				"b1c3": 234656,
+				"b1a3": 198572,
+				"g1h3": 198502,
+				"g1f3": 233491,
 			},
 		},
-		{"rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2", 2, 29,
+		{STARTING_FEN, 6, 20,
 			map[string]int{
-				"e1d2": 31,
-				"d4d5": 29,
-				"d4e5": 29,
-				"a2a3": 31,
-				"a2a4": 31,
-				"b2b3": 31,
-				"b2b4": 30,
-				"c2c3": 31,
-				"c2c4": 31,
-				"e2e3": 31,
-				"e2e4": 30,
-				"f2f3": 31,
-				"f2f4": 32,
-				"g2g3": 31,
-				"g2g4": 31,
-				"h2h3": 31,
-				"h2h4": 31,
-				"b1c3": 31,
-				"b1d2": 31,
-				"b1a3": 31,
-				"c1d2": 31,
-				"c1e3": 31,
-				"c1f4": 32,
-				"c1g5": 28,
-				"c1h6": 30,
-				"d1d2": 31,
-				"d1d3": 31,
-				"g1h3": 31,
-				"g1f3": 31,
+				"a2a3": 4463267,
+				"a2a4": 5363555,
+				"b2b3": 5310358,
+				"b2b4": 5293555,
+				"c2c3": 5417640,
+				"c2c4": 5866666,
+				"d2d3": 8073082,
+				"d2d4": 8879566,
+				"e2e3": 9726018,
+				"e2e4": 9771632,
+				"f2f3": 4404141,
+				"f2f4": 4890429,
+				"g2g3": 5346260,
+				"g2g4": 5239875,
+				"h2h3": 4463070,
+				"h2h4": 5385554,
+				"b1c3": 5708064,
+				"b1a3": 4856835,
+				"g1h3": 4877234,
+				"g1f3": 5723523,
 			},
 		},
-		{"rnbqkbnr/pppp1ppp/8/4p1B1/3P4/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2", 1, 28,
-			map[string]int{
-				"a7a6": 1,
-				"a7a5": 1,
-				"b7b6": 1,
-				"b7b5": 1,
-				"c7c6": 1,
-				"c7c5": 1,
-				"d7d6": 1,
-				"d7d5": 1,
-				"f7f6": 1,
-				"f7f5": 1,
-				"g7g6": 1,
-				"h7h6": 1,
-				"h7h5": 1,
-				"e5e4": 1,
-				"e5d4": 1,
-				"b8a6": 1,
-				"b8c6": 1,
-				"d8e7": 1,
-				"d8f6": 1,
-				"d8g5": 1,
-				"f8e7": 1,
-				"f8d6": 1,
-				"f8c5": 1,
-				"f8b4": 1,
-				"f8a3": 1,
-				"g8f6": 1,
-				"g8e7": 1,
-				"g8h6": 1,
-			},
-		},
-		// {STARTING_FEN, 5, 20,
-		// 	map[string]int{
-		// 		"a2a3": 181046,
-		// 		"a2a4": 217832,
-		// 		"b2b3": 215255,
-		// 		"b2b4": 216145,
-		// 		"c2c3": 222861,
-		// 		"c2c4": 240082,
-		// 		"d2d3": 328511,
-		// 		"d2d4": 361790,
-		// 		"e2e3": 402988,
-		// 		"e2e4": 405385,
-		// 		"f2f3": 178889,
-		// 		"f2f4": 198473,
-		// 		"g2g3": 217210,
-		// 		"g2g4": 214048,
-		// 		"h2h3": 181044,
-		// 		"h2h4": 218829,
-		// 		"b1c3": 234656,
-		// 		"b1a3": 198572,
-		// 		"g1h3": 198502,
-		// 		"g1f3": 233491,
-		// 	},
-		// },
 	}
-	seedKeys(181818)
+	SeedKeys(181818)
 	for _, tt := range tests {
-		b, err := newBoard(tt.fen)
+		if testing.Short() == true && tt.depth >= 6 {
+			continue
+		}
+		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
 		}
@@ -188,6 +130,7 @@ func TestDivide(t *testing.T) {
 			actualNodes, ok := actualResults[coord]
 			if !ok {
 				t.Errorf("coord %v not found", coord)
+				continue
 			}
 			if actualNodes != expectedNodes {
 				t.Errorf("coord %v nodes: %v != %v", coord, actualNodes, expectedNodes)

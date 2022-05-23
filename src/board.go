@@ -6,69 +6,96 @@ import (
 	"strings"
 )
 
-var SquareIndexes64 = [64]SquareIndex{
-	21, 22, 23, 24, 25, 26, 27, 28,
-	31, 32, 33, 34, 35, 36, 37, 38,
-	41, 42, 43, 44, 45, 46, 47, 48,
-	51, 52, 53, 54, 55, 56, 57, 58,
-	61, 62, 63, 64, 65, 66, 67, 68,
-	71, 72, 73, 74, 75, 76, 77, 78,
-	81, 82, 83, 84, 85, 86, 87, 88,
-	91, 92, 93, 94, 95, 96, 97, 98,
+/*
+   +----+----+----+----+----+----+----+----+
+ 8 | 56 | 57 | 58 | 59 | 60 | 61 | 62 | 63 |  8th rank
+   +----+----+----+----+----+----+----+----+
+ 7 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 |  7th rank
+   +----+----+----+----+----+----+----+----+
+ 6 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 |  6th rank
+   +----+----+----+----+----+----+----+----+
+ 5 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 |  5th rank
+   +----+----+----+----+----+----+----+----+
+ 4 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 |  4th rank
+   +----+----+----+----+----+----+----+----+
+ 3 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 |  3rd rank
+   +----+----+----+----+----+----+----+----+
+ 2 |  8 |  9 | 10 | 11 | 12 | 13 | 14 | 15 |  2nd rank
+   +----+----+----+----+----+----+----+----+
+ 1 |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  1st rank
+   +----+----+----+----+----+----+----+----+
+     A    B    C    D    E    F    G    H - file(s)
+*/
+
+var COORD_MAP = [BOARD_SQUARES]string{
+	"A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
+	"A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2",
+	"A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3",
+	"A4", "B4", "C4", "D4", "E4", "F4", "G4", "H4",
+	"A5", "B5", "C5", "D5", "E5", "F5", "G5", "H5",
+	"A6", "B6", "C6", "D6", "E6", "F6", "G6", "H6",
+	"A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7",
+	"A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8",
 }
 
-type undo struct {
-	mv             move
-	capturedSquare Square
-	castleRights   CastleRights
-	epIndex        SquareIndex
-	halfMove       int
-	hash           uint64
+var SQUARE_MAP = [SQUARE_TYPES]string{
+	"EMPTY", "WHITE_PAWN", "WHITE_KNIGHT", "WHITE_BISHOP",
+	"WHITE_ROOK", "WHITE_QUEEN", "WHITE_KING", "BLACK_PAWN",
+	"BLACK_KNIGHT", "BLACK_BISHOP", "BLACK_ROOK", "BLACK_QUEEN",
+	"BLACK_KING",
 }
 
-type board struct {
-	squares        []Square
-	pieceSets      map[Square]map[SquareIndex]bool
-	whiteKingIndex SquareIndex
-	blackKingIndex SquareIndex
-	sideToMove     Color
-	/*
-		castleRights
-		0000 0001 = Black king can castle queenside
-		0000 0010 = Black king can castle kingside
-		0000 0100 = White king can castle queenside
-		0000 1000 = White king can castle kingside
-	*/
-	castleRights CastleRights
-	epIndex      SquareIndex
-	halfMove     int
-	fullMove     int
-	hash         uint64
-	undoIndex    int
-	undos        []undo
+type Board struct {
+	squares       []Square
+	bbWP          Bitboard
+	bbWN          Bitboard
+	bbWB          Bitboard
+	bbWR          Bitboard
+	bbWQ          Bitboard
+	bbWK          Bitboard
+	bbBP          Bitboard
+	bbBN          Bitboard
+	bbBB          Bitboard
+	bbBR          Bitboard
+	bbBQ          Bitboard
+	bbBK          Bitboard
+	bbWhitePieces Bitboard
+	bbBlackPieces Bitboard
+	bbAllPieces   Bitboard
+	kingCoords    []Coord
+	sideToMove    Color
+	castleRights  CastleRights
+	epCoord       Coord
+	halfMove      HalfMove
+	fullMove      int
+	hash          Hash
+	undoIndex     int
+	undos         []Undo
 }
 
-func newBoard(fen string) (*board, error) {
+func NewBoard(fen string) (*Board, error) {
+	InitBitboards()
 	fenParts := strings.Split(fen, " ")
 
 	if len(fenParts) != 6 {
 		return nil, fmt.Errorf("FEN parts: %v != 6", len(fenParts))
 	}
 
-	b := board{}
+	b := Board{}
 	b.squares = make([]Square, BOARD_SQUARES)
-	b.pieceSets = makePieceSets()
-	b.undos = make([]undo, MAX_GAME_MOVES)
+	b.undos = make([]Undo, MAX_GAME_MOVES)
+	b.kingCoords = make([]Coord, PLAYERS)
 
 	ranks := strings.Split(fenParts[0], "/")
 	if len(ranks) != 8 {
 		return nil, fmt.Errorf("Ranks: %v != 8", len(ranks))
 	}
-	squareIndex64 := 0
+	coord := Coord(BOARD_SQUARES - 1)
 	for _, rank := range ranks {
-		for _, char := range []rune(rank) {
-			squareIndex := SquareIndexes64[squareIndex64]
-			switch string(char) {
+		runes := []rune(rank)
+		for r := len(runes) - 1; r >= 0; r-- {
+			char := string(runes[r])
+			switch char {
 			case "1":
 			case "2":
 			case "3":
@@ -78,48 +105,58 @@ func newBoard(fen string) (*board, error) {
 			case "7":
 			case "8":
 			case "P":
-				b.squares[squareIndex] = WHITE_PAWN
+				b.squares[coord] = WHITE_PAWN
+				b.bbWP.SetBit(coord)
 			case "N":
-				b.squares[squareIndex] = WHITE_KNIGHT
+				b.squares[coord] = WHITE_KNIGHT
+				b.bbWN.SetBit(coord)
 			case "B":
-				b.squares[squareIndex] = WHITE_BISHOP
+				b.squares[coord] = WHITE_BISHOP
+				b.bbWB.SetBit(coord)
 			case "R":
-				b.squares[squareIndex] = WHITE_ROOK
+				b.squares[coord] = WHITE_ROOK
+				b.bbWR.SetBit(coord)
 			case "Q":
-				b.squares[squareIndex] = WHITE_QUEEN
+				b.squares[coord] = WHITE_QUEEN
+				b.bbWQ.SetBit(coord)
 			case "K":
-				b.squares[squareIndex] = WHITE_KING
-				b.whiteKingIndex = squareIndex
+				b.squares[coord] = WHITE_KING
+				b.bbWK.SetBit(coord)
+				b.kingCoords[WHITE] = coord
 			case "p":
-				b.squares[squareIndex] = BLACK_PAWN
+				b.squares[coord] = BLACK_PAWN
+				b.bbBP.SetBit(coord)
 			case "n":
-				b.squares[squareIndex] = BLACK_KNIGHT
+				b.squares[coord] = BLACK_KNIGHT
+				b.bbBN.SetBit(coord)
 			case "b":
-				b.squares[squareIndex] = BLACK_BISHOP
+				b.squares[coord] = BLACK_BISHOP
+				b.bbBB.SetBit(coord)
 			case "r":
-				b.squares[squareIndex] = BLACK_ROOK
+				b.squares[coord] = BLACK_ROOK
+				b.bbBR.SetBit(coord)
 			case "q":
-				b.squares[squareIndex] = BLACK_QUEEN
+				b.squares[coord] = BLACK_QUEEN
+				b.bbBQ.SetBit(coord)
 			case "k":
-				b.squares[squareIndex] = BLACK_KING
-				b.blackKingIndex = squareIndex
+				b.squares[coord] = BLACK_KING
+				b.bbBK.SetBit(coord)
+				b.kingCoords[BLACK] = coord
 			default:
-				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", string(char))
+				return nil, fmt.Errorf("Invalid piece/digit in fen string: %v", char)
 			}
-			count, err := strconv.Atoi(string(char))
+			count, err := strconv.Atoi(char)
 			if err != nil {
-				square := b.squares[squareIndex]
-				b.pieceSets[square][squareIndex] = true
-				squareIndex64++
+				coord--
 			} else {
 				for i := 0; i < count; i++ {
-					emptySquareIndex := SquareIndexes64[squareIndex64]
-					b.squares[emptySquareIndex] = EMPTY
-					squareIndex64++
+					b.squares[coord] = EMPTY
+					coord--
 				}
 			}
 		}
 	}
+	b.UpdateUnionBitboards()
 
 	sideToMove := fenParts[1]
 	if sideToMove == "w" {
@@ -135,86 +172,105 @@ func newBoard(fen string) (*board, error) {
 		switch string(char) {
 		case "-":
 		case "K":
-			b.castleRights |= 1 << 3
+			b.castleRights |= CASTLING_RIGHTS_WHITE_KING_MASK
 		case "Q":
-			b.castleRights |= 1 << 2
+			b.castleRights |= CASTLING_RIGHTS_WHITE_QUEEN_MASK
 		case "k":
-			b.castleRights |= 1 << 1
+			b.castleRights |= CASTLING_RIGHTS_BLACK_KING_MASK
 		case "q":
-			b.castleRights |= 1
+			b.castleRights |= CASTLING_RIGHTS_BLACK_QUEEN_MASK
 		default:
 			return nil, fmt.Errorf("Invalid castling rights in fen string: %v", string(char))
 		}
 	}
 
+	var err error
 	if fenParts[3] != "-" {
-		var err error
-		b.epIndex, err = squareIndexByCoord(SquareCoord(fenParts[3]))
+		b.epCoord, err = StringToCoord(fenParts[3])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var err error
-	b.halfMove, err = strconv.Atoi(fenParts[4])
+	halfMove, err := strconv.Atoi(fenParts[4])
 	if err != nil {
 		return nil, err
 	}
+	b.halfMove = HalfMove(halfMove)
 
 	b.fullMove, err = strconv.Atoi(fenParts[5])
 	if err != nil {
 		return nil, err
 	}
 
-	b.generateBoardHash()
+	b.GenerateBoardHash()
 
 	return &b, nil
 }
 
-func (b board) copyBoard() board {
+func (b *Board) UpdateUnionBitboards() {
+	b.bbWhitePieces = b.bbWP | b.bbWN | b.bbWB | b.bbWR | b.bbWQ | b.bbWK
+	b.bbBlackPieces = b.bbBP | b.bbBN | b.bbBB | b.bbBR | b.bbBQ | b.bbBK
+	b.bbAllPieces = b.bbWhitePieces | b.bbBlackPieces
+}
+
+func (b Board) CopyBoard() Board {
 	squares := make([]Square, len(b.squares))
 	copy(squares, b.squares)
 
-	pieceSets := make(map[Square]map[SquareIndex]bool, len(b.pieceSets))
-	for square, ps := range b.pieceSets {
-		pieceSet := make(map[SquareIndex]bool, len(ps))
-		for squareIndex := range ps {
-			pieceSet[squareIndex] = true
-		}
-		pieceSets[square] = pieceSet
-	}
-
-	undos := make([]undo, len(b.undos))
+	undos := make([]Undo, len(b.undos))
 	copy(undos, b.undos)
 
-	cb := board{
-		squares:        squares,
-		pieceSets:      pieceSets,
-		whiteKingIndex: b.whiteKingIndex,
-		blackKingIndex: b.blackKingIndex,
-		sideToMove:     b.sideToMove,
-		castleRights:   b.castleRights,
-		epIndex:        b.epIndex,
-		halfMove:       b.halfMove,
-		fullMove:       b.fullMove,
-		hash:           b.hash,
-		undoIndex:      b.undoIndex,
-		undos:          undos,
+	kingCoords := make([]Coord, len(b.kingCoords))
+	copy(kingCoords, b.kingCoords)
+
+	cb := Board{
+		squares:       squares,
+		bbWP:          b.bbWP,
+		bbWN:          b.bbWN,
+		bbWB:          b.bbWB,
+		bbWR:          b.bbWR,
+		bbWQ:          b.bbWQ,
+		bbWK:          b.bbWK,
+		bbBP:          b.bbBP,
+		bbBN:          b.bbBN,
+		bbBB:          b.bbBB,
+		bbBR:          b.bbBR,
+		bbBQ:          b.bbBQ,
+		bbBK:          b.bbBK,
+		bbWhitePieces: b.bbWhitePieces,
+		bbBlackPieces: b.bbBlackPieces,
+		bbAllPieces:   b.bbAllPieces,
+		kingCoords:    kingCoords,
+		sideToMove:    b.sideToMove,
+		castleRights:  b.castleRights,
+		epCoord:       b.epCoord,
+		halfMove:      b.halfMove,
+		fullMove:      b.fullMove,
+		hash:          b.hash,
+		undoIndex:     b.undoIndex,
+		undos:         undos,
 	}
 	return cb
 }
 
-func (b board) colorBySquareIndex(s SquareIndex) Color {
-	return colorBySquare(b.squares[s])
+var PRINT_MAP = [64]Coord{
+	A8, B8, C8, D8, E8, F8, G8, H8,
+	A7, B7, C7, D7, E7, F7, G7, H7,
+	A6, B6, C6, D6, E6, F6, G6, H6,
+	A5, B5, C5, D5, E5, F5, G5, H5,
+	A4, B4, C4, D4, E4, F4, G4, H4,
+	A3, B3, C3, D3, E3, F3, G3, H3,
+	A2, B2, C2, D2, E2, F2, G2, H2,
+	A1, B1, C1, D1, E1, F1, G1, H1,
 }
 
-func (b board) toString() string {
+func (b Board) ToString() string {
 	s := ""
 	sep := "\n_________________________\n"
 	s += sep
 	rank := 8
-	for i, index := range SquareIndexes64 {
-		square := b.squares[index]
+	for i, coord := range PRINT_MAP {
 		if i != 0 && i%8 == 0 {
 			s += "| "
 			s += strconv.Itoa(rank)
@@ -222,6 +278,7 @@ func (b board) toString() string {
 			s += sep
 		}
 		s += "|"
+		square := b.squares[coord]
 		switch square {
 		case EMPTY:
 			s += " "
@@ -258,21 +315,4 @@ func (b board) toString() string {
 	s += sep
 	s += " A  B  C  D  E  F  G  H"
 	return s
-}
-
-func makePieceSets() map[Square]map[SquareIndex]bool {
-	pieceSets := make(map[Square]map[SquareIndex]bool)
-	pieceSets[WHITE_PAWN] = make(map[SquareIndex]bool)
-	pieceSets[WHITE_KNIGHT] = make(map[SquareIndex]bool)
-	pieceSets[WHITE_BISHOP] = make(map[SquareIndex]bool)
-	pieceSets[WHITE_ROOK] = make(map[SquareIndex]bool)
-	pieceSets[WHITE_QUEEN] = make(map[SquareIndex]bool)
-	pieceSets[WHITE_KING] = make(map[SquareIndex]bool)
-	pieceSets[BLACK_PAWN] = make(map[SquareIndex]bool)
-	pieceSets[BLACK_KNIGHT] = make(map[SquareIndex]bool)
-	pieceSets[BLACK_BISHOP] = make(map[SquareIndex]bool)
-	pieceSets[BLACK_ROOK] = make(map[SquareIndex]bool)
-	pieceSets[BLACK_QUEEN] = make(map[SquareIndex]bool)
-	pieceSets[BLACK_KING] = make(map[SquareIndex]bool)
-	return pieceSets
 }

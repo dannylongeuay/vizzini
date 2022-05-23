@@ -8,9 +8,13 @@ help: ## View help information
 build: ## Build binary
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/vizzini ./src/...
 
-.PHONY: tests
-tests: ## Run tests
-	go test -v ./src/...
+.PHONY: tests-all
+tests-all: ## Run all tests
+	go test -v -count=1 ./src/...
+
+.PHONY: tests-short
+tests-short: ## Run short tests
+	go test -v -count=1 -short ./src/...
 
 .PHONY: lint
 lint: ## Run linter
@@ -21,10 +25,10 @@ format: ## Run formatter
 	go fmt ./src/...
 
 .PHONY: cq
-cq: format tests lint ## Run code quality tools
+cq: format lint tests-short ## Run code quality tools
 
 .PHONY: cq-check
-cq-check: lint tests ## Run code quality check
+cq-check: lint tests-short ## Run code quality check
 
 .PHONY: run
 run: build ## Run binary

@@ -4,538 +4,453 @@ import (
 	"fmt"
 )
 
-type move struct {
-	origin SquareIndex
-	target SquareIndex
-	kind   MoveKind
+var MOVE_KIND_MAP = [MOVE_KINDS]string{
+	"QUIET", "DOUBLE_PAWN_PUSH", "KING_CASTLE",
+	"QUEEN_CASTLE", "CAPTURE", "EP_CAPTURE",
+	"KNIGHT_PROMOTION", "BISHOP_PROMOTION",
+	"ROOK_PROMOTION", "QUEEN_PROMOTION",
+	"KNIGHT_PROMOTION_CAPTURE", "BISHOP_PROMOTION_CAPTURE",
+	"ROOK_PROMOTION_CAPTURE", "QUEEN_PROMOTION_CAPTURE",
 }
 
-var KNIGHT_MOVE_DISTS = []int{8, 12, 19, 21}
-
-var MOVE_DIRECTIONS = []int{POSITIVE_DIR, NEGATIVE_DIR}
-
-var DIAGONAL_MOVE_DISTS = []int{POS_DIAG_MOVE_DIST, NEG_DIAG_MOVE_DIST}
-var CARDINAL_MOVE_DISTS = []int{HORIZONTAL_MOVE_DIST, VERTICAL_MOVE_DIST}
-
-func (b *board) generateMoves(side Color) []move {
-	moves := make([]move, 0, MAX_GENERATED_MOVES)
-	for square, squareIndexes := range b.pieceSets {
-		squareColor := colorBySquare(square)
-		if squareColor != side {
-			continue
-		}
-		for squareIndex := range squareIndexes {
-			switch square {
-			case WHITE_PAWN:
-				fallthrough
-			case BLACK_PAWN:
-				b.generatePawnMoves(&moves, side, squareIndex)
-			case WHITE_KNIGHT:
-				fallthrough
-			case BLACK_KNIGHT:
-				b.generateKnightMoves(&moves, side, squareIndex)
-			case WHITE_BISHOP:
-				fallthrough
-			case BLACK_BISHOP:
-				b.generateBishopMoves(&moves, side, squareIndex)
-			case WHITE_ROOK:
-				fallthrough
-			case BLACK_ROOK:
-				b.generateRookMoves(&moves, side, squareIndex)
-			case WHITE_QUEEN:
-				fallthrough
-			case BLACK_QUEEN:
-				b.generateQueenMoves(&moves, side, squareIndex)
-			case WHITE_KING:
-				fallthrough
-			case BLACK_KING:
-				b.generateKingMoves(&moves, side, squareIndex)
-			}
-		}
-	}
-	return moves
+func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) Move {
+	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
+	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT
+	moveOriginSquare := Move(originSquare) << MOVE_ORIGIN_SQUARE_SHIFT
+	moveDstSquare := Move(dstSquare) << MOVE_DST_SQUARE_SHIFT
+	return moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
 }
 
-// func (b *board) generateLegalMoves(moves []move, maxSize int) []move {
-// 	legalMoves := make([]move, 0, maxSize)
-// 	for _, m := range moves {
-// 		err := b.makeMove(m)
-// 		b.undoMove()
-// 		if err != nil {
-// 			continue
-// 		}
-// 		legalMoves = append(legalMoves, m)
-// 	}
-// 	return legalMoves
-// }
+func NewUndo(move Move, clearSquare Square, halfMove HalfMove, castleRights CastleRights, epCoord Coord) Undo {
+	undoClearSquare := Undo(clearSquare) << UNDO_CLEAR_SQUARE_SHIFT
+	undoHalfMove := Undo(halfMove) << UNDO_HALF_MOVE_SHIFT
+	undoCastleRights := Undo(castleRights) << UNDO_CASTLE_RIGHTS_SHIFT
+	undoEpCoord := Undo(epCoord) << UNDO_EP_COORD_SHIFT
+	return Undo(move) | undoClearSquare | undoHalfMove | undoCastleRights | undoEpCoord
+}
 
-func (b *board) generatePawnMoves(moves *[]move, side Color, squareIndex SquareIndex) {
-	dir := POSITIVE_DIR
-	rank := rankBySquareIndex(squareIndex)
-	doublePushRank := RANK_SEVEN
-	promotionRank := RANK_TWO
+type MoveUnpacked struct {
+	originCoord  Coord
+	dstCoord     Coord
+	originSquare Square
+	dstSquare    Square
+	moveKind     MoveKind
+}
 
-	if side == WHITE {
-		dir = NEGATIVE_DIR
-		doublePushRank = RANK_TWO
-		promotionRank = RANK_SEVEN
-	}
+type UndoUnpacked struct {
+	clearSquare  Square
+	halfMove     HalfMove
+	castleRights CastleRights
+	epCoord      Coord
+}
 
-	// Handle double pawn push
-	if rank == doublePushRank {
-		targetIndex := SquareIndex(VERTICAL_MOVE_DIST*2*dir) + squareIndex
-		jumpedIndex := SquareIndex(VERTICAL_MOVE_DIST*dir) + squareIndex
-		if b.squares[targetIndex] == EMPTY && b.squares[jumpedIndex] == EMPTY {
-			move := move{
-				origin: squareIndex,
-				target: targetIndex,
-				kind:   DOUBLE_PAWN_PUSH,
-			}
-			*moves = append(*moves, move)
-		}
-	}
+func (m *Move) ToString() string {
+	var mu MoveUnpacked
+	m.Unpack(&mu)
+	mk := MOVE_KIND_MAP[mu.moveKind]
+	oc := COORD_MAP[mu.originCoord]
+	os := SQUARE_MAP[mu.originSquare]
+	dc := COORD_MAP[mu.dstCoord]
+	ds := SQUARE_MAP[mu.dstSquare]
+	s := fmt.Sprintf("Move{%v: %v(%v) -> %v(%v)}", mk, oc, os, dc, ds)
+	return s
+}
 
-	// Handle quiet move
-	targetIndex := SquareIndex(VERTICAL_MOVE_DIST*dir) + squareIndex
-	if b.squares[targetIndex] == EMPTY {
-		moveKinds := []MoveKind{QUIET}
-		if rank == promotionRank {
-			moveKinds = []MoveKind{
-				KNIGHT_PROMOTION,
-				BISHOP_PROMOTION,
-				ROOK_PROMOTION,
-				QUEEN_PROMOTION,
-			}
-		}
-		for _, kind := range moveKinds {
-			move := move{
-				origin: squareIndex,
-				target: targetIndex,
-				kind:   kind,
-			}
-			*moves = append(*moves, move)
-		}
-	}
+func (u *Undo) ToString() string {
+	var mu MoveUnpacked
+	var uu UndoUnpacked
+	move := Move(*u & UNDO_MOVE_MASK)
+	u.Unpack(&mu, &uu)
+	cs := SQUARE_MAP[uu.clearSquare]
+	hm := uu.halfMove
+	cr := uu.castleRights
+	ec := COORD_MAP[uu.epCoord]
+	s := fmt.Sprintf("Undo{ClearSquare: %v | HalfMove: %v | CastleRights: %v | EP Coord: %v | %v}", cs, hm, cr, ec, move.ToString())
+	return s
+}
 
-	// Handle captures
-	for _, moveDist := range DIAGONAL_MOVE_DISTS {
-		targetIndex := SquareIndex(moveDist*dir) + squareIndex
-		if b.colorBySquareIndex(targetIndex) == side^1 {
-			moveKinds := []MoveKind{CAPTURE}
-			if rank == promotionRank {
-				moveKinds = []MoveKind{
-					KNIGHT_PROMOTION_CAPTURE,
-					BISHOP_PROMOTION_CAPTURE,
-					ROOK_PROMOTION_CAPTURE,
-					QUEEN_PROMOTION_CAPTURE,
-				}
-			}
-			for _, kind := range moveKinds {
-				move := move{
-					origin: squareIndex,
-					target: targetIndex,
-					kind:   kind,
-				}
-				*moves = append(*moves, move)
-			}
-		} else if b.epIndex == targetIndex {
-			move := move{
-				origin: squareIndex,
-				target: targetIndex,
-				kind:   EP_CAPTURE,
-			}
-			*moves = append(*moves, move)
-		}
+func (m *Move) Unpack(mu *MoveUnpacked) {
+	mu.originCoord = Coord((*m & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT)
+	mu.dstCoord = Coord((*m & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT)
+	mu.originSquare = Square((*m & MOVE_ORIGIN_SQUARE_MASK) >> MOVE_ORIGIN_SQUARE_SHIFT)
+	mu.dstSquare = Square((*m & MOVE_DST_SQUARE_MASK) >> MOVE_DST_SQUARE_SHIFT)
+	mu.moveKind = MoveKind(*m & MOVE_KIND_MASK)
+
+}
+
+func (u *Undo) Unpack(mu *MoveUnpacked, uu *UndoUnpacked) {
+	move := Move(*u & UNDO_MOVE_MASK)
+	move.Unpack(mu)
+	uu.clearSquare = Square((*u & UNDO_CLEAR_SQUARE_MASK) >> UNDO_CLEAR_SQUARE_SHIFT)
+	uu.halfMove = HalfMove((*u & UNDO_HALF_MOVE_MASK) >> UNDO_HALF_MOVE_SHIFT)
+	uu.castleRights = CastleRights((*u & UNDO_CASTLE_RIGHTS_MASK) >> UNDO_CASTLE_RIGHTS_SHIFT)
+	uu.epCoord = Coord((*u & UNDO_EP_COORD_MASK) >> UNDO_EP_COORD_SHIFT)
+
+}
+
+func (b *Board) SetSquare(c Coord, sq Square) {
+	b.squares[c] = sq
+	b.HashSquare(sq, c)
+	b.bbAllPieces.SetBit(c)
+	switch sq {
+	case WHITE_PAWN:
+		b.bbWP.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
+	case WHITE_KNIGHT:
+		b.bbWN.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
+	case WHITE_BISHOP:
+		b.bbWB.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
+	case WHITE_ROOK:
+		b.bbWR.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
+	case WHITE_QUEEN:
+		b.bbWQ.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
+	case WHITE_KING:
+		b.bbWK.SetBit(c)
+		b.bbWhitePieces.SetBit(c)
+		b.kingCoords[b.sideToMove] = c
+		b.bbWhitePieces.SetBit(c)
+	case BLACK_PAWN:
+		b.bbBP.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
+	case BLACK_KNIGHT:
+		b.bbBN.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
+	case BLACK_BISHOP:
+		b.bbBB.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
+	case BLACK_ROOK:
+		b.bbBR.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
+	case BLACK_QUEEN:
+		b.bbBQ.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
+	case BLACK_KING:
+		b.bbBK.SetBit(c)
+		b.bbBlackPieces.SetBit(c)
+		b.kingCoords[b.sideToMove] = c
+	default:
+		panic(fmt.Errorf("set square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
 	}
 }
 
-func (b *board) generateKnightMoves(moves *[]move, side Color, squareIndex SquareIndex) {
-	for _, dir := range MOVE_DIRECTIONS {
-		for _, moveDist := range KNIGHT_MOVE_DISTS {
-			targetIndex := SquareIndex(moveDist*dir) + squareIndex
-			if b.squares[targetIndex] == EMPTY {
-				move := move{
-					origin: squareIndex,
-					target: targetIndex,
-					kind:   QUIET,
-				}
-				*moves = append(*moves, move)
+func (b *Board) ClearSquare(c Coord, sq Square) {
+	if sq != b.squares[c] {
+		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v\n\n%v", SQUARE_MAP[sq], SQUARE_MAP[b.squares[c]], COORD_MAP[c], b.ToString()))
+	}
 
-			} else if b.colorBySquareIndex(targetIndex) == side^1 {
-				move := move{
-					origin: squareIndex,
-					target: targetIndex,
-					kind:   CAPTURE,
-				}
-				*moves = append(*moves, move)
-			}
-		}
+	b.squares[c] = EMPTY
+	b.HashSquare(sq, c)
+	b.bbAllPieces.ClearBit(c)
+	switch sq {
+	case WHITE_PAWN:
+		b.bbWP.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
+	case WHITE_KNIGHT:
+		b.bbWN.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
+	case WHITE_BISHOP:
+		b.bbWB.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
+	case WHITE_ROOK:
+		b.bbWR.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
+	case WHITE_QUEEN:
+		b.bbWQ.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
+	case WHITE_KING:
+		b.bbWK.ClearBit(c)
+		b.bbWhitePieces.ClearBit(c)
+	case BLACK_PAWN:
+		b.bbBP.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
+	case BLACK_KNIGHT:
+		b.bbBN.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
+	case BLACK_BISHOP:
+		b.bbBB.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
+	case BLACK_ROOK:
+		b.bbBR.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
+	case BLACK_QUEEN:
+		b.bbBQ.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
+	case BLACK_KING:
+		b.bbBK.ClearBit(c)
+		b.bbBlackPieces.ClearBit(c)
+	default:
+		panic(fmt.Errorf("clear square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
 	}
 }
 
-func (b *board) generateSlidingMoves(moves *[]move, side Color, squareIndex SquareIndex, moveDists []int, moveRange int) {
-	for _, dir := range MOVE_DIRECTIONS {
-		for _, moveDist := range moveDists {
-			for i := 1; i < moveRange; i++ {
-				targetIndex := SquareIndex(moveDist*dir*i) + squareIndex
-				targetSquare := b.squares[targetIndex]
-				if targetSquare == INVALID {
-					break
-				}
-				squareColor := b.colorBySquareIndex(targetIndex)
-				if squareColor == side {
-					break
-				} else if squareColor == side^1 {
-					move := move{
-						origin: squareIndex,
-						target: targetIndex,
-						kind:   CAPTURE,
-					}
-					*moves = append(*moves, move)
-					break
-				}
-				move := move{
-					origin: squareIndex,
-					target: targetIndex,
-					kind:   QUIET,
-				}
-				*moves = append(*moves, move)
-			}
-		}
+func (b *Board) UpdateCastleRights(c Coord) {
+	var castleBits CastleRights
+	switch c {
+	case A8:
+		castleBits = 14
+	case H8:
+		castleBits = 13
+	case E8:
+		castleBits = 12
+	case A1:
+		castleBits = 11
+	case H1:
+		castleBits = 7
+	case E1:
+		castleBits = 3
 	}
-}
-
-func (b *board) generateBishopMoves(moves *[]move, side Color, squareIndex SquareIndex) {
-	b.generateSlidingMoves(moves, side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_MOVE_RANGE)
-}
-
-func (b *board) generateRookMoves(moves *[]move, side Color, squareIndex SquareIndex) {
-	b.generateSlidingMoves(moves, side, squareIndex, CARDINAL_MOVE_DISTS, MAX_MOVE_RANGE)
-}
-
-func (b *board) generateQueenMoves(moves *[]move, side Color, squareIndex SquareIndex) {
-	b.generateSlidingMoves(moves, side, squareIndex, DIAGONAL_MOVE_DISTS, MAX_MOVE_RANGE)
-	b.generateSlidingMoves(moves, side, squareIndex, CARDINAL_MOVE_DISTS, MAX_MOVE_RANGE)
-}
-
-func (b *board) generateKingMoves(moves *[]move, side Color, squareIndex SquareIndex) {
-	b.generateSlidingMoves(moves, side, squareIndex, DIAGONAL_MOVE_DISTS, KING_MOVE_RANGE)
-	b.generateSlidingMoves(moves, side, squareIndex, CARDINAL_MOVE_DISTS, KING_MOVE_RANGE)
-	kingsideCastleAvail := false
-	queensideCastleAvail := false
-	if side == WHITE {
-		if b.castleRights&(1<<3) == 1<<3 {
-			kingsideCastleAvail = true
-		}
-		if b.castleRights&(1<<2) == 1<<2 {
-			queensideCastleAvail = true
-		}
-	} else {
-		if b.castleRights&(1<<1) == 1<<1 {
-			kingsideCastleAvail = true
-		}
-		if b.castleRights&1 == 1 {
-			queensideCastleAvail = true
-		}
-	}
-	if kingsideCastleAvail && b.canCastle(side, POSITIVE_DIR, squareIndex) {
-		targetIndex := KING_CASTLE_MOVE_DIST + squareIndex
-		move := move{
-			origin: squareIndex,
-			target: targetIndex,
-			kind:   KING_CASTLE,
-		}
-		*moves = append(*moves, move)
-	}
-	if queensideCastleAvail && b.canCastle(side, NEGATIVE_DIR, squareIndex) {
-		targetIndex := SquareIndex(KING_CASTLE_MOVE_DIST*NEGATIVE_DIR + int(squareIndex))
-		move := move{
-			origin: squareIndex,
-			target: targetIndex,
-			kind:   QUEEN_CASTLE,
-		}
-		*moves = append(*moves, move)
-	}
-}
-
-func (b *board) canCastle(side Color, dir int, squareIndex SquareIndex) bool {
-	rookDist := 3
-	if dir == NEGATIVE_DIR {
-		rookDist = 4
-	}
-	for i := 0; i <= rookDist; i++ {
-		checkIndex := SquareIndex(i*dir) + squareIndex
-		// Check that squares are empty between king and rook
-		if i > 0 && i < rookDist && b.squares[checkIndex] != EMPTY {
-			return false
-		}
-		// Check that king is not in check and travel squares are not attacked
-		if i < 3 {
-			attackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
-			b.squareAttackers(&attackers, side, checkIndex)
-			if len(attackers) > 0 {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func (b *board) clearSquare(square Square, squareIndex SquareIndex) error {
-	if square == EMPTY || square == INVALID || square != b.squares[squareIndex] {
-		return fmt.Errorf("clearing square %v at index %v is not allowed", square, squareIndex)
-	}
-	b.squares[squareIndex] = EMPTY
-	delete(b.pieceSets[square], squareIndex)
-	b.hashSquare(square, squareIndex)
-	return nil
-}
-
-func (b *board) setSquare(square Square, squareIndex SquareIndex) error {
-	if square == EMPTY || square == INVALID {
-		return fmt.Errorf("setting square %v at index %v is not allowed", square, squareIndex)
-	}
-	b.squares[squareIndex] = square
-	b.pieceSets[square][squareIndex] = true
-	b.hashSquare(square, squareIndex)
-	return nil
-}
-
-var CastleCheckIndexes = map[SquareIndex]CastleRights{
-	21: 14, // a8 : KQk
-	25: 12, // e8 : KQ
-	28: 13, // h8 : KQq
-	91: 11, // a1 : Kkq
-	95: 3,  // e1 : kq
-	98: 7,  // h1 : Qkq
-}
-
-func (b *board) updateCastleRights(squareIndex SquareIndex) {
-	castleBits, present := CastleCheckIndexes[squareIndex]
-	if present {
-		b.hashCastling()
+	if castleBits > 0 {
+		b.HashCastling()
 		b.castleRights &= castleBits
-		b.hashCastling()
+		b.HashCastling()
 	}
+
 }
 
-func (b *board) makeMove(m move) error {
-	originSquare := b.squares[m.origin]
-	targetSquare := b.squares[m.target]
+func (b *Board) MakeMove(m Move) error {
+	var mu MoveUnpacked
+	m.Unpack(&mu)
 
-	u := undo{
-		mv:             m,
-		capturedSquare: targetSquare,
-		castleRights:   b.castleRights,
-		epIndex:        b.epIndex,
-		halfMove:       b.halfMove,
-		hash:           b.hash,
+	moveDstSetSquare := mu.originSquare
+
+	epCoord := A1
+	epCaptureSquare := EMPTY
+	epCaptureCoord := A1
+
+	castleRookSquare := EMPTY
+	castleRookClearCoord := A1
+	castleRookSetCoord := A1
+
+	switch mu.moveKind {
+	case DOUBLE_PAWN_PUSH:
+		if b.sideToMove == WHITE &&
+			(b.squares[int(mu.dstCoord)-SHIFT_HORIZONTAL] == BLACK_PAWN ||
+				b.squares[int(mu.dstCoord)+SHIFT_HORIZONTAL] == BLACK_PAWN) {
+			epCoord = mu.dstCoord - Coord(SHIFT_VERTICAL)
+		} else if b.sideToMove == BLACK &&
+			(b.squares[int(mu.dstCoord)-SHIFT_HORIZONTAL] == WHITE_PAWN ||
+				b.squares[int(mu.dstCoord)+SHIFT_HORIZONTAL] == WHITE_PAWN) {
+			epCoord = mu.dstCoord + Coord(SHIFT_VERTICAL)
+		}
+	case KING_CASTLE:
+		fallthrough
+	case QUEEN_CASTLE:
+		switch mu.dstCoord {
+		case G1:
+			castleRookSquare = WHITE_ROOK
+			castleRookClearCoord = H1
+			castleRookSetCoord = F1
+		case C1:
+			castleRookSquare = WHITE_ROOK
+			castleRookClearCoord = A1
+			castleRookSetCoord = D1
+		case G8:
+			castleRookSquare = BLACK_ROOK
+			castleRookClearCoord = H8
+			castleRookSetCoord = F8
+		case C8:
+			castleRookSquare = BLACK_ROOK
+			castleRookClearCoord = A8
+			castleRookSetCoord = D8
+		}
+	case EP_CAPTURE:
+		if b.sideToMove == WHITE {
+			epCaptureSquare = BLACK_PAWN
+			epCaptureCoord = mu.dstCoord - Coord(SHIFT_VERTICAL)
+		} else {
+			epCaptureSquare = WHITE_PAWN
+			epCaptureCoord = mu.dstCoord + Coord(SHIFT_VERTICAL)
+		}
+	case KNIGHT_PROMOTION_CAPTURE:
+		fallthrough
+	case KNIGHT_PROMOTION:
+		if b.sideToMove == WHITE {
+			moveDstSetSquare = WHITE_KNIGHT
+		} else {
+			moveDstSetSquare = BLACK_KNIGHT
+		}
+	case BISHOP_PROMOTION_CAPTURE:
+		fallthrough
+	case BISHOP_PROMOTION:
+		if b.sideToMove == WHITE {
+			moveDstSetSquare = WHITE_BISHOP
+		} else {
+			moveDstSetSquare = BLACK_BISHOP
+		}
+	case ROOK_PROMOTION_CAPTURE:
+		fallthrough
+	case ROOK_PROMOTION:
+		if b.sideToMove == WHITE {
+			moveDstSetSquare = WHITE_ROOK
+		} else {
+			moveDstSetSquare = BLACK_ROOK
+		}
+	case QUEEN_PROMOTION_CAPTURE:
+		fallthrough
+	case QUEEN_PROMOTION:
+		if b.sideToMove == WHITE {
+			moveDstSetSquare = WHITE_QUEEN
+		} else {
+			moveDstSetSquare = BLACK_QUEEN
+		}
 	}
+
+	// Update Undo (should happen before any state is modified)
+	u := NewUndo(m, moveDstSetSquare, b.halfMove, b.castleRights, b.epCoord)
 	b.undos[b.undoIndex] = u
 	b.undoIndex++
 
-	b.clearSquare(originSquare, m.origin)
+	// Update board
+	b.ClearSquare(mu.originCoord, mu.originSquare)
+	if mu.dstSquare != EMPTY {
+		b.ClearSquare(mu.dstCoord, mu.dstSquare)
+	}
+	b.SetSquare(mu.dstCoord, moveDstSetSquare)
+	if castleRookSquare != EMPTY {
+		b.ClearSquare(castleRookClearCoord, castleRookSquare)
+		b.SetSquare(castleRookSetCoord, castleRookSquare)
+	}
+	if epCaptureSquare != EMPTY {
+		b.ClearSquare(epCaptureCoord, epCaptureSquare)
+	}
 
+	// Update CastleRights
 	if b.castleRights != 0 {
-		b.updateCastleRights(m.origin)
-		b.updateCastleRights(m.target)
+		b.UpdateCastleRights(mu.originCoord)
+		b.UpdateCastleRights(mu.dstCoord)
 	}
 
-	b.halfMove++
-
-	switch originSquare {
-	case WHITE_PAWN:
-		fallthrough
-	case BLACK_PAWN:
-		b.halfMove = 0
-	case WHITE_KING:
-		b.whiteKingIndex = m.target
-	case BLACK_KING:
-		b.blackKingIndex = m.target
+	// Update En Passant
+	if b.epCoord != A1 {
+		b.HashEnPassant()
+		b.epCoord = A1
 	}
 
-	if targetSquare != EMPTY {
-		b.clearSquare(targetSquare, m.target)
-		b.halfMove = 0
+	if epCoord != A1 {
+		b.epCoord = epCoord
+		b.HashEnPassant()
 	}
 
-	if b.epIndex != 0 {
-		b.hashEnPassant()
-	}
-	b.epIndex = 0
-
-	if m.kind == DOUBLE_PAWN_PUSH {
-		if b.sideToMove == WHITE &&
-			(b.squares[m.target-SquareIndex(HORIZONTAL_MOVE_DIST)] == BLACK_PAWN ||
-				b.squares[m.target+SquareIndex(HORIZONTAL_MOVE_DIST)] == BLACK_PAWN) {
-			b.epIndex = m.target - SquareIndex(VERTICAL_MOVE_DIST)
-			b.hashEnPassant()
-		} else if b.sideToMove == BLACK &&
-			(b.squares[m.target-SquareIndex(HORIZONTAL_MOVE_DIST)] == WHITE_PAWN ||
-				b.squares[m.target+SquareIndex(HORIZONTAL_MOVE_DIST)] == WHITE_PAWN) {
-			b.epIndex = m.target - SquareIndex(VERTICAL_MOVE_DIST)
-			b.hashEnPassant()
-		}
-	}
-
-	switch m.kind {
-	case KING_CASTLE:
-		fallthrough
-	case QUEEN_CASTLE:
-		switch m.target {
-		case 97:
-			b.clearSquare(WHITE_ROOK, 98)
-			b.setSquare(WHITE_ROOK, 96)
-		case 93:
-			b.clearSquare(WHITE_ROOK, 91)
-			b.setSquare(WHITE_ROOK, 94)
-		case 27:
-			b.clearSquare(BLACK_ROOK, 28)
-			b.setSquare(BLACK_ROOK, 26)
-		case 23:
-			b.clearSquare(BLACK_ROOK, 21)
-			b.setSquare(BLACK_ROOK, 24)
-		}
-	case EP_CAPTURE:
-		if b.sideToMove == WHITE {
-			b.clearSquare(BLACK_PAWN, m.target+SquareIndex(VERTICAL_MOVE_DIST))
-		} else {
-			b.clearSquare(WHITE_PAWN, m.target-SquareIndex(VERTICAL_MOVE_DIST))
-		}
-	case KNIGHT_PROMOTION_CAPTURE:
-		fallthrough
-	case KNIGHT_PROMOTION:
-		if b.sideToMove == WHITE {
-			originSquare = WHITE_KNIGHT
-		} else {
-			originSquare = BLACK_KNIGHT
-		}
-	case BISHOP_PROMOTION_CAPTURE:
-		fallthrough
-	case BISHOP_PROMOTION:
-		if b.sideToMove == WHITE {
-			originSquare = WHITE_BISHOP
-		} else {
-			originSquare = BLACK_BISHOP
-		}
-	case ROOK_PROMOTION_CAPTURE:
-		fallthrough
-	case ROOK_PROMOTION:
-		if b.sideToMove == WHITE {
-			originSquare = WHITE_ROOK
-		} else {
-			originSquare = BLACK_ROOK
-		}
-	case QUEEN_PROMOTION_CAPTURE:
-		fallthrough
-	case QUEEN_PROMOTION:
-		if b.sideToMove == WHITE {
-			originSquare = WHITE_QUEEN
-		} else {
-			originSquare = BLACK_QUEEN
-		}
-	}
-
-	b.setSquare(originSquare, m.target)
-
-	kingIndex := b.whiteKingIndex
+	// Update Move Clocks
 	if b.sideToMove == BLACK {
 		b.fullMove++
-		kingIndex = b.blackKingIndex
+	}
+	b.halfMove++
+	if mu.originSquare == WHITE_PAWN ||
+		mu.originSquare == BLACK_PAWN ||
+		mu.dstSquare != EMPTY {
+		b.halfMove = 0
 	}
 
-	kingAttackers := make(map[SquareIndex]bool, MAX_SQUARE_ATTACKERS)
-	b.squareAttackers(&kingAttackers, b.sideToMove, kingIndex)
+	// Move Legality Check
+	kingAttacked := b.CoordAttacked(b.kingCoords[b.sideToMove], b.sideToMove)
 
-	b.hashSide()
+	// Update Side
+	b.HashSide()
 	b.sideToMove ^= 1
 
-	if len(kingAttackers) > 0 {
-		return fmt.Errorf("king has %v attacker(s)", len(kingAttackers))
+	if kingAttacked {
+		return fmt.Errorf("king is attacked")
 	}
 
 	return nil
 }
 
-func (b *board) undoMove() error {
+func (b *Board) UndoMove() error {
 	if b.undoIndex <= 0 {
 		return fmt.Errorf("invalid undo index: %v", b.undoIndex)
 	}
+
+	epCaptureSquare := EMPTY
+	epCaptureCoord := A1
+
+	castleRookSquare := EMPTY
+	castleRookClearCoord := A1
+	castleRookSetCoord := A1
+
+	// Update Undo
 	b.undoIndex--
 	u := b.undos[b.undoIndex]
+	var mu MoveUnpacked
+	var uu UndoUnpacked
+	u.Unpack(&mu, &uu)
 
+	// Update Side
 	b.sideToMove ^= 1
-	targetSquare := b.squares[u.mv.target]
+	b.HashSide()
 
-	if b.sideToMove == BLACK {
-		b.fullMove--
-	}
-
-	b.clearSquare(targetSquare, u.mv.target)
-
-	if u.capturedSquare != EMPTY {
-		b.setSquare(u.capturedSquare, u.mv.target)
-	}
-
-	switch u.mv.kind {
+	switch mu.moveKind {
 	case KING_CASTLE:
 		fallthrough
 	case QUEEN_CASTLE:
-		switch u.mv.target {
-		case 97:
-			b.clearSquare(WHITE_ROOK, 96)
-			b.setSquare(WHITE_ROOK, 98)
-		case 93:
-			b.clearSquare(WHITE_ROOK, 94)
-			b.setSquare(WHITE_ROOK, 91)
-		case 27:
-			b.clearSquare(BLACK_ROOK, 26)
-			b.setSquare(BLACK_ROOK, 28)
-		case 23:
-			b.clearSquare(BLACK_ROOK, 24)
-			b.setSquare(BLACK_ROOK, 21)
+		switch mu.dstCoord {
+		case G1:
+			castleRookSquare = WHITE_ROOK
+			castleRookClearCoord = F1
+			castleRookSetCoord = H1
+		case C1:
+			castleRookSquare = WHITE_ROOK
+			castleRookClearCoord = D1
+			castleRookSetCoord = A1
+		case G8:
+			castleRookSquare = BLACK_ROOK
+			castleRookClearCoord = F8
+			castleRookSetCoord = H8
+		case C8:
+			castleRookSquare = BLACK_ROOK
+			castleRookClearCoord = D8
+			castleRookSetCoord = A8
 		}
 	case EP_CAPTURE:
-		epCaptureIndex := u.mv.target - SquareIndex(VERTICAL_MOVE_DIST)
-		epSquare := WHITE_PAWN
 		if b.sideToMove == WHITE {
-			epCaptureIndex = u.mv.target + SquareIndex(VERTICAL_MOVE_DIST)
-			epSquare = BLACK_PAWN
-		}
-		b.setSquare(epSquare, epCaptureIndex)
-	case KNIGHT_PROMOTION_CAPTURE:
-		fallthrough
-	case KNIGHT_PROMOTION:
-		fallthrough
-	case BISHOP_PROMOTION_CAPTURE:
-		fallthrough
-	case BISHOP_PROMOTION:
-		fallthrough
-	case ROOK_PROMOTION_CAPTURE:
-		fallthrough
-	case ROOK_PROMOTION:
-		fallthrough
-	case QUEEN_PROMOTION_CAPTURE:
-		fallthrough
-	case QUEEN_PROMOTION:
-		if b.sideToMove == WHITE {
-			targetSquare = WHITE_PAWN
-		} else {
-			targetSquare = BLACK_PAWN
+			epCaptureCoord = uu.epCoord - Coord(SHIFT_VERTICAL)
+			epCaptureSquare = BLACK_PAWN
+		} else if b.sideToMove == BLACK {
+			epCaptureCoord = uu.epCoord + Coord(SHIFT_VERTICAL)
+			epCaptureSquare = WHITE_PAWN
+
 		}
 	}
-	b.setSquare(targetSquare, u.mv.origin)
 
-	switch targetSquare {
-	case WHITE_KING:
-		b.whiteKingIndex = u.mv.origin
-	case BLACK_KING:
-		b.blackKingIndex = u.mv.origin
+	// Update board
+	b.ClearSquare(mu.dstCoord, uu.clearSquare)
+	if mu.dstSquare != EMPTY {
+		b.SetSquare(mu.dstCoord, mu.dstSquare)
+	}
+	b.SetSquare(mu.originCoord, mu.originSquare)
+	if castleRookSquare != EMPTY {
+		b.ClearSquare(castleRookClearCoord, castleRookSquare)
+		b.SetSquare(castleRookSetCoord, castleRookSquare)
+	}
+	if epCaptureSquare != EMPTY {
+		b.SetSquare(epCaptureCoord, epCaptureSquare)
 	}
 
-	b.castleRights = u.castleRights
-	b.epIndex = u.epIndex
-	b.halfMove = u.halfMove
-	b.hash = u.hash
+	// Update CastleRights
+	b.HashCastling()
+	b.castleRights = uu.castleRights
+	b.HashCastling()
+
+	// Update En Passant
+	if b.epCoord != A1 {
+		b.HashEnPassant()
+		b.epCoord = A1
+	}
+
+	if uu.epCoord != A1 {
+		b.epCoord = uu.epCoord
+		b.HashEnPassant()
+	}
+
+	// Update Move Clocks
+	if b.sideToMove == BLACK {
+		b.fullMove--
+	}
+	b.halfMove = uu.halfMove
+
 	return nil
 }

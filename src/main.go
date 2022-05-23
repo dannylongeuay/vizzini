@@ -8,26 +8,27 @@ import (
 )
 
 func main() {
-	seedKeys(time.Now().UTC().UnixNano())
-	board, err := newBoard(STARTING_FEN)
+	SeedKeys(time.Now().UTC().UnixNano())
+	board, err := NewBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
 	}
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		fmt.Println(board.toString())
+		fmt.Println(board.ToString())
 		fmt.Println()
 
-		moves := board.generateMoves(board.sideToMove)
+		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+		board.GenerateMoves(&moves, board.sideToMove)
 
-		var matchingMoves []move
+		var matchingMoves []Move
 		for {
 			fmt.Print("Submit target coord: ")
 			scanner.Scan()
 			input := scanner.Text()
 
 			for _, m := range moves {
-				if input == string(coordBySquareIndex(m.target)) {
+				if input == COORD_MAP[0] {
 					matchingMoves = append(matchingMoves, m)
 				}
 			}
@@ -39,7 +40,7 @@ func main() {
 		}
 
 		if len(matchingMoves) == 1 {
-			err := board.makeMove(matchingMoves[0])
+			err := board.MakeMove(matchingMoves[0])
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -54,8 +55,8 @@ func main() {
 			performedMoved := false
 
 			for _, m := range matchingMoves {
-				if input == string(coordBySquareIndex(m.origin)) {
-					err := board.makeMove(m)
+				if input == COORD_MAP[0] {
+					err := board.MakeMove(m)
 					if err != nil {
 						fmt.Println(err)
 					}
