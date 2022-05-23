@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/bits"
 )
 
 func (bb *Bitboard) ToString() string {
@@ -38,12 +39,12 @@ func (bb *Bitboard) ClearBit(c Coord) {
 }
 
 func (bb Bitboard) Count() int {
-	var count int
-	for bb > 0 {
-		count++
-		bb &= bb - 1
-	}
-	return count
+	// var count int
+	// for bb > 0 {
+	// 	count++
+	// 	bb &= bb - 1
+	// }
+	return bits.OnesCount64(uint64(bb))
 }
 
 func (bb Bitboard) LSBIndex() Coord {

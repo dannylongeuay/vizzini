@@ -18,7 +18,8 @@ func ContainsTestMove(t *testing.T, moves []Move, mu MoveUnpacked) {
 func FilterMovesByOrigin(c Coord, moves *[]Move) {
 	n := 0
 	for _, m := range *moves {
-		mu := m.Unpack()
+		var mu MoveUnpacked
+		m.Unpack(&mu)
 		if mu.originCoord == c {
 			(*moves)[n] = m
 			n++
@@ -88,7 +89,8 @@ func TestGenerateMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		moves := b.GenerateMoves(tt.color)
+		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+		b.GenerateMoves(&moves, tt.color)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}

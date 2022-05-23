@@ -9,10 +9,10 @@ import (
 func divide(b *Board, depth int) map[string]int {
 	results := make(map[string]int)
 
-	moves := b.GenerateMoves(b.sideToMove)
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+	b.GenerateMoves(&moves, b.sideToMove)
 
 	for _, m := range moves {
-		mu := m.Unpack()
 		cb := b.CopyBoard()
 		err := cb.MakeMove(m)
 		if err != nil {
@@ -20,10 +20,12 @@ func divide(b *Board, depth int) map[string]int {
 		}
 		var nodes int
 		if depth > 1 {
-			nodes = perft(&cb, depth-1)
+			nodes = Perft(&cb, depth-1)
 		} else {
 			nodes = 1
 		}
+		var mu MoveUnpacked
+		m.Unpack(&mu)
 		coord := fmt.Sprint(strings.ToLower(COORD_MAP[mu.originCoord]), strings.ToLower(COORD_MAP[mu.dstCoord]))
 		results[coord] = nodes
 	}

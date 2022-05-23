@@ -44,7 +44,7 @@ const SHIFT_VERTICAL int = 8
 const SHIFT_POS_DIAG int = 9
 const SHIFT_HORIZONTAL int = 1
 
-const MAX_GENERATED_MOVES int = 512
+const INITIAL_MOVES_CAPACITY int = 32
 const MAX_PAWN_MOVES int = 12
 const MAX_KNIGHT_MOVES int = 8
 const MAX_BISHOP_MOVES int = 13

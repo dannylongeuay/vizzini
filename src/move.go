@@ -24,8 +24,6 @@ func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare S
 func NewUndo(move Move, clearSquare Square, halfMove HalfMove, castleRights CastleRights, epCoord Coord) Undo {
 	undoClearSquare := Undo(clearSquare) << UNDO_CLEAR_SQUARE_SHIFT
 	undoHalfMove := Undo(halfMove) << UNDO_HALF_MOVE_SHIFT
-	// hm := (undoHalfMove & UNDO_HALF_MOVE_MASK) >> UNDO_HALF_MOVE_SHIFT
-	// fmt.Println(hm)
 	undoCastleRights := Undo(castleRights) << UNDO_CASTLE_RIGHTS_SHIFT
 	undoEpCoord := Undo(epCoord) << UNDO_EP_COORD_SHIFT
 	return Undo(move) | undoClearSquare | undoHalfMove | undoCastleRights | undoEpCoord
@@ -40,7 +38,6 @@ type MoveUnpacked struct {
 }
 
 type UndoUnpacked struct {
-	MoveUnpacked
 	clearSquare  Square
 	halfMove     HalfMove
 	castleRights CastleRights
@@ -48,7 +45,8 @@ type UndoUnpacked struct {
 }
 
 func (m *Move) ToString() string {
-	mu := m.Unpack()
+	var mu MoveUnpacked
+	m.Unpack(&mu)
 	mk := MOVE_KIND_MAP[mu.moveKind]
 	oc := COORD_MAP[mu.originCoord]
 	os := SQUARE_MAP[mu.originSquare]
@@ -59,8 +57,10 @@ func (m *Move) ToString() string {
 }
 
 func (u *Undo) ToString() string {
+	var mu MoveUnpacked
+	var uu UndoUnpacked
 	move := Move(*u & UNDO_MOVE_MASK)
-	uu := u.Unpack()
+	u.Unpack(&mu, &uu)
 	cs := SQUARE_MAP[uu.clearSquare]
 	hm := uu.halfMove
 	cr := uu.castleRights
@@ -69,27 +69,23 @@ func (u *Undo) ToString() string {
 	return s
 }
 
-func (m *Move) Unpack() MoveUnpacked {
-	mu := MoveUnpacked{
-		originCoord:  Coord((*m & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT),
-		dstCoord:     Coord((*m & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT),
-		originSquare: Square((*m & MOVE_ORIGIN_SQUARE_MASK) >> MOVE_ORIGIN_SQUARE_SHIFT),
-		dstSquare:    Square((*m & MOVE_DST_SQUARE_MASK) >> MOVE_DST_SQUARE_SHIFT),
-		moveKind:     MoveKind(*m & MOVE_KIND_MASK),
-	}
-	return mu
+func (m *Move) Unpack(mu *MoveUnpacked) {
+	mu.originCoord = Coord((*m & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT)
+	mu.dstCoord = Coord((*m & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT)
+	mu.originSquare = Square((*m & MOVE_ORIGIN_SQUARE_MASK) >> MOVE_ORIGIN_SQUARE_SHIFT)
+	mu.dstSquare = Square((*m & MOVE_DST_SQUARE_MASK) >> MOVE_DST_SQUARE_SHIFT)
+	mu.moveKind = MoveKind(*m & MOVE_KIND_MASK)
+
 }
 
-func (u *Undo) Unpack() UndoUnpacked {
+func (u *Undo) Unpack(mu *MoveUnpacked, uu *UndoUnpacked) {
 	move := Move(*u & UNDO_MOVE_MASK)
-	uu := UndoUnpacked{
-		MoveUnpacked: move.Unpack(),
-		clearSquare:  Square((*u & UNDO_CLEAR_SQUARE_MASK) >> UNDO_CLEAR_SQUARE_SHIFT),
-		halfMove:     HalfMove((*u & UNDO_HALF_MOVE_MASK) >> UNDO_HALF_MOVE_SHIFT),
-		castleRights: CastleRights((*u & UNDO_CASTLE_RIGHTS_MASK) >> UNDO_CASTLE_RIGHTS_SHIFT),
-		epCoord:      Coord((*u & UNDO_EP_COORD_MASK) >> UNDO_EP_COORD_SHIFT),
-	}
-	return uu
+	move.Unpack(mu)
+	uu.clearSquare = Square((*u & UNDO_CLEAR_SQUARE_MASK) >> UNDO_CLEAR_SQUARE_SHIFT)
+	uu.halfMove = HalfMove((*u & UNDO_HALF_MOVE_MASK) >> UNDO_HALF_MOVE_SHIFT)
+	uu.castleRights = CastleRights((*u & UNDO_CASTLE_RIGHTS_MASK) >> UNDO_CASTLE_RIGHTS_SHIFT)
+	uu.epCoord = Coord((*u & UNDO_EP_COORD_MASK) >> UNDO_EP_COORD_SHIFT)
+
 }
 
 func (b *Board) SetSquare(c Coord, sq Square) {
@@ -164,26 +160,33 @@ func (b *Board) ClearSquare(c Coord, sq Square) {
 	}
 }
 
-var CastleCheckIndexes = map[Coord]CastleRights{
-	A8: 14, // KQk
-	E8: 12, // KQ
-	H8: 13, // KQq
-	A1: 11, // Kkq
-	E1: 3,  // kq
-	H1: 7,  // Qkq
-}
-
 func (b *Board) UpdateCastleRights(c Coord) {
-	castleBits, present := CastleCheckIndexes[c]
-	if present {
+	var castleBits CastleRights
+	switch c {
+	case A8:
+		castleBits = 14
+	case H8:
+		castleBits = 13
+	case E8:
+		castleBits = 12
+	case A1:
+		castleBits = 11
+	case H1:
+		castleBits = 7
+	case E1:
+		castleBits = 3
+	}
+	if castleBits > 0 {
 		b.HashCastling()
 		b.castleRights &= castleBits
 		b.HashCastling()
 	}
+
 }
 
 func (b *Board) MakeMove(m Move) error {
-	mu := m.Unpack()
+	var mu MoveUnpacked
+	m.Unpack(&mu)
 
 	moveDstSetSquare := mu.originSquare
 
@@ -346,17 +349,19 @@ func (b *Board) UndoMove() error {
 	// Update Undo
 	b.undoIndex--
 	u := b.undos[b.undoIndex]
-	uu := u.Unpack()
+	var mu MoveUnpacked
+	var uu UndoUnpacked
+	u.Unpack(&mu, &uu)
 
 	// Update Side
 	b.sideToMove ^= 1
 	b.HashSide()
 
-	switch uu.moveKind {
+	switch mu.moveKind {
 	case KING_CASTLE:
 		fallthrough
 	case QUEEN_CASTLE:
-		switch uu.dstCoord {
+		switch mu.dstCoord {
 		case G1:
 			castleRookSquare = WHITE_ROOK
 			castleRookClearCoord = F1
@@ -386,11 +391,11 @@ func (b *Board) UndoMove() error {
 	}
 
 	// Update board
-	b.ClearSquare(uu.dstCoord, uu.clearSquare)
-	if uu.dstSquare != EMPTY {
-		b.SetSquare(uu.dstCoord, uu.dstSquare)
+	b.ClearSquare(mu.dstCoord, uu.clearSquare)
+	if mu.dstSquare != EMPTY {
+		b.SetSquare(mu.dstCoord, mu.dstSquare)
 	}
-	b.SetSquare(uu.originCoord, uu.originSquare)
+	b.SetSquare(mu.originCoord, mu.originSquare)
 	if castleRookSquare != EMPTY {
 		b.ClearSquare(castleRookClearCoord, castleRookSquare)
 		b.SetSquare(castleRookSetCoord, castleRookSquare)

@@ -18,7 +18,8 @@ func main() {
 		fmt.Println(board.ToString())
 		fmt.Println()
 
-		moves := board.GenerateMoves(board.sideToMove)
+		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+		board.GenerateMoves(&moves, board.sideToMove)
 
 		var matchingMoves []Move
 		for {

@@ -24,15 +24,13 @@ func (b *Board) AppendCaptures(moves *[]Move, captures Bitboard, originCoord Coo
 	}
 }
 
-func (b *Board) GenerateMoves(side Color) []Move {
-	moves := make([]Move, 0, MAX_GENERATED_MOVES)
-	b.GeneratePawnMoves(&moves, side)
-	b.GenerateKnightMoves(&moves, side)
-	b.GenerateBishopMoves(&moves, side)
-	b.GenerateRookMoves(&moves, side)
-	b.GenerateQueenMoves(&moves, side)
-	b.GenerateKingMoves(&moves, side)
-	return moves
+func (b *Board) GenerateMoves(moves *[]Move, side Color) {
+	b.GeneratePawnMoves(moves, side)
+	b.GenerateKnightMoves(moves, side)
+	b.GenerateBishopMoves(moves, side)
+	b.GenerateRookMoves(moves, side)
+	b.GenerateQueenMoves(moves, side)
+	b.GenerateKingMoves(moves, side)
 }
 
 func (b *Board) GeneratePawnMoves(moves *[]Move, side Color) {

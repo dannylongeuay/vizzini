@@ -352,18 +352,19 @@ func TestUndoMoves(t *testing.T) {
 			t.Error(err)
 		}
 		for _, tm := range tt.moves {
-			legalMoves := bStart.GenerateMoves(bStart.sideToMove)
-			m := NewMove(tm.originCoord, tm.dstCoord, tm.originSquare, tm.dstSquare, tm.moveKind)
+			moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+			bStart.GenerateMoves(&moves, bStart.sideToMove)
+			move := NewMove(tm.originCoord, tm.dstCoord, tm.originSquare, tm.dstSquare, tm.moveKind)
 			isLegal := false
-			for _, lm := range legalMoves {
-				if lm == m {
+			for _, m := range moves {
+				if m == move {
 					isLegal = true
 				}
 			}
 			if !isLegal {
 				t.Errorf("%v is not a valid move", tm)
 			}
-			err = bStart.MakeMove(m)
+			err = bStart.MakeMove(move)
 			if err != nil {
 				t.Error(err)
 			}

@@ -4,18 +4,19 @@ import (
 	"testing"
 )
 
-func perft(b *Board, depth int) int {
+func Perft(b *Board, depth int) int {
 	var nodes int
 
 	if depth == 0 {
 		return 1
 	}
 
-	moves := b.GenerateMoves(b.sideToMove)
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+	b.GenerateMoves(&moves, b.sideToMove)
 	for _, m := range moves {
 		err := b.MakeMove(m)
 		if err == nil {
-			nodes += perft(b, depth-1)
+			nodes += Perft(b, depth-1)
 		}
 		b.UndoMove()
 	}
@@ -33,8 +34,8 @@ func TestPerft(t *testing.T) {
 		{STARTING_FEN, 2, 400},
 		{STARTING_FEN, 3, 8902},
 		{STARTING_FEN, 4, 197281},
-		// {STARTING_FEN, 5, 4865609},
-		// {STARTING_FEN, 6, 119060324},
+		{STARTING_FEN, 5, 4865609},
+		{STARTING_FEN, 6, 119060324},
 	}
 	SeedKeys(181818)
 	for _, tt := range tests {
@@ -42,7 +43,7 @@ func TestPerft(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		actual := perft(b, tt.depth)
+		actual := Perft(b, tt.depth)
 		if actual != tt.expected {
 			t.Errorf("nodes %v != %v", actual, tt.expected)
 		}
