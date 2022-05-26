@@ -14,57 +14,32 @@ func main() {
 		fmt.Println(err)
 	}
 	scanner := bufio.NewScanner(os.Stdin)
+
+MAIN_LOOP:
 	for {
-		fmt.Println(board.ToString())
-		fmt.Println()
+		fmt.Printf("%v\n\n", board.ToString())
 
 		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
 		board.GenerateMoves(&moves, board.sideToMove)
 
-		var matchingMoves []Move
 		for {
-			fmt.Print("Submit target coord: ")
+			fmt.Print("Submit move: ")
 			scanner.Scan()
 			input := scanner.Text()
-
-			for _, m := range moves {
-				if input == COORD_MAP[0] {
-					matchingMoves = append(matchingMoves, m)
-				}
-			}
-			if len(matchingMoves) == 0 {
-				fmt.Println("*** Not a valid move ***")
-			} else {
-				break
-			}
-		}
-
-		if len(matchingMoves) == 1 {
-			err := board.MakeMove(matchingMoves[0])
+			submittedMove, err := board.UCIParseMove(input)
 			if err != nil {
 				fmt.Println(err)
 			}
-			continue
-		}
 
-		for {
-			fmt.Print("Submit origin coord: ")
-			scanner.Scan()
-			input := scanner.Text()
-
-			performedMoved := false
-
-			for _, m := range matchingMoves {
-				if input == COORD_MAP[0] {
-					err := board.MakeMove(m)
+			for _, move := range moves {
+				if submittedMove == move {
+					err := board.MakeMove(move)
 					if err != nil {
-						fmt.Println(err)
+						board.UndoMove()
+						break
 					}
-					performedMoved = true
+					goto MAIN_LOOP
 				}
-			}
-			if performedMoved {
-				break
 			}
 			fmt.Println("*** Not a valid move ***")
 		}
