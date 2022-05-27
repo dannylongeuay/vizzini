@@ -29,11 +29,11 @@ func TestEvaluate(t *testing.T) {
 		},
 		{
 			"r1bqk1nr/ppppbppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",
-			-5,
+			-15,
 		},
 		{
 			"r1bq1rk1/ppppbppp/2n2n2/1B2p3/4P3/3P1N2/PPP2PPP/RNBQ1RK1 w - - 1 6",
-			-15,
+			-10,
 		},
 	}
 	for _, tt := range tests {
