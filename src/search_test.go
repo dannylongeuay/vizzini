@@ -21,7 +21,7 @@ func TestSearchNegamax(t *testing.T) {
 			t.Error(err)
 		}
 		search := Search{Board: board}
-		actual := search.Negamax(3, math.MinInt+1, math.MaxInt)
+		actual := search.Negamax(1, math.MinInt+1, math.MaxInt)
 		if actual != tt.expected {
 			t.Errorf("\n%v != %v\n\n%v", actual, tt.expected, board.ToString())
 		}

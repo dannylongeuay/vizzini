@@ -3,19 +3,30 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"time"
 )
 
 func main() {
 	SeedKeys(time.Now().UTC().UnixNano())
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	input := scanner.Text()
+	if input == "uci" {
+		UCIMode()
+	} else {
+		PlaySinglePlayer()
+	}
+}
+
+func PlaySinglePlayer() {
 	board, err := NewBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
 	}
 	scanner := bufio.NewScanner(os.Stdin)
 
-MAIN_LOOP:
 	for {
 		fmt.Printf("%v\n\n", board.ToString())
 
@@ -38,10 +49,18 @@ MAIN_LOOP:
 						board.UndoMove()
 						break
 					}
-					goto MAIN_LOOP
+					goto SEARCH
 				}
 			}
 			fmt.Println("*** Not a valid move ***")
 		}
+
+	SEARCH:
+		fmt.Printf("%v\n\n", board.ToString())
+		search := Search{Board: board}
+		score := search.Negamax(5, math.MinInt+1, math.MaxInt)
+		board.MakeMove(search.bestMove)
+		fmt.Printf("%v with score of %v\n", search.bestMove.ToString(), score)
 	}
+
 }
