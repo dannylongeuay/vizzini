@@ -26,7 +26,7 @@ func divide(b *Board, depth int) map[string]int {
 		}
 		var mu MoveUnpacked
 		m.Unpack(&mu)
-		coord := fmt.Sprint(strings.ToLower(COORD_MAP[mu.originCoord]), strings.ToLower(COORD_MAP[mu.dstCoord]))
+		coord := fmt.Sprint(strings.ToLower(COORD_STRINGS[mu.originCoord]), strings.ToLower(COORD_STRINGS[mu.dstCoord]))
 		results[coord] = nodes
 	}
 

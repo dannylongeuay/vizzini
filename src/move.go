@@ -48,10 +48,10 @@ func (m *Move) ToString() string {
 	var mu MoveUnpacked
 	m.Unpack(&mu)
 	mk := MOVE_KIND_MAP[mu.moveKind]
-	oc := COORD_MAP[mu.originCoord]
-	os := SQUARE_MAP[mu.originSquare]
-	dc := COORD_MAP[mu.dstCoord]
-	ds := SQUARE_MAP[mu.dstSquare]
+	oc := COORD_STRINGS[mu.originCoord]
+	os := SQUARES[mu.originSquare]
+	dc := COORD_STRINGS[mu.dstCoord]
+	ds := SQUARES[mu.dstSquare]
 	s := fmt.Sprintf("Move{%v: %v(%v) -> %v(%v)}", mk, oc, os, dc, ds)
 	return s
 }
@@ -61,10 +61,10 @@ func (u *Undo) ToString() string {
 	var uu UndoUnpacked
 	move := Move(*u & UNDO_MOVE_MASK)
 	u.Unpack(&mu, &uu)
-	cs := SQUARE_MAP[uu.clearSquare]
+	cs := SQUARES[uu.clearSquare]
 	hm := uu.halfMove
 	cr := uu.castleRights
-	ec := COORD_MAP[uu.epCoord]
+	ec := COORD_STRINGS[uu.epCoord]
 	s := fmt.Sprintf("Undo{ClearSquare: %v | HalfMove: %v | CastleRights: %v | EP Coord: %v | %v}", cs, hm, cr, ec, move.ToString())
 	return s
 }
@@ -133,13 +133,13 @@ func (b *Board) SetSquare(c Coord, sq Square) {
 		b.bbBlackPieces.SetBit(c)
 		b.kingCoords[b.sideToMove] = c
 	default:
-		panic(fmt.Errorf("set square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
+		panic(fmt.Errorf("set square(%v) error at coord %v", SQUARES[sq], COORD_STRINGS[c]))
 	}
 }
 
 func (b *Board) ClearSquare(c Coord, sq Square) {
 	if sq != b.squares[c] {
-		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v\n\n%v", SQUARE_MAP[sq], SQUARE_MAP[b.squares[c]], COORD_MAP[c], b.ToString()))
+		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v\n\n%v", SQUARES[sq], SQUARES[b.squares[c]], COORD_STRINGS[c], b.ToString()))
 	}
 
 	b.squares[c] = EMPTY
@@ -183,7 +183,7 @@ func (b *Board) ClearSquare(c Coord, sq Square) {
 		b.bbBK.ClearBit(c)
 		b.bbBlackPieces.ClearBit(c)
 	default:
-		panic(fmt.Errorf("clear square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
+		panic(fmt.Errorf("clear square(%v) error at coord %v", SQUARES[sq], COORD_STRINGS[c]))
 	}
 }
 

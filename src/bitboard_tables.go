@@ -466,7 +466,7 @@ func FindMagicNumbers() error {
 			}
 		}
 		if !foundMagicNumber {
-			return fmt.Errorf("unable to find magic number for rook at coord %v", COORD_MAP[i])
+			return fmt.Errorf("unable to find magic number for rook at coord %v", COORD_STRINGS[i])
 		}
 	}
 
@@ -499,7 +499,7 @@ func FindMagicNumbers() error {
 			}
 		}
 		if !foundMagicNumber {
-			return fmt.Errorf("unable to find magic number for bishop at coord %v", COORD_MAP[i])
+			return fmt.Errorf("unable to find magic number for bishop at coord %v", COORD_STRINGS[i])
 		}
 	}
 

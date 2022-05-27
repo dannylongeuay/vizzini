@@ -19,7 +19,7 @@ func CompareBoardState(bStart *Board, bEnd *Board, t *testing.T) {
 		t.Errorf("board castle rights: %v != %v", bStart.castleRights, bEnd.castleRights)
 	}
 	if bStart.epCoord != bEnd.epCoord {
-		t.Errorf("board en passant: %v != %v", COORD_MAP[bStart.epCoord], COORD_MAP[bEnd.epCoord])
+		t.Errorf("board en passant: %v != %v", COORD_STRINGS[bStart.epCoord], COORD_STRINGS[bEnd.epCoord])
 	}
 	if bStart.halfMove != bEnd.halfMove {
 		t.Errorf("board half move: %v != %v", bStart.halfMove, bEnd.halfMove)
