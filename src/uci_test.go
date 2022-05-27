@@ -168,7 +168,7 @@ func TestUCIParseMove(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		actual, err := board.UCIParseMove(tt.moveNotation)
+		actual, err := board.ParseUCIMove(tt.moveNotation)
 		if err != nil {
 			t.Error(err)
 		}

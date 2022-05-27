@@ -4,70 +4,142 @@ import (
 	"bufio"
 	"fmt"
 	"math"
-	"os"
 	"strings"
 )
 
-func UCIMode() {
-	fmt.Println("id name Vizzini Alpha")
+type UCI struct {
+	*Search
+	debug bool
+	input string
+}
+
+func NewUCI() *UCI {
+	var board Board
+	var search Search
+	search.Board = &board
+	var uci UCI
+	uci.Search = &search
+	return &uci
+}
+
+func ModeUCI(scanner *bufio.Scanner) {
+	uci := NewUCI()
+	uci.SendOk()
+
+	for scanner.Scan() {
+		uci.input = scanner.Text()
+		words := strings.Split(uci.input, " ")
+
+		if len(words) == 0 {
+			continue
+		}
+		command := words[0]
+
+		var args []string
+		if len(words) > 0 {
+			args = words[1:]
+		}
+
+		switch command {
+		case "uci":
+			uci.SendOk()
+		case "debug":
+			uci.SetDebug(args)
+		case "isready":
+			uci.SendReady()
+		case "setoption":
+			uci.SetOption(args)
+		case "register":
+			uci.SendRegistration()
+		case "ucinewgame":
+			uci.SetNewGame()
+		case "position":
+			uci.SetPosition(args)
+		case "go":
+			uci.SendBestMove()
+		case "stop":
+			uci.SetStop()
+		case "ponderhit":
+			uci.SetPonder()
+		case "quit":
+			goto QUIT
+
+		}
+	}
+QUIT:
+}
+
+func (u *UCI) SendOk() {
+	fmt.Println("id name Vizzini")
 	fmt.Println("id author Daniel")
 	// fmt.Println("option")
 	fmt.Println("uciok")
-	var board *Board
+}
 
-	for {
-		scanner := bufio.NewScanner(os.Stdin)
-		scanner.Scan()
-		input := scanner.Text()
-		tokens := strings.Split(input, " ")
+func (u *UCI) SetDebug(args []string) {
+	if args[0] == "on" {
+		u.debug = true
 
-		if len(tokens) == 0 {
-			continue
-		}
-
-		switch tokens[0] {
-		case "isready":
-			fmt.Println("readyok")
-		case "setoption":
-		case "ucinewgame":
-			var err error
-			board, err = NewBoard(STARTING_FEN)
-			if err != nil {
-				panic(err)
-			}
-		case "position":
-			var err error
-			board, err = UCISetPosition(tokens[1:])
-			if err != nil {
-				panic(err)
-			}
-		case "go":
-			// fmt.Println(board.ToString())
-			search := Search{Board: board}
-			search.Negamax(3, math.MinInt+1, math.MaxInt)
-			fmt.Println("bestmove", search.bestMove.ToUCIString())
-		case "stop":
-
-		}
+	} else if args[0] == "off" {
+		u.debug = false
 	}
 
 }
 
-func UCISetPosition(tokens []string) (*Board, error) {
+func (u *UCI) SendReady() {
+	fmt.Println("readyok")
+}
+
+func (u *UCI) SetOption(args []string) {
+}
+
+func (u *UCI) SendRegistration() {
+	fmt.Println("register later")
+}
+
+func (u *UCI) SetNewGame() {
+	args := []string{"startpos"}
+	u.SetPosition(args)
+
+}
+
+func (u *UCI) SetPosition(args []string) {
+	var err error
+	u.Board, err = NewBoardFromUCIPosition(args)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func (u *UCI) SendBestMove() {
+	u.Negamax(3, math.MinInt+1, math.MaxInt)
+	fmt.Println("bestmove", u.bestMove.ToUCIString())
+
+}
+
+func (u *UCI) SetStop() {
+
+}
+
+func (u *UCI) SetPonder() {
+
+}
+
+func NewBoardFromUCIPosition(args []string) (*Board, error) {
 	fen := STARTING_FEN
 	moveTokenIndex := 1
-	// fmt.Println(tokens)
-	if tokens[0] == "fen" {
+	if args[0] == "fen" {
 		moveTokenIndex = 7
-		fen = strings.Join(tokens[1:moveTokenIndex], " ")
+		fen = strings.Join(args[1:moveTokenIndex], " ")
 	}
 	board, err := NewBoard(fen)
 	if err != nil {
 		return board, err
 	}
-	if len(tokens) > moveTokenIndex && tokens[moveTokenIndex] == "moves" {
-		for _, uciMove := range tokens[moveTokenIndex+1:] {
-			move, err := board.UCIParseMove(uciMove)
+	if len(args) > moveTokenIndex && args[moveTokenIndex] == "moves" {
+		for _, uciMove := range args[moveTokenIndex+1:] {
+			move, err := board.ParseUCIMove(uciMove)
 			if err != nil {
 				return board, err
 			}
@@ -81,7 +153,7 @@ func UCISetPosition(tokens []string) (*Board, error) {
 	return board, nil
 }
 
-func (b *Board) UCIParseMove(s string) (Move, error) {
+func (b *Board) ParseUCIMove(s string) (Move, error) {
 	sParts := []rune(s)
 
 	if len(sParts) < 4 || len(sParts) > 5 {
@@ -175,4 +247,32 @@ func (b *Board) UCIParseMove(s string) (Move, error) {
 		}
 	}
 	return NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind), nil
+}
+
+func (m *Move) ToUCIString() string {
+	var mu MoveUnpacked
+	m.Unpack(&mu)
+	var p string
+	switch mu.moveKind {
+	case KNIGHT_PROMOTION_CAPTURE:
+		fallthrough
+	case KNIGHT_PROMOTION:
+		p = "n"
+	case BISHOP_PROMOTION_CAPTURE:
+		fallthrough
+	case BISHOP_PROMOTION:
+		p = "b"
+	case ROOK_PROMOTION_CAPTURE:
+		fallthrough
+	case ROOK_PROMOTION:
+		p = "r"
+	case QUEEN_PROMOTION_CAPTURE:
+		fallthrough
+	case QUEEN_PROMOTION:
+		p = "q"
+	}
+	oc := COORD_STRINGS[mu.originCoord]
+	dc := COORD_STRINGS[mu.dstCoord]
+	s := fmt.Sprint(strings.ToLower(oc), strings.ToLower(dc), p)
+	return s
 }

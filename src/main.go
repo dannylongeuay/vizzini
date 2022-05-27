@@ -9,35 +9,43 @@ import (
 )
 
 func main() {
-	SeedKeys(time.Now().UTC().UnixNano())
+	Setup()
+	HandleInput()
+}
+
+func HandleInput() {
+	fmt.Print("> ")
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	input := scanner.Text()
 	if input == "uci" {
-		UCIMode()
+		ModeUCI(scanner)
 	} else {
-		PlaySinglePlayer()
+		ModePlayerVsEngine(scanner)
 	}
+
 }
 
-func PlaySinglePlayer() {
+func Setup() {
+	SeedKeys(time.Now().UTC().UnixNano())
+}
+
+func ModePlayerVsEngine(scanner *bufio.Scanner) {
 	board, err := NewBoard(STARTING_FEN)
 	if err != nil {
 		fmt.Println(err)
 	}
-	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		fmt.Printf("%v\n\n", board.ToString())
+		fmt.Print("Submit move: ")
 
 		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
 		board.GenerateMoves(&moves, board.sideToMove)
 
-		for {
-			fmt.Print("Submit move: ")
-			scanner.Scan()
+		for scanner.Scan() {
 			input := scanner.Text()
-			submittedMove, err := board.UCIParseMove(input)
+			submittedMove, err := board.ParseUCIMove(input)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -53,6 +61,7 @@ func PlaySinglePlayer() {
 				}
 			}
 			fmt.Println("*** Not a valid move ***")
+			fmt.Print("Submit move: ")
 		}
 
 	SEARCH:

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
 var MOVE_KIND_MAP = [MOVE_KINDS]string{
@@ -54,34 +53,6 @@ func (m *Move) ToString() string {
 	dc := COORD_STRINGS[mu.dstCoord]
 	ds := SQUARES[mu.dstSquare]
 	s := fmt.Sprintf("Move{%v: %v(%v) -> %v(%v)}", mk, oc, os, dc, ds)
-	return s
-}
-
-func (m *Move) ToUCIString() string {
-	var mu MoveUnpacked
-	m.Unpack(&mu)
-	var p string
-	switch mu.moveKind {
-	case KNIGHT_PROMOTION_CAPTURE:
-		fallthrough
-	case KNIGHT_PROMOTION:
-		p = "n"
-	case BISHOP_PROMOTION_CAPTURE:
-		fallthrough
-	case BISHOP_PROMOTION:
-		p = "b"
-	case ROOK_PROMOTION_CAPTURE:
-		fallthrough
-	case ROOK_PROMOTION:
-		p = "r"
-	case QUEEN_PROMOTION_CAPTURE:
-		fallthrough
-	case QUEEN_PROMOTION:
-		p = "q"
-	}
-	oc := COORD_STRINGS[mu.originCoord]
-	dc := COORD_STRINGS[mu.dstCoord]
-	s := fmt.Sprint(strings.ToLower(oc), strings.ToLower(dc), p)
 	return s
 }
 
