@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestUCIParseMove(t *testing.T) {
 	tests := []struct {
@@ -180,4 +183,39 @@ func TestUCIParseMove(t *testing.T) {
 
 	}
 
+}
+
+func TestUCISetGoParams(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected UCI
+	}{
+		{
+			"infinite",
+			UCI{
+				searchInfinite: true,
+			},
+		},
+		{
+			"wtime 10000 btime 8000 winc 1000 binc 1000 movestogo 40 depth 4 nodes 100000 movetime 5000",
+			UCI{
+				wtime:           10000,
+				btime:           8000,
+				winc:            1000,
+				binc:            1000,
+				nextTimeControl: 40,
+				maxDepth:        4,
+				maxNodes:        100000,
+				moveTime:        5000,
+			},
+		},
+	}
+	for _, tt := range tests {
+		args := strings.Split(tt.s, " ")
+		uci := UCI{}
+		uci.SetGoParams(args)
+		if uci != tt.expected {
+			t.Errorf("UCI: %v != %v", uci, tt.expected)
+		}
+	}
 }

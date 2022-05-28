@@ -4,13 +4,25 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 )
 
 type UCI struct {
 	*Search
-	debug bool
-	input string
+	debug           bool
+	input           string
+	stop            bool
+	maxDepth        int
+	maxNodes        int
+	wtime           int64
+	btime           int64
+	winc            int64
+	binc            int64
+	moveTime        int64
+	ponderMode      bool
+	searchInfinite  bool
+	nextTimeControl int
 }
 
 func NewUCI() *UCI {
@@ -19,6 +31,7 @@ func NewUCI() *UCI {
 	search.Board = &board
 	var uci UCI
 	uci.Search = &search
+	uci.maxDepth = UCI_DEFAULT_DEPTH
 	return &uci
 }
 
@@ -56,7 +69,7 @@ func ModeUCI(scanner *bufio.Scanner) {
 		case "position":
 			uci.SetPosition(args)
 		case "go":
-			uci.SendBestMove()
+			uci.SendCalculations(args)
 		case "stop":
 			uci.SetStop()
 		case "ponderhit":
@@ -109,21 +122,23 @@ func (u *UCI) SetPosition(args []string) {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
-func (u *UCI) SendBestMove() {
-	u.Negamax(3, math.MinInt+1, math.MaxInt)
+func (u *UCI) SendCalculations(args []string) {
+	if len(args) > 0 {
+		u.SetGoParams(args)
+	}
+	u.Negamax(u.maxDepth, math.MinInt+1, math.MaxInt)
 	fmt.Println("bestmove", u.bestMove.ToUCIString())
-
+	u.bestMove = 0
 }
 
 func (u *UCI) SetStop() {
-
+	u.stop = true
 }
 
 func (u *UCI) SetPonder() {
-
+	panic("ponderhit not implemented")
 }
 
 func NewBoardFromUCIPosition(args []string) (*Board, error) {
@@ -151,6 +166,73 @@ func NewBoardFromUCIPosition(args []string) (*Board, error) {
 	}
 
 	return board, nil
+}
+
+func (u *UCI) SendInfo() {
+
+}
+
+func (u *UCI) SetGoParams(args []string) {
+	for i, arg := range args {
+		switch arg {
+		case "searchmoves":
+			panic("searchmoves not implemented")
+		case "ponder":
+			panic("ponder not implemented")
+		case "wtime":
+			wtime, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.wtime = int64(wtime)
+		case "btime":
+			btime, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.btime = int64(btime)
+		case "winc":
+			winc, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.winc = int64(winc)
+		case "binc":
+			binc, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.binc = int64(binc)
+		case "movestogo":
+			nextTimeControl, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.nextTimeControl = nextTimeControl
+		case "depth":
+			maxDepth, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.maxDepth = maxDepth
+		case "nodes":
+			maxNodes, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.maxNodes = maxNodes
+		case "mate":
+			panic("mate not implemented")
+		case "movetime":
+			moveTime, err := strconv.Atoi(args[i+1])
+			if err != nil {
+				panic(err)
+			}
+			u.moveTime = int64(moveTime)
+		case "infinite":
+			u.searchInfinite = true
+		}
+	}
 }
 
 func (b *Board) ParseUCIMove(s string) (Move, error) {
