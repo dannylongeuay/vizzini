@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestUCIParseMove(t *testing.T) {
@@ -188,34 +189,28 @@ func TestUCIParseMove(t *testing.T) {
 func TestUCISetGoParams(t *testing.T) {
 	tests := []struct {
 		s        string
-		expected UCI
+		duration time.Duration
 	}{
 		{
 			"infinite",
-			UCI{
-				searchInfinite: true,
-			},
+			time.Duration(time.Minute - time.Second),
 		},
 		{
 			"wtime 10000 btime 8000 winc 1000 binc 1000 movestogo 40 depth 4 nodes 100000 movetime 5000",
-			UCI{
-				wtime:           10000,
-				btime:           8000,
-				winc:            1000,
-				binc:            1000,
-				nextTimeControl: 40,
-				maxDepth:        4,
-				maxNodes:        100000,
-				moveTime:        5000,
-			},
+			time.Duration(time.Millisecond * time.Duration(4900)),
+		},
+		{
+			"wtime 10000 btime 8000 winc 1000 binc 1000 movestogo 40 depth 4 nodes 100000",
+			time.Duration(time.Millisecond * time.Duration(1100)),
 		},
 	}
 	for _, tt := range tests {
 		args := strings.Split(tt.s, " ")
-		uci := UCI{}
+		uci := NewUCI()
 		uci.SetGoParams(args)
-		if uci != tt.expected {
-			t.Errorf("UCI: %v != %v", uci, tt.expected)
+		approxStopTime := time.Now().Add(tt.duration)
+		if !uci.stopTime.After(approxStopTime) {
+			t.Errorf("stopTime %v is not after %v", uci.stopTime, approxStopTime)
 		}
 	}
 }

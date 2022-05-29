@@ -454,3 +454,16 @@ func (b *Board) UndoMove() error {
 
 	return nil
 }
+
+func (b *Board) MoveExists(move Move) bool {
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+	b.GenerateMoves(&moves, b.sideToMove)
+	for _, m := range moves {
+		err := b.MakeMove(m)
+		b.UndoMove()
+		if err == nil && m == move {
+			return true
+		}
+	}
+	return false
+}

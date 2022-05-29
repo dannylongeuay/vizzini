@@ -3,35 +3,26 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type UCI struct {
 	*Search
-	debug           bool
-	input           string
-	stop            bool
-	maxDepth        int
-	maxNodes        int
-	wtime           int64
-	btime           int64
-	winc            int64
-	binc            int64
-	moveTime        int64
-	ponderMode      bool
-	searchInfinite  bool
-	nextTimeControl int
+	debug      bool
+	input      string
+	ponderMode bool
 }
 
 func NewUCI() *UCI {
 	var board Board
 	var search Search
 	search.Board = &board
+	search.maxDepth = UCI_DEFAULT_DEPTH
+	search.pvTable = make([]PvMove, PV_TABLE_SIZE)
 	var uci UCI
 	uci.Search = &search
-	uci.maxDepth = UCI_DEFAULT_DEPTH
 	return &uci
 }
 
@@ -112,8 +103,8 @@ func (u *UCI) SendRegistration() {
 
 func (u *UCI) SetNewGame() {
 	args := []string{"startpos"}
+	u.pvTable = make([]PvMove, PV_TABLE_SIZE)
 	u.SetPosition(args)
-
 }
 
 func (u *UCI) SetPosition(args []string) {
@@ -125,10 +116,8 @@ func (u *UCI) SetPosition(args []string) {
 }
 
 func (u *UCI) SendCalculations(args []string) {
-	if len(args) > 0 {
-		u.SetGoParams(args)
-	}
-	u.Negamax(u.maxDepth, math.MinInt+1, math.MaxInt)
+	u.SetGoParams(args)
+	u.IterativeDeepening()
 	fmt.Println("bestmove", u.bestMove.ToUCIString())
 	u.bestMove = 0
 }
@@ -168,11 +157,17 @@ func NewBoardFromUCIPosition(args []string) (*Board, error) {
 	return board, nil
 }
 
-func (u *UCI) SendInfo() {
-
-}
-
 func (u *UCI) SetGoParams(args []string) {
+	u.maxDepth = UCI_DEFAULT_DEPTH
+	u.maxNodes = 0
+	u.stop = false
+
+	var maxMoveTime int64
+	var remainingTime int64
+	var increment int64
+	var remainingMoves int64
+	var searchInfinite bool
+
 	for i, arg := range args {
 		switch arg {
 		case "searchmoves":
@@ -180,35 +175,47 @@ func (u *UCI) SetGoParams(args []string) {
 		case "ponder":
 			panic("ponder not implemented")
 		case "wtime":
+			if u.sideToMove != WHITE {
+				continue
+			}
 			wtime, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				panic(err)
 			}
-			u.wtime = int64(wtime)
+			remainingTime = int64(wtime)
 		case "btime":
+			if u.sideToMove != BLACK {
+				continue
+			}
 			btime, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				panic(err)
 			}
-			u.btime = int64(btime)
+			remainingTime = int64(btime)
 		case "winc":
+			if u.sideToMove != WHITE {
+				continue
+			}
 			winc, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				panic(err)
 			}
-			u.winc = int64(winc)
+			increment = int64(winc)
 		case "binc":
+			if u.sideToMove != BLACK {
+				continue
+			}
 			binc, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				panic(err)
 			}
-			u.binc = int64(binc)
+			increment = int64(binc)
 		case "movestogo":
-			nextTimeControl, err := strconv.Atoi(args[i+1])
+			movestogo, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				panic(err)
 			}
-			u.nextTimeControl = nextTimeControl
+			remainingMoves = int64(movestogo)
 		case "depth":
 			maxDepth, err := strconv.Atoi(args[i+1])
 			if err != nil {
@@ -228,10 +235,22 @@ func (u *UCI) SetGoParams(args []string) {
 			if err != nil {
 				panic(err)
 			}
-			u.moveTime = int64(moveTime)
+			maxMoveTime = int64(moveTime)
 		case "infinite":
-			u.searchInfinite = true
+			searchInfinite = true
 		}
+	}
+
+	if searchInfinite {
+		u.stopTime = time.Now().Add(time.Minute)
+	} else if remainingTime > 0 {
+		mtime := remainingTime/remainingMoves + increment - SEARCH_BUFFER
+		if maxMoveTime > 0 {
+			mtime = maxMoveTime - SEARCH_BUFFER
+		}
+		u.stopTime = time.Now().Add(time.Millisecond * time.Duration(mtime))
+	} else {
+		u.stopTime = time.Now().Add(time.Second * 3)
 	}
 }
 
