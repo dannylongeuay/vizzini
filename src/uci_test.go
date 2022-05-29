@@ -206,7 +206,10 @@ func TestUCISetGoParams(t *testing.T) {
 	}
 	for _, tt := range tests {
 		args := strings.Split(tt.s, " ")
-		uci := NewUCI()
+		uci, err := NewUCI()
+		if err != nil {
+			t.Error(err)
+		}
 		uci.SetGoParams(args)
 		approxStopTime := time.Now().Add(tt.duration)
 		if !uci.stopTime.After(approxStopTime) {

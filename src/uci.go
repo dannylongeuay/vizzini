@@ -15,19 +15,21 @@ type UCI struct {
 	ponderMode bool
 }
 
-func NewUCI() *UCI {
-	var board Board
-	var search Search
-	search.Board = &board
-	search.maxDepth = UCI_DEFAULT_DEPTH
-	search.pvTable = make([]PvMove, PV_TABLE_SIZE)
+func NewUCI() (*UCI, error) {
 	var uci UCI
-	uci.Search = &search
-	return &uci
+	search, err := NewSearch(STARTING_FEN, UCI_DEFAULT_DEPTH, 0)
+	uci.Search = search
+	if err != nil {
+		return &uci, err
+	}
+	return &uci, nil
 }
 
 func ModeUCI(scanner *bufio.Scanner) {
-	uci := NewUCI()
+	uci, err := NewUCI()
+	if err != nil {
+		panic(err)
+	}
 	uci.SendOk()
 
 	for scanner.Scan() {

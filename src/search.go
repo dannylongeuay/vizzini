@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 )
 
@@ -25,18 +24,37 @@ type PvMove struct {
 	hash Hash
 }
 
+func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
+	var search Search
+	board, err := NewBoard(fen)
+	if err != nil {
+		return &search, err
+	}
+	search.Board = board
+	search.maxDepth = maxDepth
+	search.maxNodes = maxNodes
+	search.Reset()
+	return &search, nil
+}
+
+func (s *Search) Clear() {
+	s.bestMove = 0
+	s.stop = false
+	s.stopTime = time.Time{}
+}
+
+func (s *Search) Reset() {
+	s.Clear()
+	s.pvTable = make([]PvMove, PV_TABLE_SIZE)
+}
+
 func (s *Search) IterativeDeepening() int {
 	startTime := time.Now()
 	var bestScore int
 	for i := 1; i <= s.maxDepth; i++ {
 		bestScore = s.Negamax(i, math.MinInt+1, math.MaxInt)
-		s.SetPvLine()
-		var pvLineUCI []string
-		for _, move := range s.pvLine {
-			pvLineUCI = append(pvLineUCI, move.ToUCIString())
-		}
-		fmt.Printf("info depth %v score %v nodes %v time %v pv %v\n",
-			i, bestScore, s.nodes, time.Since(startTime).Milliseconds(), strings.Join(pvLineUCI, " "))
+		fmt.Printf("info depth %v score %v nodes %v time %v %v\n",
+			i, bestScore, s.nodes, time.Since(startTime).Milliseconds(), s.GetPvLineString())
 		if time.Now().After(s.stopTime) {
 			break
 		}
@@ -112,4 +130,13 @@ func (s *Search) SetPvLine() {
 	for i := 0; i < count; i++ {
 		s.UndoMove()
 	}
+}
+
+func (s *Search) GetPvLineString() string {
+	s.SetPvLine()
+	line := "pv"
+	for _, move := range s.pvLine {
+		line += " " + move.ToUCIString()
+	}
+	return line
 }

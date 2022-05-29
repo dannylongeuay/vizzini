@@ -16,14 +16,13 @@ func TestSearchNegamax(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		board, err := NewBoard(tt.fen)
+		search, err := NewSearch(tt.fen, UCI_DEFAULT_DEPTH, 0)
 		if err != nil {
 			t.Error(err)
 		}
-		search := Search{Board: board}
 		actual := search.Negamax(1, math.MinInt+1, math.MaxInt)
 		if actual != tt.expected {
-			t.Errorf("\n%v != %v\n\n%v", actual, tt.expected, board.ToString())
+			t.Errorf("\n%v != %v\n\n%v", actual, tt.expected, search.ToString())
 		}
 	}
 }
