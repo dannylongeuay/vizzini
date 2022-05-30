@@ -105,8 +105,8 @@ func (u *UCI) SendRegistration() {
 
 func (u *UCI) SetNewGame() {
 	args := []string{"startpos"}
-	u.pvTable = make([]PvMove, PV_TABLE_SIZE)
 	u.SetPosition(args)
+	u.Clear()
 }
 
 func (u *UCI) SetPosition(args []string) {
@@ -115,13 +115,13 @@ func (u *UCI) SetPosition(args []string) {
 	if err != nil {
 		panic(err)
 	}
+	u.Reset()
 }
 
 func (u *UCI) SendCalculations(args []string) {
 	u.SetGoParams(args)
 	u.IterativeDeepening()
 	fmt.Println("bestmove", u.bestMove.ToUCIString())
-	u.bestMove = 0
 }
 
 func (u *UCI) SetStop() {
@@ -160,10 +160,6 @@ func NewBoardFromUCIPosition(args []string) (*Board, error) {
 }
 
 func (u *UCI) SetGoParams(args []string) {
-	u.maxDepth = UCI_DEFAULT_DEPTH
-	u.maxNodes = 0
-	u.stop = false
-
 	var maxMoveTime int64
 	var remainingTime int64
 	var increment int64

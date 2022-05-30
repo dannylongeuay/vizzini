@@ -8,15 +8,15 @@ import (
 
 type Search struct {
 	*Board
-	ply      int
-	maxDepth int
-	nodes    int
-	maxNodes int
-	bestMove Move
-	stop     bool
-	stopTime time.Time
-	pvTable  []PvMove
-	pvLine   []Move
+	currentDepth int
+	maxDepth     int
+	nodes        int
+	maxNodes     int
+	bestMove     Move
+	stop         bool
+	stopTime     time.Time
+	pvTable      []PvMove
+	pvLine       []Move
 }
 
 type PvMove struct {
@@ -33,18 +33,18 @@ func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	search.Board = board
 	search.maxDepth = maxDepth
 	search.maxNodes = maxNodes
-	search.Reset()
+	search.Clear()
 	return &search, nil
 }
 
-func (s *Search) Clear() {
+func (s *Search) Reset() {
 	s.bestMove = 0
 	s.stop = false
 	s.stopTime = time.Time{}
 }
 
-func (s *Search) Reset() {
-	s.Clear()
+func (s *Search) Clear() {
+	s.Reset()
 	s.pvTable = make([]PvMove, PV_TABLE_SIZE)
 }
 
@@ -74,14 +74,14 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 
 	for _, move := range moves {
 		err := s.MakeMove(move)
-		s.ply++
+		s.currentDepth++
 		if err != nil {
-			s.ply--
+			s.currentDepth--
 			s.UndoMove()
 			continue
 		}
 		score := -s.Negamax(depth-1, -beta, -alpha)
-		s.ply--
+		s.currentDepth--
 		s.UndoMove()
 
 		if score >= beta {
@@ -91,13 +91,22 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		if score > alpha {
 			alpha = score
 			s.SetPvMove(move)
-			if s.ply == 0 {
+			if s.currentDepth == 0 {
 				s.bestMove = move
 			}
 		}
 	}
 
 	return alpha
+}
+
+func (s *Search) Repetition() bool {
+	for i := s.ply - int(s.halfMove); i < s.ply-1; i++ {
+		if s.hash == s.hashes[i] {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Search) SetPvMove(move Move) {

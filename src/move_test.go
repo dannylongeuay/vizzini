@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"time"
 )
 
 func CompareBoardState(bStart *Board, bEnd *Board, t *testing.T) {
@@ -164,7 +163,6 @@ func TestMakeMove(t *testing.T) {
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBnR w KQkq - 0 8",
 		},
 	}
-	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {
 		bStart, err := NewBoard(tt.startFen)
 		if err != nil {
@@ -245,7 +243,6 @@ func TestUndoMove(t *testing.T) {
 			MoveUnpacked{G2, G1, BLACK_PAWN, 0, KNIGHT_PROMOTION},
 		},
 	}
-	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {
 		bStart, err := NewBoard(tt.fen)
 		if err != nil {
@@ -341,7 +338,6 @@ func TestUndoMoves(t *testing.T) {
 			},
 		},
 	}
-	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {
 		bStart, err := NewBoard(tt.startFen)
 		if err != nil {

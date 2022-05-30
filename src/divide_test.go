@@ -113,7 +113,7 @@ func TestDivide(t *testing.T) {
 			},
 		},
 	}
-	SeedKeys(181818)
+	InitHashKeys(181818)
 	for _, tt := range tests {
 		if testing.Short() == true && tt.depth >= 6 {
 			continue

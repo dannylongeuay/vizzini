@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -56,6 +57,8 @@ var SQUARES = [SQUARE_TYPES]string{
 	"BLACK_KING",
 }
 
+var BOARD_INITIALIZED bool
+
 type Board struct {
 	squares       []Square
 	bbWP          Bitboard
@@ -79,13 +82,25 @@ type Board struct {
 	epCoord       Coord
 	halfMove      HalfMove
 	fullMove      int
+	ply           int
 	hash          Hash
-	undoIndex     int
+	hashes        []Hash
 	undos         []Undo
 }
 
-func NewBoard(fen string) (*Board, error) {
+func InitBoard() {
+	if BOARD_INITIALIZED {
+		return
+	}
+
+	InitHashKeys(time.Now().UTC().UnixNano())
 	InitBitboards()
+
+	BOARD_INITIALIZED = true
+}
+
+func NewBoard(fen string) (*Board, error) {
+	InitBoard()
 	fenParts := strings.Split(fen, " ")
 
 	if len(fenParts) != 6 {
@@ -95,6 +110,7 @@ func NewBoard(fen string) (*Board, error) {
 	b := Board{}
 	b.squares = make([]Square, BOARD_SQUARES)
 	b.undos = make([]Undo, MAX_GAME_MOVES)
+	b.hashes = make([]Hash, MAX_GAME_MOVES)
 	b.kingCoords = make([]Coord, PLAYERS)
 
 	ranks := strings.Split(fenParts[0], "/")
@@ -232,6 +248,9 @@ func (b Board) CopyBoard() Board {
 	undos := make([]Undo, len(b.undos))
 	copy(undos, b.undos)
 
+	hashes := make([]Hash, len(b.hashes))
+	copy(hashes, b.hashes)
+
 	kingCoords := make([]Coord, len(b.kingCoords))
 	copy(kingCoords, b.kingCoords)
 
@@ -259,8 +278,9 @@ func (b Board) CopyBoard() Board {
 		halfMove:      b.halfMove,
 		fullMove:      b.fullMove,
 		hash:          b.hash,
-		undoIndex:     b.undoIndex,
+		ply:           b.ply,
 		undos:         undos,
+		hashes:        hashes,
 	}
 	return cb
 }

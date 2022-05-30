@@ -18,7 +18,8 @@ func TestGenerateBoardHash(t *testing.T) {
 			181818, 15174481012482708289},
 	}
 	for _, tt := range tests {
-		SeedKeys(tt.seed)
+		InitHashKeys(tt.seed)
+		BOARD_INITIALIZED = true
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -48,7 +49,8 @@ func TestHashSquare(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		SeedKeys(tt.seed)
+		InitHashKeys(tt.seed)
+		BOARD_INITIALIZED = true
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -87,7 +89,8 @@ func TestHashSide(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		SeedKeys(tt.seed)
+		InitHashKeys(tt.seed)
+		BOARD_INITIALIZED = true
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -131,7 +134,8 @@ func TestHashCastling(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		SeedKeys(tt.seed)
+		InitHashKeys(tt.seed)
+		BOARD_INITIALIZED = true
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)
@@ -171,7 +175,8 @@ func TestHashEnPassant(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		SeedKeys(tt.seed)
+		InitHashKeys(tt.seed)
+		BOARD_INITIALIZED = true
 		b, err := NewBoard(tt.fen)
 		if err != nil {
 			t.Error(err)

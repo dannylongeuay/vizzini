@@ -21,6 +21,10 @@ func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare S
 	return moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
 }
 
+func NewMoveFromMoveUnpacked(mu MoveUnpacked) Move {
+	return NewMove(mu.originCoord, mu.dstCoord, mu.originSquare, mu.dstSquare, mu.moveKind)
+}
+
 func NewUndo(move Move, clearSquare Square, halfMove HalfMove, castleRights CastleRights, epCoord Coord) Undo {
 	undoClearSquare := Undo(clearSquare) << UNDO_CLEAR_SQUARE_SHIFT
 	undoHalfMove := Undo(halfMove) << UNDO_HALF_MOVE_SHIFT
@@ -301,8 +305,9 @@ func (b *Board) MakeMove(m Move) error {
 
 	// Update Undo (should happen before any state is modified)
 	u := NewUndo(m, moveDstSetSquare, b.halfMove, b.castleRights, b.epCoord)
-	b.undos[b.undoIndex] = u
-	b.undoIndex++
+	b.undos[b.ply] = u
+	b.hashes[b.ply] = b.hash
+	b.ply++
 
 	// Update board
 	b.ClearSquare(mu.originCoord, mu.originSquare)
@@ -361,8 +366,8 @@ func (b *Board) MakeMove(m Move) error {
 }
 
 func (b *Board) UndoMove() error {
-	if b.undoIndex <= 0 {
-		return fmt.Errorf("invalid undo index: %v", b.undoIndex)
+	if b.ply <= 0 {
+		return fmt.Errorf("invalid undo index: %v", b.ply)
 	}
 
 	epCaptureSquare := EMPTY
@@ -373,8 +378,8 @@ func (b *Board) UndoMove() error {
 	castleRookSetCoord := A1
 
 	// Update Undo
-	b.undoIndex--
-	u := b.undos[b.undoIndex]
+	b.ply--
+	u := b.undos[b.ply]
 	var mu MoveUnpacked
 	var uu UndoUnpacked
 	u.Unpack(&mu, &uu)

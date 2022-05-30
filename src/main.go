@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"time"
 )
 
 func main() {
-	Setup()
 	HandleInput()
 }
 
@@ -24,10 +22,6 @@ func HandleInput() {
 		ModePlayerVsEngine(scanner)
 	}
 
-}
-
-func Setup() {
-	SeedKeys(time.Now().UTC().UnixNano())
 }
 
 func ModePlayerVsEngine(scanner *bufio.Scanner) {
