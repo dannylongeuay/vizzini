@@ -95,6 +95,7 @@ func InitBoard() {
 
 	InitHashKeys(time.Now().UTC().UnixNano())
 	InitBitboards()
+	InitMvvLva()
 
 	BOARD_INITIALIZED = true
 }

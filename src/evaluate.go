@@ -5,6 +5,13 @@ var SQUARE_SCORES = [SQUARE_TYPES]int{
 	-100, -300, -300, -500, -900, -10000,
 }
 
+var VICTIM_SCORE = [SQUARE_TYPES]int{
+	0, 10, 20, 30, 40, 50, 60,
+	10, 20, 30, 40, 50, 60,
+}
+
+var MVV_LVA_SCORES [SQUARE_TYPES][SQUARE_TYPES]int
+
 var PAWN_COORD_SCORES = [BOARD_SQUARES]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 	5, 5, 5, -10, -10, 5, 5, 5,
@@ -69,6 +76,20 @@ var KING_COORD_SCORES = [BOARD_SQUARES]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
+}
+
+func InitMvvLva() {
+	for attacker := WHITE_PAWN; attacker <= BLACK_KING; attacker++ {
+		for victim := WHITE_PAWN; victim <= BLACK_KING; victim++ {
+			MVV_LVA_SCORES[victim][attacker] = VICTIM_SCORE[victim] + 6 - (VICTIM_SCORE[attacker] / 10)
+		}
+	}
+
+	// for victim := WHITE_PAWN; victim <= BLACK_KING; victim++ {
+	// 	for attacker := WHITE_PAWN; attacker <= BLACK_KING; attacker++ {
+	// 		fmt.Printf("%v x %v = %v\n", SQUARES[attacker], SQUARES[victim], MVV_LVA_SCORES[victim][attacker])
+	// 	}
+	// }
 }
 
 func (b *Board) Evaluate() int {

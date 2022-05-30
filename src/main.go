@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
 )
 
@@ -25,7 +24,7 @@ func HandleInput() {
 }
 
 func ModePlayerVsEngine(scanner *bufio.Scanner) {
-	search, err := NewSearch(STARTING_FEN, UCI_DEFAULT_DEPTH, 0)
+	search, err := NewSearch(STARTING_FEN, DEFAULT_MAX_DEPTH, DEFAULT_MAX_NODES)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -60,7 +59,7 @@ func ModePlayerVsEngine(scanner *bufio.Scanner) {
 
 	SEARCH:
 		fmt.Printf("%v\n\n", search.ToString())
-		score := search.Negamax(5, math.MinInt+1, math.MaxInt)
+		score := search.IterativeDeepening()
 		search.MakeMove(search.bestMove)
 		fmt.Printf("%v with score of %v\n", search.bestMove.ToString(), score)
 	}

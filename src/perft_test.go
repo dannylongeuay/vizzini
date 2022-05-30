@@ -416,7 +416,7 @@ func TestPerft(t *testing.T) {
 	InitHashKeys(181818)
 	for _, tt := range tests {
 		for _, dc := range tt.depthCounts {
-			if testing.Short() == true && dc.count >= 1000000 {
+			if testing.Short() && dc.count >= 100000 {
 				continue
 			}
 			b, err := NewBoard(tt.fen)

@@ -17,7 +17,7 @@ type UCI struct {
 
 func NewUCI() (*UCI, error) {
 	var uci UCI
-	search, err := NewSearch(STARTING_FEN, UCI_DEFAULT_DEPTH, 0)
+	search, err := NewSearch(STARTING_FEN, DEFAULT_MAX_DEPTH, DEFAULT_MAX_NODES)
 	uci.Search = search
 	if err != nil {
 		return &uci, err
@@ -345,7 +345,8 @@ func (b *Board) ParseUCIMove(s string) (Move, error) {
 			return 0, fmt.Errorf("Invalid promotion: %v", s)
 		}
 	}
-	return NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind), nil
+	moveOrder := MoveOrder(MVV_LVA_SCORES[dstSquare][originSquare])
+	return NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind, moveOrder), nil
 }
 
 func (m *Move) ToUCIString() string {
