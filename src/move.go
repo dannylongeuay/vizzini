@@ -219,7 +219,10 @@ func (b *Board) UpdateCastleRights(c Coord) {
 func (b *Board) MakeMove(m Move) error {
 	var mu MoveUnpacked
 	m.Unpack(&mu)
+	return b.MakeMoveUnpacked(m, mu)
+}
 
+func (b *Board) MakeMoveUnpacked(m Move, mu MoveUnpacked) error {
 	moveDstSetSquare := mu.originSquare
 
 	epCoord := A1

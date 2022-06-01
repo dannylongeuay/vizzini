@@ -117,9 +117,14 @@ func TestSearchMateInX(t *testing.T) {
 			3,
 			"pv d4h4 g3f3 h4f4 f3e2 h8e8",
 		},
+		// {
+		// 	"2Q5/p6p/4pk1p/1b1p4/5q2/1N3B1P/PPPN4/4K2n b - - 16 30",
+		// 	4,
+		// 	"pv f4e3 e1d1 h1f2 d1c1 e3e1 f3d1 e1d1",
+		// },
 	}
 	for _, tt := range tests {
-		if testing.Short() && tt.movesToMate > 2 {
+		if testing.Short() && tt.movesToMate > 3 {
 			continue
 		}
 		search, err := NewSearch(tt.fen, tt.movesToMate*2, DEFAULT_MAX_NODES)

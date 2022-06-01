@@ -99,4 +99,18 @@ func IntPow(a int, b int) int {
 	}
 
 	return result
+
+}
+
+func FilterMovesByKind(kind MoveKind, moves *[]Move) {
+	n := 0
+	for _, m := range *moves {
+		var mu MoveUnpacked
+		m.Unpack(&mu)
+		if mu.moveKind == kind {
+			(*moves)[n] = m
+			n++
+		}
+	}
+	*moves = (*moves)[:n]
 }

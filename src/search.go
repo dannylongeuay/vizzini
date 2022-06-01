@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 )
@@ -21,12 +20,16 @@ type Search struct {
 	fhf          float64
 	fh           float64
 	quiet        bool
+	killers      [][]Move
+	alphaHistory [][]int
 }
 
 type PvMove struct {
 	move Move
 	hash Hash
 }
+
+// TODO: test this position r3R1k1/pp4pp/5n2/2bp4/2p5/5N1P/PP3PP1/R1B3K1 b - - 0 23
 
 func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	var search Search
@@ -54,6 +57,19 @@ func (s *Search) Reset() {
 func (s *Search) Clear() {
 	s.Reset()
 	s.pvTable = make([]PvMove, PV_TABLE_SIZE)
+	s.killers = make([][]Move, KILLERS_SIZE)
+	s.killers[0] = make([]Move, KILLERS_DEPTH)
+	s.killers[1] = make([]Move, KILLERS_DEPTH)
+	s.alphaHistory = make([][]int, BOARD_SQUARES)
+	for i := 0; i < len(s.alphaHistory); i++ {
+		s.alphaHistory[i] = make([]int, BOARD_SQUARES)
+	}
+}
+
+func (s *Search) TimeCheck() {
+	if !s.stopTime.IsZero() && time.Now().After(s.stopTime) {
+		s.stop = true
+	}
 }
 
 func (s *Search) IterativeDeepening() int {
@@ -61,10 +77,10 @@ func (s *Search) IterativeDeepening() int {
 	var bestScore int
 	for i := 1; i <= s.maxDepth; i++ {
 		bestScore = s.Negamax(i, MIN_SCORE, MAX_SCORE)
-		s.SendInfo(i, bestScore, startTime)
-		if !s.stopTime.IsZero() && time.Now().After(s.stopTime) {
+		if s.stop {
 			break
 		}
+		s.SendInfo(i, bestScore, startTime)
 	}
 	return bestScore
 }
@@ -90,30 +106,35 @@ func (s *Search) SendInfo(depth int, score int, startTime time.Time) {
 	fmt.Println(debug.String())
 }
 
-func (s *Search) Negamax(depth int, alpha int, beta int) int {
-	if depth == 0 {
-		s.nodes++
-		return s.Evaluate()
+func (s *Search) QSearch(alpha int, beta int) int {
+	if s.nodes&2047 == 0 {
+		s.TimeCheck()
 	}
+
+	s.nodes++
 
 	if s.Repetition() || s.halfMove >= 100 {
 		return DRAW
 	}
 
-	s.nodes++
+	currentScore := s.Evaluate()
+
+	if currentScore >= beta {
+		return beta
+	}
+
+	if currentScore > alpha {
+		alpha = currentScore
+	}
 
 	var moves []Move
 	var legalMoves int
 	s.GenerateMoves(&moves, s.sideToMove)
-	// TODO: Sorting entire list is inefficient
-	sort.Slice(moves, func(i, j int) bool {
-		moveOrderA := (moves[i] & MOVE_ORDER_MASK) >> MOVE_ORDER_SHIFT
-		moveOrderB := (moves[j] & MOVE_ORDER_MASK) >> MOVE_ORDER_SHIFT
-		return moveOrderA > moveOrderB
-	})
+	FilterMovesByKind(CAPTURE, &moves)
 
-	for _, move := range moves {
-		err := s.MakeMove(move)
+	for i := 0; i < len(moves); i++ {
+		move, mu := s.PickNextMove(i, &moves, 0)
+		err := s.MakeMoveUnpacked(move, mu)
 		s.currentDepth++
 		if err != nil {
 			s.currentDepth--
@@ -121,9 +142,13 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			continue
 		}
 		legalMoves++
-		score := -s.Negamax(depth-1, -beta, -alpha)
+		score := -s.QSearch(-beta, -alpha)
 		s.currentDepth--
 		s.UndoMove()
+
+		if s.stop {
+			return DRAW
+		}
 
 		if score >= beta {
 			if legalMoves == 1 {
@@ -138,6 +163,74 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			s.SetPvMove(move)
 			if s.currentDepth == 0 {
 				s.bestMove = move
+			}
+		}
+	}
+
+	return alpha
+}
+
+func (s *Search) Negamax(depth int, alpha int, beta int) int {
+	if depth == 0 {
+		// s.nodes++
+		// return s.Evaluate()
+		return s.QSearch(alpha, beta)
+	}
+
+	if s.nodes&2047 == 0 {
+		s.TimeCheck()
+	}
+
+	if s.Repetition() || s.halfMove >= 100 {
+		return DRAW
+	}
+
+	s.nodes++
+
+	var moves []Move
+	var legalMoves int
+	pvMove, _ := s.GetPvMove()
+	s.GenerateMoves(&moves, s.sideToMove)
+
+	for i := 0; i < len(moves); i++ {
+		move, mu := s.PickNextMove(i, &moves, pvMove)
+		err := s.MakeMoveUnpacked(move, mu)
+		s.currentDepth++
+		if err != nil {
+			s.currentDepth--
+			s.UndoMove()
+			continue
+		}
+		legalMoves++
+		score := -s.Negamax(depth-1, -beta, -alpha)
+		s.currentDepth--
+		s.UndoMove()
+
+		if s.stop {
+			return DRAW
+		}
+
+		if score >= beta {
+			if legalMoves == 1 {
+				s.fhf++
+			}
+			if mu.moveKind == QUIET {
+				s.killers[1][s.ply] = s.killers[0][s.ply]
+				s.killers[0][s.ply] = move
+			}
+			s.fh++
+			return beta
+		}
+
+		if score > alpha {
+			alpha = score
+			s.SetPvMove(move)
+			if s.currentDepth == 0 {
+				s.bestMove = move
+			}
+			if mu.moveKind == QUIET {
+				// TODO: Should this go past 7?
+				s.alphaHistory[mu.originCoord][mu.dstCoord] += depth
 			}
 		}
 	}
@@ -204,4 +297,34 @@ func (s *Search) GetPvLineString() string {
 		line += " " + move.ToUCIString()
 	}
 	return line
+}
+
+func (s *Search) PickNextMove(index int, movesPtr *[]Move, pvMove Move) (Move, MoveUnpacked) {
+	moves := *movesPtr
+	var bestOrder MoveOrder
+	bestNum := index
+	for i := index; i < len(moves); i++ {
+		var mu MoveUnpacked
+		moves[i].Unpack(&mu)
+		order := mu.moveOrder
+		if pvMove == moves[i] {
+			order = 255
+		} else if s.killers[0][s.ply] == moves[i] {
+			order = 9
+		} else if s.killers[1][s.ply] == moves[i] {
+			order = 8
+		} else if order == 0 {
+			order = MoveOrder(s.alphaHistory[mu.originCoord][mu.dstCoord])
+		}
+		if order > bestOrder {
+			bestOrder = order
+			bestNum = i
+		}
+	}
+	if index != bestNum {
+		moves[index], moves[bestNum] = moves[bestNum], moves[index]
+	}
+	var mu MoveUnpacked
+	moves[index].Unpack(&mu)
+	return moves[index], mu
 }

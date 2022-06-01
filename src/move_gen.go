@@ -1,14 +1,14 @@
 package main
 
-func AppendMove(moves *[]Move, originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind, moveOrder MoveOrder) {
+func (b *Board) AppendMove(moves *[]Move, originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind, moveOrder MoveOrder) {
 	move := NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind, moveOrder)
 	*moves = append(*moves, move)
 }
 
-func AppendQuietMoves(moves *[]Move, quiet Bitboard, originCoord Coord, originSquare Square) {
+func (b *Board) AppendQuietMoves(moves *[]Move, quiet Bitboard, originCoord Coord, originSquare Square) {
 	for quiet > 0 {
 		dstCoord := quiet.PopLSB()
-		AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUIET, 0)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUIET, 0)
 	}
 }
 
@@ -17,7 +17,7 @@ func (b *Board) AppendCaptures(moves *[]Move, captures Bitboard, originCoord Coo
 		dstCoord := captures.PopLSB()
 		dstSquare := b.squares[dstCoord]
 		moveOrder := MoveOrder(MVV_LVA_SCORES[dstSquare][originSquare])
-		AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, CAPTURE, moveOrder)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, CAPTURE, moveOrder)
 	}
 }
 
@@ -61,36 +61,36 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color) {
 		}
 
 		// Normal
-		AppendQuietMoves(moves, quiet, originCoord, originSquare)
+		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 
 		// Special
 		for doublePush > 0 {
 			dstCoord := doublePush.PopLSB()
-			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, DOUBLE_PAWN_PUSH, 0)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, DOUBLE_PAWN_PUSH, 0)
 		}
 		if b.epCoord != A1 {
 			epAttack := PAWN_ATTACKS[side][originCoord] & Bitboard(1<<b.epCoord)
 			for epAttack > 0 {
 				dstCoord := epAttack.PopLSB()
-				AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, EP_CAPTURE, MVV_LVA_EN_PASSANT)
+				b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, EP_CAPTURE, MVV_LVA_EN_PASSANT)
 
 			}
 		}
 		for promotions > 0 {
 			dstCoord := promotions.PopLSB()
-			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, KNIGHT_PROMOTION, MVV_LVA_KNIGHT_PROMOTION)
-			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, BISHOP_PROMOTION, MVV_LVA_BISHOP_PROMOTION)
-			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, ROOK_PROMOTION, MVV_LVA_ROOK_PROMOTION)
-			AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUEEN_PROMOTION, MVV_LVA_QUEEN_PROMOTION)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, KNIGHT_PROMOTION, MVV_LVA_KNIGHT_PROMOTION)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, BISHOP_PROMOTION, MVV_LVA_BISHOP_PROMOTION)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, ROOK_PROMOTION, MVV_LVA_ROOK_PROMOTION)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUEEN_PROMOTION, MVV_LVA_QUEEN_PROMOTION)
 		}
 		for promotionCaptures > 0 {
 			dstCoord := promotionCaptures.PopLSB()
 			dstSquare := b.squares[dstCoord]
-			AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, KNIGHT_PROMOTION_CAPTURE, MVV_LVA_KNIGHT_PROMOTION_CAPTURE)
-			AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, BISHOP_PROMOTION_CAPTURE, MVV_LVA_BISHOP_PROMOTION_CAPTURE)
-			AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, ROOK_PROMOTION_CAPTURE, MVV_LVA_ROOK_PROMOTION_CAPTURE)
-			AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, QUEEN_PROMOTION_CAPTURE, MVV_LVA_QUEEN_PROMOTION_CAPTURE)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, KNIGHT_PROMOTION_CAPTURE, MVV_LVA_KNIGHT_PROMOTION_CAPTURE)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, BISHOP_PROMOTION_CAPTURE, MVV_LVA_BISHOP_PROMOTION_CAPTURE)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, ROOK_PROMOTION_CAPTURE, MVV_LVA_ROOK_PROMOTION_CAPTURE)
+			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, QUEEN_PROMOTION_CAPTURE, MVV_LVA_QUEEN_PROMOTION_CAPTURE)
 		}
 	}
 }
@@ -109,7 +109,7 @@ func (b *Board) GenerateKnightMoves(moves *[]Move, side Color) {
 		quiet := KNIGHT_ATTACKS[originCoord] & ^b.bbAllPieces
 		captures := KNIGHT_ATTACKS[originCoord] & bbOpponentPieces
 
-		AppendQuietMoves(moves, quiet, originCoord, originSquare)
+		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 	}
 }
@@ -129,7 +129,7 @@ func (b *Board) GenerateBishopMoves(moves *[]Move, side Color) {
 		quiet := bishopAttacks & ^b.bbAllPieces
 		captures := bishopAttacks & bbOpponentPieces
 
-		AppendQuietMoves(moves, quiet, originCoord, originSquare)
+		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 	}
 }
@@ -149,7 +149,7 @@ func (b *Board) GenerateRookMoves(moves *[]Move, side Color) {
 		quiet := rookAttacks & ^b.bbAllPieces
 		captures := rookAttacks & bbOpponentPieces
 
-		AppendQuietMoves(moves, quiet, originCoord, originSquare)
+		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 	}
 }
@@ -177,7 +177,7 @@ func (b *Board) GenerateQueenMoves(moves *[]Move, side Color) {
 		quiet := bishopQuiet | rookQuiet
 		captures := bishopCaptures | rookCaptures
 
-		AppendQuietMoves(moves, quiet, originCoord, originSquare)
+		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 	}
 }
@@ -213,20 +213,20 @@ func (b *Board) GenerateKingMoves(moves *[]Move, side Color) {
 		captures := KING_ATTACKS[originCoord] & bbOpponentPieces
 
 		// Normal
-		AppendQuietMoves(moves, quiet, originCoord, originSquare)
+		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 
 		// Special
 		if (b.castleRights&castleRightsKingMask) > 0 &&
 			castleKingTravel&b.bbAllPieces == 0 &&
 			!b.CoordsAttacked(castleKingAttackChecks, side) {
-			AppendMove(moves, originCoord, castleKingDstCoord, originSquare, 0, KING_CASTLE, 0)
+			b.AppendMove(moves, originCoord, castleKingDstCoord, originSquare, 0, KING_CASTLE, 0)
 		}
 
 		if (b.castleRights&castleRightsQueenMask) > 0 &&
 			castleQueenTravel&b.bbAllPieces == 0 &&
 			!b.CoordsAttacked(castleQueenAttackChecks, side) {
-			AppendMove(moves, originCoord, castleQueenDstCoord, originSquare, 0, QUEEN_CASTLE, 0)
+			b.AppendMove(moves, originCoord, castleQueenDstCoord, originSquare, 0, QUEEN_CASTLE, 0)
 		}
 	}
 }
