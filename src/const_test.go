@@ -27,6 +27,7 @@ func TestMoveMasks(t *testing.T) {
 		{IntPow(2, 4) - 1, MOVE_ORIGIN_SQUARE_SHIFT, MOVE_ORIGIN_SQUARE_MASK},
 		{IntPow(2, 6) - 1, MOVE_DST_COORD_SHIFT, MOVE_DST_COORD_MASK},
 		{IntPow(2, 6) - 1, MOVE_ORIGIN_COORD_SHIFT, MOVE_ORIGIN_COORD_MASK},
+		{IntPow(2, 8) - 1, MOVE_ORDER_SHIFT, MOVE_ORDER_MASK},
 	}
 	for _, tt := range tests {
 		actual := Move(tt.bits << tt.shift)

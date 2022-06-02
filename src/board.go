@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -27,7 +28,7 @@ import (
      A    B    C    D    E    F    G    H - file(s)
 */
 
-var COORD_MAP = [BOARD_SQUARES]string{
+var COORD_STRINGS = [BOARD_SQUARES]string{
 	"A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
 	"A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2",
 	"A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3",
@@ -38,12 +39,25 @@ var COORD_MAP = [BOARD_SQUARES]string{
 	"A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8",
 }
 
-var SQUARE_MAP = [SQUARE_TYPES]string{
+var MIRROR_COORDS = [64]Coord{
+	A8, B8, C8, D8, E8, F8, G8, H8,
+	A7, B7, C7, D7, E7, F7, G7, H7,
+	A6, B6, C6, D6, E6, F6, G6, H6,
+	A5, B5, C5, D5, E5, F5, G5, H5,
+	A4, B4, C4, D4, E4, F4, G4, H4,
+	A3, B3, C3, D3, E3, F3, G3, H3,
+	A2, B2, C2, D2, E2, F2, G2, H2,
+	A1, B1, C1, D1, E1, F1, G1, H1,
+}
+
+var SQUARES = [SQUARE_TYPES]string{
 	"EMPTY", "WHITE_PAWN", "WHITE_KNIGHT", "WHITE_BISHOP",
 	"WHITE_ROOK", "WHITE_QUEEN", "WHITE_KING", "BLACK_PAWN",
 	"BLACK_KNIGHT", "BLACK_BISHOP", "BLACK_ROOK", "BLACK_QUEEN",
 	"BLACK_KING",
 }
+
+var BOARD_INITIALIZED bool
 
 type Board struct {
 	squares       []Square
@@ -68,13 +82,26 @@ type Board struct {
 	epCoord       Coord
 	halfMove      HalfMove
 	fullMove      int
+	ply           int
 	hash          Hash
-	undoIndex     int
+	hashes        []Hash
 	undos         []Undo
 }
 
-func NewBoard(fen string) (*Board, error) {
+func InitBoard() {
+	if BOARD_INITIALIZED {
+		return
+	}
+
+	InitHashKeys(time.Now().UTC().UnixNano())
 	InitBitboards()
+	InitMvvLva()
+
+	BOARD_INITIALIZED = true
+}
+
+func NewBoard(fen string) (*Board, error) {
+	InitBoard()
 	fenParts := strings.Split(fen, " ")
 
 	if len(fenParts) != 6 {
@@ -84,6 +111,7 @@ func NewBoard(fen string) (*Board, error) {
 	b := Board{}
 	b.squares = make([]Square, BOARD_SQUARES)
 	b.undos = make([]Undo, MAX_GAME_MOVES)
+	b.hashes = make([]Hash, MAX_GAME_MOVES)
 	b.kingCoords = make([]Coord, PLAYERS)
 
 	ranks := strings.Split(fenParts[0], "/")
@@ -221,6 +249,9 @@ func (b Board) CopyBoard() Board {
 	undos := make([]Undo, len(b.undos))
 	copy(undos, b.undos)
 
+	hashes := make([]Hash, len(b.hashes))
+	copy(hashes, b.hashes)
+
 	kingCoords := make([]Coord, len(b.kingCoords))
 	copy(kingCoords, b.kingCoords)
 
@@ -248,21 +279,34 @@ func (b Board) CopyBoard() Board {
 		halfMove:      b.halfMove,
 		fullMove:      b.fullMove,
 		hash:          b.hash,
-		undoIndex:     b.undoIndex,
+		ply:           b.ply,
 		undos:         undos,
+		hashes:        hashes,
 	}
 	return cb
 }
 
-var PRINT_MAP = [64]Coord{
-	A8, B8, C8, D8, E8, F8, G8, H8,
-	A7, B7, C7, D7, E7, F7, G7, H7,
-	A6, B6, C6, D6, E6, F6, G6, H6,
-	A5, B5, C5, D5, E5, F5, G5, H5,
-	A4, B4, C4, D4, E4, F4, G4, H4,
-	A3, B3, C3, D3, E3, F3, G3, H3,
-	A2, B2, C2, D2, E2, F2, G2, H2,
-	A1, B1, C1, D1, E1, F1, G1, H1,
+type BitboardSquareResult struct {
+	bb Bitboard
+	sq Square
+}
+
+func (b *Board) BitboardSquares() chan BitboardSquareResult {
+	c := make(chan BitboardSquareResult, 12)
+	c <- BitboardSquareResult{b.bbWP, WHITE_PAWN}
+	c <- BitboardSquareResult{b.bbWN, WHITE_KNIGHT}
+	c <- BitboardSquareResult{b.bbWB, WHITE_BISHOP}
+	c <- BitboardSquareResult{b.bbWR, WHITE_ROOK}
+	c <- BitboardSquareResult{b.bbWQ, WHITE_QUEEN}
+	c <- BitboardSquareResult{b.bbWK, WHITE_KING}
+	c <- BitboardSquareResult{b.bbBP, BLACK_PAWN}
+	c <- BitboardSquareResult{b.bbBN, BLACK_KNIGHT}
+	c <- BitboardSquareResult{b.bbBB, BLACK_BISHOP}
+	c <- BitboardSquareResult{b.bbBR, BLACK_ROOK}
+	c <- BitboardSquareResult{b.bbBQ, BLACK_QUEEN}
+	c <- BitboardSquareResult{b.bbBK, BLACK_KING}
+	close(c)
+	return c
 }
 
 func (b Board) ToString() string {
@@ -270,7 +314,7 @@ func (b Board) ToString() string {
 	sep := "\n_________________________\n"
 	s += sep
 	rank := 8
-	for i, coord := range PRINT_MAP {
+	for i, coord := range MIRROR_COORDS {
 		if i != 0 && i%8 == 0 {
 			s += "| "
 			s += strconv.Itoa(rank)

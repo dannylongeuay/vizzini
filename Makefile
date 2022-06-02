@@ -14,7 +14,7 @@ tests-all: ## Run all tests
 
 .PHONY: tests-short
 tests-short: ## Run short tests
-	go test -v -count=1 -short ./src/...
+	go test -count=1 -short ./src/...
 
 .PHONY: lint
 lint: ## Run linter

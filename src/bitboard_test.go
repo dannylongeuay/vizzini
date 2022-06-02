@@ -76,7 +76,7 @@ func TestBitboardHasBit(t *testing.T) {
 	for _, tt := range tests {
 		actual := tt.bb.HasBit(tt.coord)
 		if actual != tt.expected {
-			t.Errorf("coord %v is not present in bitboard: %v", COORD_MAP[tt.coord], tt.bb.ToString())
+			t.Errorf("coord %v is not present in bitboard: %v", COORD_STRINGS[tt.coord], tt.bb.ToString())
 		}
 	}
 }
@@ -129,7 +129,7 @@ func TestBitboardClearBit(t *testing.T) {
 	for _, tt := range tests {
 		tt.bb.ClearBit(tt.coord)
 		if !IsBitboardEqual(t, tt.bb, tt.expected) {
-			t.Errorf("incorrect clear bit at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect clear bit at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -207,7 +207,7 @@ func TestBitboardLSBIndex(t *testing.T) {
 		}
 		actual := bb.LSBIndex()
 		if actual != tt.expected {
-			t.Errorf("incorrect lsb index: %v != %v", COORD_MAP[actual], COORD_MAP[tt.expected])
+			t.Errorf("incorrect lsb index: %v != %v", COORD_STRINGS[actual], COORD_STRINGS[tt.expected])
 		}
 	}
 }

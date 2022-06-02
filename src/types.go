@@ -9,6 +9,7 @@ type CastleRights uint8
 type MoveKind uint8
 type Coord uint64
 type Move uint32
+type MoveOrder uint8
 type Undo uint64
 type Bitboard uint64
 type Hash uint64

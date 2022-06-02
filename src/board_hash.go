@@ -8,7 +8,7 @@ var SquareKeys [SQUARE_TYPES][BOARD_SQUARES]Hash
 var SideKey Hash
 var CastleKeys [CASTLING_RIGHTS_PERMUTATIONS]Hash
 
-func SeedKeys(seed int64) {
+func InitHashKeys(seed int64) {
 	rand.Seed(seed)
 
 	for x := 0; x < SQUARE_TYPES; x++ {
