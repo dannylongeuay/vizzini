@@ -71,7 +71,7 @@ const DRAW int = 0
 const MAX_SCORE int = 100000
 const MIN_SCORE int = -100000
 
-const MVV_LVA_EN_PASSANT MoveOrder = 15
+const MVV_LVA_EN_PASSANT MoveOrder = 45
 const MVV_LVA_KNIGHT_PROMOTION MoveOrder = 101
 const MVV_LVA_BISHOP_PROMOTION MoveOrder = 102
 const MVV_LVA_ROOK_PROMOTION MoveOrder = 103

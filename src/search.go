@@ -29,8 +29,6 @@ type PvMove struct {
 	hash Hash
 }
 
-// TODO: test this position r3R1k1/pp4pp/5n2/2bp4/2p5/5N1P/PP3PP1/R1B3K1 b - - 0 23
-
 func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	var search Search
 	board, err := NewBoard(fen)
@@ -52,10 +50,6 @@ func (s *Search) Reset() {
 	s.fh = 0
 	s.stop = false
 	s.stopTime = time.Time{}
-}
-
-func (s *Search) Clear() {
-	s.Reset()
 	s.pvTable = make([]PvMove, PV_TABLE_SIZE)
 	s.killers = make([][]Move, KILLERS_SIZE)
 	s.killers[0] = make([]Move, KILLERS_DEPTH)
@@ -64,6 +58,10 @@ func (s *Search) Clear() {
 	for i := 0; i < len(s.alphaHistory); i++ {
 		s.alphaHistory[i] = make([]int, BOARD_SQUARES)
 	}
+}
+
+func (s *Search) Clear() {
+	s.Reset()
 }
 
 func (s *Search) TimeCheck() {
@@ -129,6 +127,7 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 	var moves []Move
 	var legalMoves int
+	// TODO: We want to generate capture moves only
 	s.GenerateMoves(&moves, s.sideToMove)
 	FilterMovesByKind(CAPTURE, &moves)
 
@@ -172,8 +171,6 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 func (s *Search) Negamax(depth int, alpha int, beta int) int {
 	if depth == 0 {
-		// s.nodes++
-		// return s.Evaluate()
 		return s.QSearch(alpha, beta)
 	}
 
@@ -186,6 +183,11 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 	}
 
 	s.nodes++
+
+	inCheck := s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove)
+	if inCheck {
+		depth++
+	}
 
 	var moves []Move
 	var legalMoves int
@@ -215,8 +217,8 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 				s.fhf++
 			}
 			if mu.moveKind == QUIET {
-				s.killers[1][s.ply] = s.killers[0][s.ply]
-				s.killers[0][s.ply] = move
+				s.killers[1][s.currentDepth] = s.killers[0][s.currentDepth]
+				s.killers[0][s.currentDepth] = move
 			}
 			s.fh++
 			return beta
@@ -229,15 +231,14 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 				s.bestMove = move
 			}
 			if mu.moveKind == QUIET {
-				// TODO: Should this go past 7?
 				s.alphaHistory[mu.originCoord][mu.dstCoord] += depth
 			}
 		}
 	}
 
 	if legalMoves == 0 {
-		if s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove) {
-			return MIN_SCORE + s.ply
+		if inCheck {
+			return MIN_SCORE + s.currentDepth
 		} else {
 			return DRAW
 		}
@@ -309,9 +310,9 @@ func (s *Search) PickNextMove(index int, movesPtr *[]Move, pvMove Move) (Move, M
 		order := mu.moveOrder
 		if pvMove == moves[i] {
 			order = 255
-		} else if s.killers[0][s.ply] == moves[i] {
+		} else if s.killers[0][s.currentDepth] == moves[i] {
 			order = 9
-		} else if s.killers[1][s.ply] == moves[i] {
+		} else if s.killers[1][s.currentDepth] == moves[i] {
 			order = 8
 		} else if order == 0 {
 			order = MoveOrder(s.alphaHistory[mu.originCoord][mu.dstCoord])

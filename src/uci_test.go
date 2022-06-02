@@ -93,7 +93,7 @@ func TestUCIParseMove(t *testing.T) {
 				WHITE_PAWN,
 				BLACK_ROOK,
 				KNIGHT_PROMOTION_CAPTURE,
-				45,
+				76,
 			},
 		},
 		{
@@ -105,7 +105,7 @@ func TestUCIParseMove(t *testing.T) {
 				WHITE_PAWN,
 				BLACK_ROOK,
 				BISHOP_PROMOTION_CAPTURE,
-				45,
+				76,
 			},
 		},
 		{
@@ -117,7 +117,7 @@ func TestUCIParseMove(t *testing.T) {
 				WHITE_PAWN,
 				BLACK_ROOK,
 				ROOK_PROMOTION_CAPTURE,
-				45,
+				76,
 			},
 		},
 		{
@@ -129,7 +129,7 @@ func TestUCIParseMove(t *testing.T) {
 				WHITE_PAWN,
 				BLACK_ROOK,
 				QUEEN_PROMOTION_CAPTURE,
-				45,
+				76,
 			},
 		},
 		{
@@ -165,7 +165,7 @@ func TestUCIParseMove(t *testing.T) {
 				BLACK_KNIGHT,
 				WHITE_BISHOP,
 				CAPTURE,
-				34,
+				65,
 			},
 		},
 		{

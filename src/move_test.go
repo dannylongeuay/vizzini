@@ -333,8 +333,8 @@ func TestUndoMoves(t *testing.T) {
 				{G8, F6, BLACK_KNIGHT, 0, QUIET, 0},
 				{E1, G1, WHITE_KING, 0, KING_CASTLE, 0},
 				{F8, E7, BLACK_BISHOP, 0, QUIET, 0},
-				{B5, C6, WHITE_BISHOP, BLACK_KNIGHT, CAPTURE, 23},
-				{D7, C6, BLACK_PAWN, WHITE_BISHOP, CAPTURE, 35},
+				{B5, C6, WHITE_BISHOP, BLACK_KNIGHT, CAPTURE, 54},
+				{D7, C6, BLACK_PAWN, WHITE_BISHOP, CAPTURE, 66},
 			},
 		},
 	}
@@ -358,7 +358,7 @@ func TestUndoMoves(t *testing.T) {
 				}
 			}
 			if !isLegal {
-				t.Errorf("%v is not a valid move", tm)
+				t.Errorf("%v is not a valid move", move.ToString())
 			}
 			err = bStart.MakeMove(move)
 			if err != nil {
