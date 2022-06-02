@@ -239,17 +239,20 @@ func (u *UCI) SetGoParams(args []string) {
 		}
 	}
 
+	var duration time.Duration
 	if searchInfinite {
-		u.stopTime = time.Now().Add(time.Minute)
+		duration = time.Minute
+	} else if maxMoveTime > 0 {
+		mtime := maxMoveTime - SEARCH_BUFFER
+		duration = time.Millisecond * time.Duration(mtime)
 	} else if remainingTime > 0 {
+		// TODO: need to speed up when getting low on time
 		mtime := remainingTime/remainingMoves + increment - SEARCH_BUFFER
-		if maxMoveTime > 0 {
-			mtime = maxMoveTime - SEARCH_BUFFER
-		}
-		u.stopTime = time.Now().Add(time.Millisecond * time.Duration(mtime))
+		duration = time.Millisecond * time.Duration(mtime)
 	} else {
-		u.stopTime = time.Now().Add(time.Second * 3)
+		duration = time.Second * 3
 	}
+	u.stopTime = time.Now().Add(duration)
 }
 
 func (b *Board) ParseUCIMove(s string) (Move, error) {
