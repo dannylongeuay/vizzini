@@ -88,10 +88,13 @@ func (s *Search) SendInfo(depth int, score int, startTime time.Time) {
 		return
 	}
 	var standard strings.Builder
+	elapsedTimeMs := time.Since(startTime).Milliseconds() + 1
+	nps := int64(s.nodes*1000) / elapsedTimeMs
 	fmt.Fprintf(&standard, "info depth %v", depth)
-	fmt.Fprintf(&standard, " score %v", score)
+	fmt.Fprintf(&standard, " score cp %v", score)
 	fmt.Fprintf(&standard, " nodes %v", s.nodes)
-	fmt.Fprintf(&standard, " time %v ", time.Since(startTime).Milliseconds())
+	fmt.Fprintf(&standard, " nps %v", nps)
+	fmt.Fprintf(&standard, " time %v ", elapsedTimeMs)
 	fmt.Fprint(&standard, s.GetPvLineString())
 	fmt.Println(standard.String())
 
