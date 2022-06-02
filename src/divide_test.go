@@ -10,7 +10,7 @@ func divide(b *Board, depth int) map[string]int {
 	results := make(map[string]int)
 
 	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-	b.GenerateMoves(&moves, b.sideToMove)
+	b.GenerateMoves(&moves, b.sideToMove, false)
 
 	for _, m := range moves {
 		cb := b.CopyBoard()

@@ -127,13 +127,11 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 	var moves []Move
 	var legalMoves int
-	// TODO: We want to generate capture moves only
-	s.GenerateMoves(&moves, s.sideToMove)
-	FilterMovesByKind(CAPTURE, &moves)
+	s.GenerateMoves(&moves, s.sideToMove, true)
 
 	for i := 0; i < len(moves); i++ {
-		move, mu := s.PickNextMove(i, &moves, 0)
-		err := s.MakeMoveUnpacked(move, mu)
+		move := s.PickNextMove(i, &moves, 0)
+		err := s.MakeMove(move)
 		s.currentDepth++
 		if err != nil {
 			s.currentDepth--
@@ -192,11 +190,11 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 	var moves []Move
 	var legalMoves int
 	pvMove, _ := s.GetPvMove()
-	s.GenerateMoves(&moves, s.sideToMove)
+	s.GenerateMoves(&moves, s.sideToMove, false)
 
 	for i := 0; i < len(moves); i++ {
-		move, mu := s.PickNextMove(i, &moves, pvMove)
-		err := s.MakeMoveUnpacked(move, mu)
+		move := s.PickNextMove(i, &moves, pvMove)
+		err := s.MakeMove(move)
 		s.currentDepth++
 		if err != nil {
 			s.currentDepth--
@@ -216,7 +214,8 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			if legalMoves == 1 {
 				s.fhf++
 			}
-			if mu.moveKind == QUIET {
+			moveKind := MoveKind(move & MOVE_KIND_MASK)
+			if moveKind == QUIET {
 				s.killers[1][s.currentDepth] = s.killers[0][s.currentDepth]
 				s.killers[0][s.currentDepth] = move
 			}
@@ -230,8 +229,11 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			if s.currentDepth == 0 {
 				s.bestMove = move
 			}
-			if mu.moveKind == QUIET {
-				s.alphaHistory[mu.originCoord][mu.dstCoord] += depth
+			moveKind := MoveKind(move & MOVE_KIND_MASK)
+			originCoord := Coord((move & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT)
+			dstCoord := Coord((move & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT)
+			if moveKind == QUIET {
+				s.alphaHistory[originCoord][dstCoord] += depth
 			}
 		}
 	}
@@ -300,14 +302,14 @@ func (s *Search) GetPvLineString() string {
 	return line
 }
 
-func (s *Search) PickNextMove(index int, movesPtr *[]Move, pvMove Move) (Move, MoveUnpacked) {
+func (s *Search) PickNextMove(index int, movesPtr *[]Move, pvMove Move) Move {
 	moves := *movesPtr
 	var bestOrder MoveOrder
 	bestNum := index
 	for i := index; i < len(moves); i++ {
 		var mu MoveUnpacked
 		moves[i].Unpack(&mu)
-		order := mu.moveOrder
+		order := MVV_LVA_SCORES[mu.dstSquare][mu.originSquare]
 		if pvMove == moves[i] {
 			order = 255
 		} else if s.killers[0][s.currentDepth] == moves[i] {
@@ -325,7 +327,5 @@ func (s *Search) PickNextMove(index int, movesPtr *[]Move, pvMove Move) (Move, M
 	if index != bestNum {
 		moves[index], moves[bestNum] = moves[bestNum], moves[index]
 	}
-	var mu MoveUnpacked
-	moves[index].Unpack(&mu)
-	return moves[index], mu
+	return moves[index]
 }

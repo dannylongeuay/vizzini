@@ -17,7 +17,7 @@ func Perft(b *Board, depth int) int {
 	}
 
 	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-	b.GenerateMoves(&moves, b.sideToMove)
+	b.GenerateMoves(&moves, b.sideToMove, false)
 	for _, m := range moves {
 		err := b.MakeMove(m)
 		if err == nil {

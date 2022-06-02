@@ -34,7 +34,7 @@ func ModePlayerVsEngine(scanner *bufio.Scanner) {
 		fmt.Print("Submit move: ")
 
 		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-		search.GenerateMoves(&moves, search.sideToMove)
+		search.GenerateMoves(&moves, search.sideToMove, false)
 
 		for scanner.Scan() {
 			input := scanner.Text()

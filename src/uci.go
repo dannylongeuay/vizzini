@@ -345,8 +345,7 @@ func (b *Board) ParseUCIMove(s string) (Move, error) {
 			return 0, fmt.Errorf("Invalid promotion: %v", s)
 		}
 	}
-	moveOrder := MoveOrder(MVV_LVA_SCORES[dstSquare][originSquare])
-	return NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind, moveOrder), nil
+	return NewMove(originCoord, dstCoord, originSquare, dstSquare, moveKind), nil
 }
 
 func (m *Move) ToUCIString() string {
