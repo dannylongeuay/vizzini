@@ -13,7 +13,13 @@ var MOVE_KIND_MAP = [MOVE_KINDS]string{
 	"ROOK_PROMOTION_CAPTURE", "QUEEN_PROMOTION_CAPTURE",
 }
 
-func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare Square, moveKind MoveKind) Move {
+func NewMove(
+	originCoord Coord,
+	dstCoord Coord,
+	originSquare Square,
+	dstSquare Square,
+	moveKind MoveKind,
+) Move {
 	moveOriginCoord := Move(originCoord) << MOVE_ORIGIN_COORD_SHIFT
 	moveDstCoord := Move(dstCoord) << MOVE_DST_COORD_SHIFT
 	moveOriginSquare := Move(originSquare) << MOVE_ORIGIN_SQUARE_SHIFT
@@ -21,7 +27,17 @@ func NewMove(originCoord Coord, dstCoord Coord, originSquare Square, dstSquare S
 	return moveOriginCoord | moveDstCoord | moveOriginSquare | moveDstSquare | Move(moveKind)
 }
 
-func NewUndo(move Move, clearSquare Square, halfMove HalfMove, castleRights CastleRights, epCoord Coord) Undo {
+func NewMoveFromMoveUnpacked(mu MoveUnpacked) Move {
+	return NewMove(mu.originCoord, mu.dstCoord, mu.originSquare, mu.dstSquare, mu.moveKind)
+}
+
+func NewUndo(
+	move Move,
+	clearSquare Square,
+	halfMove HalfMove,
+	castleRights CastleRights,
+	epCoord Coord,
+) Undo {
 	undoClearSquare := Undo(clearSquare) << UNDO_CLEAR_SQUARE_SHIFT
 	undoHalfMove := Undo(halfMove) << UNDO_HALF_MOVE_SHIFT
 	undoCastleRights := Undo(castleRights) << UNDO_CASTLE_RIGHTS_SHIFT
@@ -48,10 +64,10 @@ func (m *Move) ToString() string {
 	var mu MoveUnpacked
 	m.Unpack(&mu)
 	mk := MOVE_KIND_MAP[mu.moveKind]
-	oc := COORD_MAP[mu.originCoord]
-	os := SQUARE_MAP[mu.originSquare]
-	dc := COORD_MAP[mu.dstCoord]
-	ds := SQUARE_MAP[mu.dstSquare]
+	oc := COORD_STRINGS[mu.originCoord]
+	os := SQUARES[mu.originSquare]
+	dc := COORD_STRINGS[mu.dstCoord]
+	ds := SQUARES[mu.dstSquare]
 	s := fmt.Sprintf("Move{%v: %v(%v) -> %v(%v)}", mk, oc, os, dc, ds)
 	return s
 }
@@ -61,10 +77,10 @@ func (u *Undo) ToString() string {
 	var uu UndoUnpacked
 	move := Move(*u & UNDO_MOVE_MASK)
 	u.Unpack(&mu, &uu)
-	cs := SQUARE_MAP[uu.clearSquare]
+	cs := SQUARES[uu.clearSquare]
 	hm := uu.halfMove
 	cr := uu.castleRights
-	ec := COORD_MAP[uu.epCoord]
+	ec := COORD_STRINGS[uu.epCoord]
 	s := fmt.Sprintf("Undo{ClearSquare: %v | HalfMove: %v | CastleRights: %v | EP Coord: %v | %v}", cs, hm, cr, ec, move.ToString())
 	return s
 }
@@ -75,7 +91,6 @@ func (m *Move) Unpack(mu *MoveUnpacked) {
 	mu.originSquare = Square((*m & MOVE_ORIGIN_SQUARE_MASK) >> MOVE_ORIGIN_SQUARE_SHIFT)
 	mu.dstSquare = Square((*m & MOVE_DST_SQUARE_MASK) >> MOVE_DST_SQUARE_SHIFT)
 	mu.moveKind = MoveKind(*m & MOVE_KIND_MASK)
-
 }
 
 func (u *Undo) Unpack(mu *MoveUnpacked, uu *UndoUnpacked) {
@@ -85,7 +100,6 @@ func (u *Undo) Unpack(mu *MoveUnpacked, uu *UndoUnpacked) {
 	uu.halfMove = HalfMove((*u & UNDO_HALF_MOVE_MASK) >> UNDO_HALF_MOVE_SHIFT)
 	uu.castleRights = CastleRights((*u & UNDO_CASTLE_RIGHTS_MASK) >> UNDO_CASTLE_RIGHTS_SHIFT)
 	uu.epCoord = Coord((*u & UNDO_EP_COORD_MASK) >> UNDO_EP_COORD_SHIFT)
-
 }
 
 func (b *Board) SetSquare(c Coord, sq Square) {
@@ -133,13 +147,13 @@ func (b *Board) SetSquare(c Coord, sq Square) {
 		b.bbBlackPieces.SetBit(c)
 		b.kingCoords[b.sideToMove] = c
 	default:
-		panic(fmt.Errorf("set square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
+		panic(fmt.Errorf("set square(%v) error at coord %v", SQUARES[sq], COORD_STRINGS[c]))
 	}
 }
 
 func (b *Board) ClearSquare(c Coord, sq Square) {
 	if sq != b.squares[c] {
-		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v\n\n%v", SQUARE_MAP[sq], SQUARE_MAP[b.squares[c]], COORD_MAP[c], b.ToString()))
+		panic(fmt.Errorf("clearing square mismatch %v != %v at coord %v\n\n%v", SQUARES[sq], SQUARES[b.squares[c]], COORD_STRINGS[c], b.ToString()))
 	}
 
 	b.squares[c] = EMPTY
@@ -183,7 +197,7 @@ func (b *Board) ClearSquare(c Coord, sq Square) {
 		b.bbBK.ClearBit(c)
 		b.bbBlackPieces.ClearBit(c)
 	default:
-		panic(fmt.Errorf("clear square(%v) error at coord %v", SQUARE_MAP[sq], COORD_MAP[c]))
+		panic(fmt.Errorf("clear square(%v) error at coord %v", SQUARES[sq], COORD_STRINGS[c]))
 	}
 }
 
@@ -214,7 +228,6 @@ func (b *Board) UpdateCastleRights(c Coord) {
 func (b *Board) MakeMove(m Move) error {
 	var mu MoveUnpacked
 	m.Unpack(&mu)
-
 	moveDstSetSquare := mu.originSquare
 
 	epCoord := A1
@@ -301,8 +314,9 @@ func (b *Board) MakeMove(m Move) error {
 
 	// Update Undo (should happen before any state is modified)
 	u := NewUndo(m, moveDstSetSquare, b.halfMove, b.castleRights, b.epCoord)
-	b.undos[b.undoIndex] = u
-	b.undoIndex++
+	b.undos[b.ply] = u
+	b.hashes[b.ply] = b.hash
+	b.ply++
 
 	// Update board
 	b.ClearSquare(mu.originCoord, mu.originSquare)
@@ -361,8 +375,8 @@ func (b *Board) MakeMove(m Move) error {
 }
 
 func (b *Board) UndoMove() error {
-	if b.undoIndex <= 0 {
-		return fmt.Errorf("invalid undo index: %v", b.undoIndex)
+	if b.ply <= 0 {
+		return fmt.Errorf("invalid undo index: %v", b.ply)
 	}
 
 	epCaptureSquare := EMPTY
@@ -373,8 +387,8 @@ func (b *Board) UndoMove() error {
 	castleRookSetCoord := A1
 
 	// Update Undo
-	b.undoIndex--
-	u := b.undos[b.undoIndex]
+	b.ply--
+	u := b.undos[b.ply]
 	var mu MoveUnpacked
 	var uu UndoUnpacked
 	u.Unpack(&mu, &uu)
@@ -453,4 +467,17 @@ func (b *Board) UndoMove() error {
 	b.halfMove = uu.halfMove
 
 	return nil
+}
+
+func (b *Board) MoveExists(move Move) bool {
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+	b.GenerateMoves(&moves, b.sideToMove, false)
+	for _, m := range moves {
+		err := b.MakeMove(m)
+		b.UndoMove()
+		if err == nil && m == move {
+			return true
+		}
+	}
+	return false
 }

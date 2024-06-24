@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"time"
 )
 
 func CompareBoardState(bStart *Board, bEnd *Board, t *testing.T) {
@@ -19,7 +18,7 @@ func CompareBoardState(bStart *Board, bEnd *Board, t *testing.T) {
 		t.Errorf("board castle rights: %v != %v", bStart.castleRights, bEnd.castleRights)
 	}
 	if bStart.epCoord != bEnd.epCoord {
-		t.Errorf("board en passant: %v != %v", COORD_MAP[bStart.epCoord], COORD_MAP[bEnd.epCoord])
+		t.Errorf("board en passant: %v != %v", COORD_STRINGS[bStart.epCoord], COORD_STRINGS[bEnd.epCoord])
 	}
 	if bStart.halfMove != bEnd.halfMove {
 		t.Errorf("board half move: %v != %v", bStart.halfMove, bEnd.halfMove)
@@ -80,7 +79,7 @@ func CompareBoardState(bStart *Board, bEnd *Board, t *testing.T) {
 func TestMakeMove(t *testing.T) {
 	tests := []struct {
 		startFen string
-		move     MoveUnpacked
+		mu       MoveUnpacked
 		endFen   string
 	}{
 		{
@@ -164,13 +163,12 @@ func TestMakeMove(t *testing.T) {
 			"rnbqkbnr/pP2pp1p/8/8/8/2N5/PPPPN2P/R1BQKBnR w KQkq - 0 8",
 		},
 	}
-	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {
 		bStart, err := NewBoard(tt.startFen)
 		if err != nil {
 			t.Error(err)
 		}
-		m := NewMove(tt.move.originCoord, tt.move.dstCoord, tt.move.originSquare, tt.move.dstSquare, tt.move.moveKind)
+		m := NewMoveFromMoveUnpacked(tt.mu)
 		err = bStart.MakeMove(m)
 		if err != nil {
 			t.Error(err)
@@ -185,8 +183,8 @@ func TestMakeMove(t *testing.T) {
 
 func TestUndoMove(t *testing.T) {
 	tests := []struct {
-		fen  string
-		move MoveUnpacked
+		fen string
+		mu  MoveUnpacked
 	}{
 		{
 			STARTING_FEN,
@@ -245,7 +243,6 @@ func TestUndoMove(t *testing.T) {
 			MoveUnpacked{G2, G1, BLACK_PAWN, 0, KNIGHT_PROMOTION},
 		},
 	}
-	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {
 		bStart, err := NewBoard(tt.fen)
 		if err != nil {
@@ -255,7 +252,7 @@ func TestUndoMove(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		m := NewMove(tt.move.originCoord, tt.move.dstCoord, tt.move.originSquare, tt.move.dstSquare, tt.move.moveKind)
+		m := NewMoveFromMoveUnpacked(tt.mu)
 		err = bStart.MakeMove(m)
 		if err != nil {
 			t.Error(err)
@@ -273,7 +270,7 @@ func TestUndoMoves(t *testing.T) {
 		startFen  string
 		endFen    string
 		undoCount int
-		moves     []MoveUnpacked
+		mus       []MoveUnpacked
 	}{
 		{
 			STARTING_FEN,
@@ -341,7 +338,6 @@ func TestUndoMoves(t *testing.T) {
 			},
 		},
 	}
-	SeedKeys(time.Now().UTC().UnixNano())
 	for _, tt := range tests {
 		bStart, err := NewBoard(tt.startFen)
 		if err != nil {
@@ -351,10 +347,10 @@ func TestUndoMoves(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		for _, tm := range tt.moves {
+		for _, tm := range tt.mus {
 			moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-			bStart.GenerateMoves(&moves, bStart.sideToMove)
-			move := NewMove(tm.originCoord, tm.dstCoord, tm.originSquare, tm.dstSquare, tm.moveKind)
+			bStart.GenerateMoves(&moves, bStart.sideToMove, false)
+			move := NewMoveFromMoveUnpacked(tm)
 			isLegal := false
 			for _, m := range moves {
 				if m == move {
@@ -362,7 +358,7 @@ func TestUndoMoves(t *testing.T) {
 				}
 			}
 			if !isLegal {
-				t.Errorf("%v is not a valid move", tm)
+				t.Errorf("%v is not a valid move", move.ToString())
 			}
 			err = bStart.MakeMove(move)
 			if err != nil {

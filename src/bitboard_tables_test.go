@@ -63,7 +63,7 @@ func TestBitboardPawnAttacks(t *testing.T) {
 			expected.SetBit(attackCoord)
 		}
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect pawn attacks at %v for side %v", COORD_MAP[tt.coord], tt.side)
+			t.Errorf("incorrect pawn attacks at %v for side %v", COORD_STRINGS[tt.coord], tt.side)
 		}
 	}
 }
@@ -120,7 +120,7 @@ func TestBitboardKnightAttacks(t *testing.T) {
 			expected.SetBit(attackCoord)
 		}
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect knight attacks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect knight attacks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -170,7 +170,7 @@ func TestBitboardKingAttacks(t *testing.T) {
 			expected.SetBit(attackCoord)
 		}
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect king attacks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect king attacks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -203,7 +203,7 @@ func TestBitboardBishopMasks(t *testing.T) {
 			expected.SetBit(attackCoord)
 		}
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect bishop masks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect bishop masks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -247,7 +247,7 @@ func TestBitboardBishopAttackGeneration(t *testing.T) {
 		}
 		actual := GenerateBishopAttacksBitboard(int(tt.coord), blockers)
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect bishop attacks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect bishop attacks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -281,7 +281,7 @@ func TestBitboardRookMasks(t *testing.T) {
 			expected.SetBit(attackCoord)
 		}
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect rook masks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect rook masks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -324,7 +324,7 @@ func TestBitboardRookAttackGeneration(t *testing.T) {
 		}
 		actual := GenerateRookAttacksBitboard(int(tt.coord), blockers)
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect rook attacks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect rook attacks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 }
@@ -378,7 +378,7 @@ func TestBitboardBishopAttacks(t *testing.T) {
 		}
 		actual := BishopAttacks(tt.coord, blockers)
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect bishop attacks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect bishop attacks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 
@@ -436,7 +436,7 @@ func TestBitboardRookAttacks(t *testing.T) {
 		}
 		actual := RookAttacks(tt.coord, blockers)
 		if !IsBitboardEqual(t, actual, expected) {
-			t.Errorf("incorrect rook attacks at %v", COORD_MAP[tt.coord])
+			t.Errorf("incorrect rook attacks at %v", COORD_STRINGS[tt.coord])
 		}
 	}
 

@@ -4,44 +4,64 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
 )
 
 func main() {
-	SeedKeys(time.Now().UTC().UnixNano())
-	board, err := NewBoard(STARTING_FEN)
+	HandleInput()
+}
+
+func HandleInput() {
+	fmt.Print("> ")
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	input := scanner.Text()
+	if input == "uci" {
+		ModeUCI(scanner)
+	} else {
+		ModePlayerVsEngine(scanner)
+	}
+
+}
+
+func ModePlayerVsEngine(scanner *bufio.Scanner) {
+	search, err := NewSearch(STARTING_FEN, DEFAULT_MAX_DEPTH, DEFAULT_MAX_NODES)
 	if err != nil {
 		fmt.Println(err)
 	}
-	scanner := bufio.NewScanner(os.Stdin)
 
-MAIN_LOOP:
 	for {
-		fmt.Printf("%v\n\n", board.ToString())
+		fmt.Printf("%v\n\n", search.ToString())
+		fmt.Print("Submit move: ")
 
 		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-		board.GenerateMoves(&moves, board.sideToMove)
+		search.GenerateMoves(&moves, search.sideToMove, false)
 
-		for {
-			fmt.Print("Submit move: ")
-			scanner.Scan()
+		for scanner.Scan() {
 			input := scanner.Text()
-			submittedMove, err := board.UCIParseMove(input)
+			submittedMove, err := search.ParseUCIMove(input)
 			if err != nil {
 				fmt.Println(err)
 			}
 
 			for _, move := range moves {
 				if submittedMove == move {
-					err := board.MakeMove(move)
+					err := search.MakeMove(move)
 					if err != nil {
-						board.UndoMove()
+						search.UndoMove()
 						break
 					}
-					goto MAIN_LOOP
+					goto SEARCH
 				}
 			}
 			fmt.Println("*** Not a valid move ***")
+			fmt.Print("Submit move: ")
 		}
+
+	SEARCH:
+		fmt.Printf("%v\n\n", search.ToString())
+		score := search.IterativeDeepening()
+		search.MakeMove(search.bestMove)
+		fmt.Printf("%v with score of %v\n", search.bestMove.ToString(), score)
 	}
+
 }

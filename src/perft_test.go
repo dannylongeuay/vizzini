@@ -17,7 +17,7 @@ func Perft(b *Board, depth int) int {
 	}
 
 	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-	b.GenerateMoves(&moves, b.sideToMove)
+	b.GenerateMoves(&moves, b.sideToMove, false)
 	for _, m := range moves {
 		err := b.MakeMove(m)
 		if err == nil {
@@ -413,10 +413,10 @@ func TestPerft(t *testing.T) {
 			[]DepthCount{{1, 24}, {2, 496}, {3, 9483}, {4, 182838}, {5, 3605103}, {6, 71179139}},
 		},
 	}
-	SeedKeys(181818)
+	InitHashKeys(181818)
 	for _, tt := range tests {
 		for _, dc := range tt.depthCounts {
-			if testing.Short() == true && dc.count >= 1000000 {
+			if testing.Short() && dc.count >= 100000 {
 				continue
 			}
 			b, err := NewBoard(tt.fen)

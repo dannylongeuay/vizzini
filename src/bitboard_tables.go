@@ -181,13 +181,7 @@ var BISHOP_MAGIC_NUMBERS = [BOARD_SQUARES]Bitboard{
 	9223979070486822979,
 }
 
-var INITIALIZED bool
-
 func InitBitboards() {
-	if INITIALIZED {
-		return
-	}
-
 	for i := 0; i < BOARD_SQUARES; i++ {
 		bb := Bitboard(1 << i)
 
@@ -216,8 +210,6 @@ func InitBitboards() {
 		InitBishopAttacksBitboard(i)
 		InitRookAttacksBitboard(i)
 	}
-
-	INITIALIZED = true
 }
 
 func InitPawnAttacksBitboard(i int, bb *Bitboard) {
@@ -466,7 +458,7 @@ func FindMagicNumbers() error {
 			}
 		}
 		if !foundMagicNumber {
-			return fmt.Errorf("unable to find magic number for rook at coord %v", COORD_MAP[i])
+			return fmt.Errorf("unable to find magic number for rook at coord %v", COORD_STRINGS[i])
 		}
 	}
 
@@ -499,7 +491,7 @@ func FindMagicNumbers() error {
 			}
 		}
 		if !foundMagicNumber {
-			return fmt.Errorf("unable to find magic number for bishop at coord %v", COORD_MAP[i])
+			return fmt.Errorf("unable to find magic number for bishop at coord %v", COORD_STRINGS[i])
 		}
 	}
 
