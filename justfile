@@ -1,5 +1,6 @@
 alias b := build
-alias r := run
+alias p := play
+alias u := uci
 alias t := test
 alias tl := test-long
 alias l := lint
@@ -10,8 +11,11 @@ build:
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/vizzini ./src/...
 
 # Run binary
-run: build
-    ./bin/vizzini
+play: build
+    ./bin/vizzini play
+
+uci: build
+    ./bin/vizzini uci
 
 # Run short tests
 test:
