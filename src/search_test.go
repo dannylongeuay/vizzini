@@ -17,8 +17,9 @@ func TestSearchNegamax(t *testing.T) {
 	for _, tt := range tests {
 		search, err := NewSearch(tt.fen, DEFAULT_MAX_DEPTH, DEFAULT_MAX_NODES)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
+		search.evalNoise = 0
 		actual := search.Negamax(1, MIN_SCORE, MAX_SCORE)
 		if actual != tt.expected {
 			t.Errorf("\n%v != %v\n\n%v", actual, tt.expected, search.ToString())
@@ -80,7 +81,7 @@ func TestSearchRepetition(t *testing.T) {
 	for _, tt := range tests {
 		search, err := NewSearch(tt.fen, DEFAULT_MAX_DEPTH, DEFAULT_MAX_NODES)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		sMoves := "moves"
 		for _, mu := range tt.mus {
@@ -128,10 +129,12 @@ func TestSearchMateInX(t *testing.T) {
 			continue
 		}
 		search, err := NewSearch(tt.fen, tt.movesToMate*2, DEFAULT_MAX_NODES)
-		search.quiet = true
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
+		search.quiet = true
+		search.evalNoise = 0
+		search.temperature = 0
 		search.IterativeDeepening()
 		actual := search.GetPvLineString()
 		if actual != tt.expected {

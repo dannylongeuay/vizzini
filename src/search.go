@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -24,6 +26,16 @@ type Search struct {
 	killers          [][]Move
 	alphaHistory     [][]int
 	nullMoveAllowed  bool
+	evalNoise        int
+	rng              *rand.Rand
+	temperature      float64
+	tempMoveLimit    int
+	rootMoves        []ScoredMove
+}
+
+type ScoredMove struct {
+	move  Move
+	score int
 }
 
 type PvMove struct {
@@ -48,6 +60,10 @@ func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	for i := range search.alphaHistory {
 		search.alphaHistory[i] = make([]int, BOARD_SQUARES)
 	}
+	search.evalNoise = DEFAULT_EVAL_NOISE
+	search.rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+	search.temperature = DEFAULT_TEMPERATURE
+	search.tempMoveLimit = DEFAULT_TEMP_MOVE_LIMIT
 	search.Clear()
 	return &search, nil
 }
@@ -62,12 +78,69 @@ func (s *Search) Reset() {
 	s.stop = false
 	s.stopTime = time.Time{}
 	s.nullMoveAllowed = true
+	s.rootMoves = s.rootMoves[:0]
 	clear(s.pvTable)
 	clear(s.killers[0])
 	clear(s.killers[1])
 	for i := range s.alphaHistory {
 		clear(s.alphaHistory[i])
 	}
+}
+
+func (s *Search) NoisyEvaluate() int {
+	score := s.Evaluate()
+	if s.evalNoise > 0 && s.rng != nil {
+		noise := s.rng.Intn(2*s.evalNoise+1) - s.evalNoise
+		score += noise
+	}
+	return score
+}
+
+func (s *Search) TemperatureSelect(bestScore int) {
+	if s.temperature <= 0 || s.rng == nil || len(s.rootMoves) <= 1 {
+		return
+	}
+	if s.fullMove > s.tempMoveLimit {
+		return
+	}
+	if bestScore > MATE_THRESHOLD || bestScore < -MATE_THRESHOLD {
+		return
+	}
+
+	const scoreWindow = 75
+	var candidates []ScoredMove
+	for _, sm := range s.rootMoves {
+		if bestScore-sm.score <= scoreWindow {
+			candidates = append(candidates, sm)
+		}
+	}
+	if len(candidates) <= 1 {
+		return
+	}
+
+	maxScore := candidates[0].score
+	for _, c := range candidates {
+		if c.score > maxScore {
+			maxScore = c.score
+		}
+	}
+	weights := make([]float64, len(candidates))
+	var total float64
+	for i, c := range candidates {
+		weights[i] = math.Exp(float64(c.score-maxScore) / (s.temperature * 100.0))
+		total += weights[i]
+	}
+
+	r := s.rng.Float64() * total
+	var cum float64
+	for i, w := range weights {
+		cum += w
+		if r <= cum {
+			s.bestMove = candidates[i].move
+			return
+		}
+	}
+	s.bestMove = candidates[len(candidates)-1].move
 }
 
 func (s *Search) Clear() {
@@ -87,6 +160,7 @@ func (s *Search) IterativeDeepening() int {
 	const ASPIRATION_WINDOW = 50
 
 	for i := 1; i <= s.maxDepth; i++ {
+		s.rootMoves = s.rootMoves[:0]
 		alpha := MIN_SCORE
 		beta := MAX_SCORE
 
@@ -103,6 +177,7 @@ func (s *Search) IterativeDeepening() int {
 		// Reset nodes so the info output only reflects the final search.
 		if !s.stop && (bestScore <= alpha || bestScore >= beta) {
 			s.nodes = savedNodes
+			s.rootMoves = s.rootMoves[:0]
 			bestScore = s.Negamax(i, MIN_SCORE, MAX_SCORE)
 		}
 
@@ -117,6 +192,9 @@ func (s *Search) IterativeDeepening() int {
 		lastBestMove = s.bestMove
 		s.completedDepth = i
 		s.SendInfo(i, bestScore, startTime)
+	}
+	if !s.stop {
+		s.TemperatureSelect(bestScore)
 	}
 	return bestScore
 }
@@ -157,7 +235,7 @@ func (s *Search) QSearch(alpha int, beta int) int {
 	s.nodes++
 
 	if s.ply >= int(MAX_GAME_MOVES)-1 {
-		return s.Evaluate()
+		return s.NoisyEvaluate()
 	}
 
 	if s.Repetition() || s.halfMove >= 100 {
@@ -167,7 +245,7 @@ func (s *Search) QSearch(alpha int, beta int) int {
 	inCheck := s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove)
 
 	if !inCheck {
-		currentScore := s.Evaluate()
+		currentScore := s.NoisyEvaluate()
 
 		if currentScore >= beta {
 			return beta
@@ -241,7 +319,7 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 	}
 
 	if s.ply >= int(MAX_GAME_MOVES)-1 {
-		return s.Evaluate()
+		return s.NoisyEvaluate()
 	}
 
 	if s.Repetition() || s.halfMove >= 100 {
@@ -321,6 +399,10 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 
 		if s.stop {
 			return alpha
+		}
+
+		if s.currentDepth == 0 {
+			s.rootMoves = append(s.rootMoves, ScoredMove{move, score})
 		}
 
 		if score >= beta {
