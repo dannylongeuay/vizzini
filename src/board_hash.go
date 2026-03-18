@@ -8,19 +8,19 @@ var SquareKeys [SQUARE_TYPES][BOARD_SQUARES]Hash
 var SideKey Hash
 var CastleKeys [CASTLING_RIGHTS_PERMUTATIONS]Hash
 
-func SeedKeys(seed int64) {
-	rand.Seed(seed)
+func InitHashKeys(seed int64) {
+	r := rand.New(rand.NewSource(seed))
 
 	for x := 0; x < SQUARE_TYPES; x++ {
 		for y := 0; y < BOARD_SQUARES; y++ {
-			SquareKeys[x][y] = Hash(rand.Uint64())
+			SquareKeys[x][y] = Hash(r.Uint64())
 		}
 	}
 
-	SideKey = Hash(rand.Uint64())
+	SideKey = Hash(r.Uint64())
 
 	for i := 0; i < CASTLING_RIGHTS_PERMUTATIONS; i++ {
-		CastleKeys[i] = Hash(rand.Uint64())
+		CastleKeys[i] = Hash(r.Uint64())
 	}
 }
 

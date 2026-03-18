@@ -3,8 +3,7 @@ package main
 import "testing"
 
 func ContainsTestMove(t *testing.T, moves []Move, mu MoveUnpacked) {
-	m := NewMove(mu.originCoord, mu.dstCoord, mu.originSquare, mu.dstSquare, mu.moveKind)
-
+	m := NewMoveFromMoveUnpacked(mu)
 	var s string
 	for _, move := range moves {
 		if move == m {
@@ -90,7 +89,47 @@ func TestGenerateMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-		b.GenerateMoves(&moves, tt.color)
+		b.GenerateMoves(&moves, tt.color, false)
+		if len(moves) != tt.movesLength {
+			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
+		}
+		for _, MoveUnpacked := range tt.moves {
+			ContainsTestMove(t, moves, MoveUnpacked)
+		}
+	}
+}
+
+func TestGenerateCaptureMoves(t *testing.T) {
+	tests := []struct {
+		fen         string
+		color       Color
+		movesLength int
+		moves       []MoveUnpacked
+	}{
+		{STARTING_FEN, WHITE, 0,
+			[]MoveUnpacked{},
+		},
+		{"r1bqkbnr/pp1ppppp/2n5/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3", BLACK, 2,
+			[]MoveUnpacked{
+				{C5, D4, BLACK_PAWN, WHITE_PAWN, CAPTURE},
+				{C6, D4, BLACK_KNIGHT, WHITE_PAWN, CAPTURE},
+			},
+		},
+		{"r1bqkb1r/pp2pppp/2n2n2/2Pp4/4P3/5N2/PPP2PPP/RNBQKB1R w KQkq d6 0 5", WHITE, 3,
+			[]MoveUnpacked{
+				{E4, D5, WHITE_PAWN, BLACK_PAWN, CAPTURE},
+				{C5, D6, WHITE_PAWN, EMPTY, EP_CAPTURE},
+				{D1, D5, WHITE_QUEEN, BLACK_PAWN, CAPTURE},
+			},
+		},
+	}
+	for _, tt := range tests {
+		b, err := NewBoard(tt.fen)
+		if err != nil {
+			t.Error(err)
+		}
+		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+		b.GenerateMoves(&moves, tt.color, true)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
 		}
@@ -178,7 +217,7 @@ func TestGeneratePawnMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, MAX_PAWN_MOVES)
-		b.GeneratePawnMoves(&moves, tt.color)
+		b.GeneratePawnMoves(&moves, tt.color, false)
 		FilterMovesByOrigin(tt.coord, &moves)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
@@ -231,7 +270,7 @@ func TestGenerateKnightMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, MAX_KNIGHT_MOVES)
-		b.GenerateKnightMoves(&moves, tt.color)
+		b.GenerateKnightMoves(&moves, tt.color, false)
 		FilterMovesByOrigin(tt.coord, &moves)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
@@ -299,7 +338,7 @@ func TestGenerateBishopMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, MAX_BISHOP_MOVES)
-		b.GenerateBishopMoves(&moves, tt.color)
+		b.GenerateBishopMoves(&moves, tt.color, false)
 		FilterMovesByOrigin(tt.coord, &moves)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
@@ -346,7 +385,7 @@ func TestGenerateRookMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, MAX_ROOK_MOVES)
-		b.GenerateRookMoves(&moves, tt.color)
+		b.GenerateRookMoves(&moves, tt.color, false)
 		FilterMovesByOrigin(tt.coord, &moves)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
@@ -406,7 +445,7 @@ func TestGenerateQueenMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, MAX_QUEEN_MOVES)
-		b.GenerateQueenMoves(&moves, tt.color)
+		b.GenerateQueenMoves(&moves, tt.color, false)
 		FilterMovesByOrigin(tt.coord, &moves)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)
@@ -511,7 +550,7 @@ func TestGenerateKingMoves(t *testing.T) {
 			t.Error(err)
 		}
 		moves := make([]Move, 0, MAX_KING_MOVES)
-		b.GenerateKingMoves(&moves, tt.color)
+		b.GenerateKingMoves(&moves, tt.color, false)
 		FilterMovesByOrigin(tt.coord, &moves)
 		if len(moves) != tt.movesLength {
 			t.Errorf("moves length: %v != %v", len(moves), tt.movesLength)

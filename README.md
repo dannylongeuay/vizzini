@@ -2,7 +2,7 @@
 
 > *"You fool! You fell victim to one of the classic blunders!"*
 
-A chess engine written in Go. No search, no evaluation — just a pure, fully legal move generator with an interactive CLI. Think of it as the foundation upon which a truly *inconceivable* chess engine could be built.
+A UCI-compliant chess engine written in Go — complete with search, evaluation, and time management. Play against it in the interactive CLI or plug it into your favorite chess GUI.
 
 ## Features
 
@@ -14,6 +14,12 @@ A chess engine written in Go. No search, no evaluation — just a pure, fully le
 - **Move/undo history** — full state restoration, because sometimes you need a do-over
 - **Interactive CLI** — Unicode board display so you can admire your position
 - **Perft testing framework** — correctness validation against known positions
+- **UCI protocol** — full UCI compliance for chess GUI integration
+- **Negamax search with alpha-beta pruning** — iterative deepening with PV table
+- **Position evaluation** — piece-square tables and material scoring
+- **Move ordering** — MVV-LVA, killer moves, and history heuristic
+- **Quiescence search** — tactical stability at search boundaries
+- **Time management** — configurable depth, node limits, and clock-aware search
 - **Zero external dependencies** — *"I built this with nothing but my wits and a Go compiler"*
 
 ## Getting Started
@@ -47,7 +53,15 @@ go build -o bin/vizzini ./src/...
 
 ## Usage
 
-Vizzini launches an interactive CLI where you can play moves in UCI notation. The board is displayed with Unicode chess pieces after each move.
+Vizzini supports two modes, detected automatically on startup:
+
+### UCI Mode
+
+Type `uci` at the prompt to enter UCI mode. This is the standard interface for chess GUIs like Arena, CuteChess, or Banksia — just point the GUI at the Vizzini binary.
+
+### Player vs Engine
+
+Type anything else (or just press Enter) to play an interactive game against Vizzini. You submit moves in UCI notation and the engine responds with its own.
 
 ```
 _________________________
@@ -107,7 +121,7 @@ All source lives in `src/`:
 
 | File | Purpose |
 | --- | --- |
-| `main.go` | Entry point and interactive game loop |
+| `main.go` | Entry point, UCI mode, and interactive player-vs-engine mode |
 | `types.go` | Core type definitions — `Square`, `Color`, `Move`, `Bitboard`, `Hash`, etc. |
 | `const.go` | Game constants and enumerations |
 | `bitboard.go` | Bitboard operations (set/clear/pop bits, LS1B) |
@@ -116,6 +130,9 @@ All source lives in `src/`:
 | `move.go` | Move encoding (bit-packed `uint32`), make/undo move logic |
 | `move_gen.go` | Legal move generation for all piece types |
 | `board_hash.go` | Zobrist hashing — incremental hash updates |
+| `search.go` | Negamax search with alpha-beta pruning, iterative deepening, PV table |
+| `uci.go` | UCI protocol — command parsing and engine communication |
+| `evaluate.go` | Position evaluation — piece-square tables, material scoring, move ordering |
 | `util.go` | UCI parsing, coordinate helpers, utility functions |
 
 ## Testing

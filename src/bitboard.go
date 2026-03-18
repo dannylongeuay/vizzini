@@ -8,7 +8,7 @@ import (
 func (bb *Bitboard) ToString() string {
 	var s string
 	s += "\n"
-	for i, c := range PRINT_MAP {
+	for i, c := range MIRROR_COORDS {
 		if i != 0 && i%8 == 0 {
 			s += "\n"
 		}

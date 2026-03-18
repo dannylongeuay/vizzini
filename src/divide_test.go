@@ -10,7 +10,7 @@ func divide(b *Board, depth int) map[string]int {
 	results := make(map[string]int)
 
 	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-	b.GenerateMoves(&moves, b.sideToMove)
+	b.GenerateMoves(&moves, b.sideToMove, false)
 
 	for _, m := range moves {
 		cb := b.CopyBoard()
@@ -26,7 +26,7 @@ func divide(b *Board, depth int) map[string]int {
 		}
 		var mu MoveUnpacked
 		m.Unpack(&mu)
-		coord := fmt.Sprint(strings.ToLower(COORD_MAP[mu.originCoord]), strings.ToLower(COORD_MAP[mu.dstCoord]))
+		coord := fmt.Sprint(strings.ToLower(COORD_STRINGS[mu.originCoord]), strings.ToLower(COORD_STRINGS[mu.dstCoord]))
 		results[coord] = nodes
 	}
 
@@ -113,7 +113,7 @@ func TestDivide(t *testing.T) {
 			},
 		},
 	}
-	SeedKeys(181818)
+	InitHashKeys(181818)
 	for _, tt := range tests {
 		if testing.Short() == true && tt.depth >= 6 {
 			continue
