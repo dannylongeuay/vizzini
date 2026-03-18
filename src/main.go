@@ -18,6 +18,8 @@ func main() {
 		ModePlayerVsEngine(scanner)
 	case "uci":
 		ModeUCI(scanner)
+	case "serve":
+		ModeServe()
 	default:
 		printHelp()
 		os.Exit(1)
@@ -30,6 +32,7 @@ func printHelp() {
 	fmt.Println("Commands:")
 	fmt.Println("  play   Start Player vs Engine mode")
 	fmt.Println("  uci    Start UCI mode")
+	fmt.Println("  serve  Start HTTP server mode")
 }
 
 func ModePlayerVsEngine(scanner *bufio.Scanner) {

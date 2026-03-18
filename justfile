@@ -1,6 +1,7 @@
 alias b := build
 alias p := play
 alias u := uci
+alias s := serve
 alias t := test
 alias tl := test-long
 alias l := lint
@@ -16,6 +17,9 @@ play: build
 
 uci: build
     ./bin/vizzini uci
+
+serve: build
+    ./bin/vizzini serve
 
 # Run short tests
 test:
