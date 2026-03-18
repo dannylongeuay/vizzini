@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/bits"
 	"strconv"
 	"strings"
 	"sync"
@@ -323,6 +324,146 @@ func (b *Board) BitboardSquares() [12]BitboardSquareResult {
 		{b.bbBQ, BLACK_QUEEN},
 		{b.bbBK, BLACK_KING},
 	}
+}
+
+func (b *Board) ToFEN() string {
+	var sb strings.Builder
+
+	for rank := 7; rank >= 0; rank-- {
+		empty := 0
+		for file := 0; file < 8; file++ {
+			coord := Coord(rank*8 + file)
+			sq := b.squares[coord]
+			if sq == EMPTY {
+				empty++
+			} else {
+				if empty > 0 {
+					sb.WriteByte(byte('0' + empty))
+					empty = 0
+				}
+				var ch byte
+				switch sq {
+				case WHITE_PAWN:
+					ch = 'P'
+				case WHITE_KNIGHT:
+					ch = 'N'
+				case WHITE_BISHOP:
+					ch = 'B'
+				case WHITE_ROOK:
+					ch = 'R'
+				case WHITE_QUEEN:
+					ch = 'Q'
+				case WHITE_KING:
+					ch = 'K'
+				case BLACK_PAWN:
+					ch = 'p'
+				case BLACK_KNIGHT:
+					ch = 'n'
+				case BLACK_BISHOP:
+					ch = 'b'
+				case BLACK_ROOK:
+					ch = 'r'
+				case BLACK_QUEEN:
+					ch = 'q'
+				case BLACK_KING:
+					ch = 'k'
+				}
+				sb.WriteByte(ch)
+			}
+		}
+		if empty > 0 {
+			sb.WriteByte(byte('0' + empty))
+		}
+		if rank > 0 {
+			sb.WriteByte('/')
+		}
+	}
+
+	sb.WriteByte(' ')
+	if b.sideToMove == WHITE {
+		sb.WriteByte('w')
+	} else {
+		sb.WriteByte('b')
+	}
+
+	sb.WriteByte(' ')
+	cr := ""
+	if b.castleRights&CASTLING_RIGHTS_WHITE_KING_MASK > 0 {
+		cr += "K"
+	}
+	if b.castleRights&CASTLING_RIGHTS_WHITE_QUEEN_MASK > 0 {
+		cr += "Q"
+	}
+	if b.castleRights&CASTLING_RIGHTS_BLACK_KING_MASK > 0 {
+		cr += "k"
+	}
+	if b.castleRights&CASTLING_RIGHTS_BLACK_QUEEN_MASK > 0 {
+		cr += "q"
+	}
+	if cr == "" {
+		cr = "-"
+	}
+	sb.WriteString(cr)
+
+	sb.WriteByte(' ')
+	if b.epCoord == A1 {
+		sb.WriteByte('-')
+	} else {
+		sb.WriteString(stringCoordLower(b.epCoord))
+	}
+
+	sb.WriteByte(' ')
+	sb.WriteString(strconv.Itoa(int(b.halfMove)))
+	sb.WriteByte(' ')
+	sb.WriteString(strconv.Itoa(b.fullMove))
+
+	return sb.String()
+}
+
+func stringCoordLower(c Coord) string {
+	return fmt.Sprintf("%c%c", 'a'+int(c)%8, '1'+int(c)/8)
+}
+
+func (b *Board) InCheck() bool {
+	return b.CoordAttacked(b.kingCoords[b.sideToMove], b.sideToMove)
+}
+
+func (b *Board) LegalMoves() []Move {
+	pseudo := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+	b.GenerateMoves(&pseudo, b.sideToMove, false)
+	legal := make([]Move, 0, len(pseudo))
+	for _, m := range pseudo {
+		err := b.MakeMove(m)
+		b.UndoMove()
+		if err == nil {
+			legal = append(legal, m)
+		}
+	}
+	return legal
+}
+
+func (b *Board) InsufficientMaterial() bool {
+	if b.bbWP|b.bbBP|b.bbWQ|b.bbBQ|b.bbWR|b.bbBR != 0 {
+		return false
+	}
+	minors := bits.OnesCount64(uint64(b.bbWN | b.bbBN | b.bbWB | b.bbBB))
+	return minors <= 1
+}
+
+func (b *Board) GameStatus(legalMoves []Move) string {
+	if len(legalMoves) == 0 {
+		if b.InCheck() {
+			return "checkmate"
+		}
+		return "stalemate"
+	}
+	if b.halfMove >= 100 {
+		return "fifty_move_rule"
+	}
+	if b.InsufficientMaterial() {
+		return "insufficient_material"
+	}
+	return "ongoing"
 }
 
 func (b Board) ToString() string {

@@ -19,7 +19,7 @@ uci: build
     ./bin/vizzini uci
 
 serve: build
-    ./bin/vizzini serve
+    CORS_PERMISSIVE=1 ./bin/vizzini serve
 
 # Run short tests
 test:

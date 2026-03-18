@@ -10,6 +10,7 @@ type Search struct {
 	*Board
 	currentDepth     int
 	maxDepth         int
+	completedDepth   int
 	nodes            int
 	maxNodes         int
 	bestMove         Move
@@ -53,6 +54,7 @@ func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 
 func (s *Search) Reset() {
 	s.currentDepth = 0
+	s.completedDepth = 0
 	s.nodes = 0
 	s.bestMove = 0
 	s.fhf = 0
@@ -113,6 +115,7 @@ func (s *Search) IterativeDeepening() int {
 			break
 		}
 		lastBestMove = s.bestMove
+		s.completedDepth = i
 		s.SendInfo(i, bestScore, startTime)
 	}
 	return bestScore

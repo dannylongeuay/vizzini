@@ -102,6 +102,36 @@ func (u *Undo) Unpack(mu *MoveUnpacked, uu *UndoUnpacked) {
 	uu.epCoord = Coord((*u & UNDO_EP_COORD_MASK) >> UNDO_EP_COORD_SHIFT)
 }
 
+func (mu *MoveUnpacked) IsCapture() bool {
+	return mu.dstSquare != EMPTY ||
+		mu.moveKind == EP_CAPTURE ||
+		mu.moveKind == KNIGHT_PROMOTION_CAPTURE ||
+		mu.moveKind == BISHOP_PROMOTION_CAPTURE ||
+		mu.moveKind == ROOK_PROMOTION_CAPTURE ||
+		mu.moveKind == QUEEN_PROMOTION_CAPTURE
+}
+
+func (mu *MoveUnpacked) IsCastling() bool {
+	return mu.moveKind == KING_CASTLE || mu.moveKind == QUEEN_CASTLE
+}
+
+func (mu *MoveUnpacked) PromotionString() *string {
+	var s string
+	switch mu.moveKind {
+	case QUEEN_PROMOTION, QUEEN_PROMOTION_CAPTURE:
+		s = "queen"
+	case ROOK_PROMOTION, ROOK_PROMOTION_CAPTURE:
+		s = "rook"
+	case BISHOP_PROMOTION, BISHOP_PROMOTION_CAPTURE:
+		s = "bishop"
+	case KNIGHT_PROMOTION, KNIGHT_PROMOTION_CAPTURE:
+		s = "knight"
+	default:
+		return nil
+	}
+	return &s
+}
+
 func (b *Board) pieceBitboards(sq Square) (*Bitboard, *Bitboard) {
 	switch sq {
 	case WHITE_PAWN:
