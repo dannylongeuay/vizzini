@@ -7,7 +7,7 @@ type Rank uint8
 type HalfMove uint8
 type CastleRights uint8
 type MoveKind uint8
-type Coord uint64
+type Coord uint8
 type Move uint32
 type MoveOrder uint8
 type Undo uint64

@@ -83,13 +83,14 @@ func (u *UCI) SendOk() {
 }
 
 func (u *UCI) SetDebug(args []string) {
+	if len(args) == 0 {
+		return
+	}
 	if args[0] == "on" {
 		u.debug = true
-
 	} else if args[0] == "off" {
 		u.debug = false
 	}
-
 }
 
 func (u *UCI) SendReady() {
@@ -107,6 +108,8 @@ func (u *UCI) SetNewGame() {
 	args := []string{"startpos"}
 	u.SetPosition(args)
 	u.Clear()
+	u.maxDepth = DEFAULT_MAX_DEPTH
+	u.maxNodes = DEFAULT_MAX_NODES
 }
 
 func (u *UCI) SetPosition(args []string) {
@@ -144,9 +147,15 @@ func (u *UCI) SetPonder() {
 }
 
 func NewBoardFromUCIPosition(args []string) (*Board, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("missing position argument")
+	}
 	fen := STARTING_FEN
 	moveTokenIndex := 1
 	if args[0] == "fen" {
+		if len(args) < 7 {
+			return nil, fmt.Errorf("insufficient FEN components: expected 6, got %v", len(args)-1)
+		}
 		moveTokenIndex = 7
 		fen = strings.Join(args[1:moveTokenIndex], " ")
 	}
@@ -184,7 +193,7 @@ func (u *UCI) SetGoParams(args []string) {
 		case "ponder":
 			continue
 		case "wtime":
-			if u.sideToMove != WHITE {
+			if i+1 >= len(args) || u.sideToMove != WHITE {
 				continue
 			}
 			wtime, err := strconv.Atoi(args[i+1])
@@ -193,7 +202,7 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			remainingTime = int64(wtime)
 		case "btime":
-			if u.sideToMove != BLACK {
+			if i+1 >= len(args) || u.sideToMove != BLACK {
 				continue
 			}
 			btime, err := strconv.Atoi(args[i+1])
@@ -202,7 +211,7 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			remainingTime = int64(btime)
 		case "winc":
-			if u.sideToMove != WHITE {
+			if i+1 >= len(args) || u.sideToMove != WHITE {
 				continue
 			}
 			winc, err := strconv.Atoi(args[i+1])
@@ -211,7 +220,7 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			increment = int64(winc)
 		case "binc":
-			if u.sideToMove != BLACK {
+			if i+1 >= len(args) || u.sideToMove != BLACK {
 				continue
 			}
 			binc, err := strconv.Atoi(args[i+1])
@@ -220,18 +229,27 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			increment = int64(binc)
 		case "movestogo":
+			if i+1 >= len(args) {
+				continue
+			}
 			movestogo, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				continue
 			}
 			remainingMoves = int64(movestogo)
 		case "depth":
+			if i+1 >= len(args) {
+				continue
+			}
 			maxDepth, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				continue
 			}
 			u.maxDepth = maxDepth
 		case "nodes":
+			if i+1 >= len(args) {
+				continue
+			}
 			maxNodes, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				continue
@@ -240,6 +258,9 @@ func (u *UCI) SetGoParams(args []string) {
 		case "mate":
 			continue
 		case "movetime":
+			if i+1 >= len(args) {
+				continue
+			}
 			moveTime, err := strconv.Atoi(args[i+1])
 			if err != nil {
 				continue

@@ -70,6 +70,8 @@ const KILLERS_DEPTH = 64
 const DRAW int = 0
 const MAX_SCORE int = 100000
 const MIN_SCORE int = -100000
+const MATE_THRESHOLD int = MAX_SCORE - int(MAX_GAME_MOVES)
+const MAX_HISTORY_VALUE int = 400
 
 const MVV_LVA_EN_PASSANT MoveOrder = 45
 const MVV_LVA_KNIGHT_PROMOTION MoveOrder = 101

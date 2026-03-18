@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 /*
@@ -91,7 +90,8 @@ type Board struct {
 
 func InitBoard() {
 	boardInitOnce.Do(func() {
-		InitHashKeys(time.Now().UTC().UnixNano())
+		// Fixed seed for deterministic games; replace with a random seed for competitive play.
+		InitHashKeys(181818)
 		InitBitboards()
 		InitMvvLva()
 	})
@@ -237,6 +237,26 @@ func (b *Board) UpdateUnionBitboards() {
 	b.bbWhitePieces = b.bbWP | b.bbWN | b.bbWB | b.bbWR | b.bbWQ | b.bbWK
 	b.bbBlackPieces = b.bbBP | b.bbBN | b.bbBB | b.bbBR | b.bbBQ | b.bbBK
 	b.bbAllPieces = b.bbWhitePieces | b.bbBlackPieces
+}
+
+func (b *Board) MakeNullMove() {
+	b.hashes[b.ply] = b.hash
+	b.ply++
+	b.halfMove++
+	if b.epCoord != A1 {
+		b.HashEnPassant()
+		b.epCoord = A1
+	}
+	b.HashSide()
+	b.sideToMove ^= 1
+}
+
+func (b *Board) UndoNullMove(epCoord Coord, halfMove HalfMove) {
+	b.sideToMove ^= 1
+	b.ply--
+	b.hash = b.hashes[b.ply]
+	b.epCoord = epCoord
+	b.halfMove = halfMove
 }
 
 func (b Board) CopyBoard() Board {

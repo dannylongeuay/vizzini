@@ -196,14 +196,19 @@ func (b *Board) MakeMove(m Move) error {
 
 	switch mu.moveKind {
 	case DOUBLE_PAWN_PUSH:
-		if b.sideToMove == WHITE &&
-			(b.squares[int(mu.dstCoord)-SHIFT_HORIZONTAL] == BLACK_PAWN ||
-				b.squares[int(mu.dstCoord)+SHIFT_HORIZONTAL] == BLACK_PAWN) {
-			epCoord = mu.dstCoord - Coord(SHIFT_VERTICAL)
-		} else if b.sideToMove == BLACK &&
-			(b.squares[int(mu.dstCoord)-SHIFT_HORIZONTAL] == WHITE_PAWN ||
-				b.squares[int(mu.dstCoord)+SHIFT_HORIZONTAL] == WHITE_PAWN) {
-			epCoord = mu.dstCoord + Coord(SHIFT_VERTICAL)
+		dstFile := int(mu.dstCoord) % 8
+		if b.sideToMove == WHITE {
+			leftOk := dstFile > 0 && b.squares[int(mu.dstCoord)-SHIFT_HORIZONTAL] == BLACK_PAWN
+			rightOk := dstFile < 7 && b.squares[int(mu.dstCoord)+SHIFT_HORIZONTAL] == BLACK_PAWN
+			if leftOk || rightOk {
+				epCoord = mu.dstCoord - Coord(SHIFT_VERTICAL)
+			}
+		} else if b.sideToMove == BLACK {
+			leftOk := dstFile > 0 && b.squares[int(mu.dstCoord)-SHIFT_HORIZONTAL] == WHITE_PAWN
+			rightOk := dstFile < 7 && b.squares[int(mu.dstCoord)+SHIFT_HORIZONTAL] == WHITE_PAWN
+			if leftOk || rightOk {
+				epCoord = mu.dstCoord + Coord(SHIFT_VERTICAL)
+			}
 		}
 	case KING_CASTLE:
 		fallthrough

@@ -114,14 +114,15 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color, capturesOnly bool) 
 			b.appendPromotions(moves, originCoord, dstCoord, originSquare, dstSquare, true)
 		}
 
-		// Quiet moves
-		if capturesOnly {
-			continue
-		}
-
+		// Quiet promotions are always generated (important for QSearch)
 		for promotions > 0 {
 			dstCoord := promotions.PopLSB()
 			b.appendPromotions(moves, originCoord, dstCoord, originSquare, EMPTY, false)
+		}
+
+		// Quiet moves
+		if capturesOnly {
+			continue
 		}
 
 		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)

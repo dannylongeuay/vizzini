@@ -8,20 +8,21 @@ import (
 
 type Search struct {
 	*Board
-	currentDepth int
-	maxDepth     int
-	nodes        int
-	maxNodes     int
-	bestMove     Move
-	stop         bool
-	stopTime     time.Time
-	pvTable      []PvMove
-	pvLine       []Move
-	fhf          float64
-	fh           float64
-	quiet        bool
-	killers      [][]Move
-	alphaHistory [][]int
+	currentDepth     int
+	maxDepth         int
+	nodes            int
+	maxNodes         int
+	bestMove         Move
+	stop             bool
+	stopTime         time.Time
+	pvTable          []PvMove
+	pvLine           []Move
+	fhf              float64
+	fh               float64
+	quiet            bool
+	killers          [][]Move
+	alphaHistory     [][]int
+	nullMoveAllowed  bool
 }
 
 type PvMove struct {
@@ -58,6 +59,7 @@ func (s *Search) Reset() {
 	s.fh = 0
 	s.stop = false
 	s.stopTime = time.Time{}
+	s.nullMoveAllowed = true
 	clear(s.pvTable)
 	clear(s.killers[0])
 	clear(s.killers[1])
@@ -80,8 +82,30 @@ func (s *Search) IterativeDeepening() int {
 	startTime := time.Now()
 	var bestScore int
 	var lastBestMove Move
+	const ASPIRATION_WINDOW = 50
+
 	for i := 1; i <= s.maxDepth; i++ {
-		bestScore = s.Negamax(i, MIN_SCORE, MAX_SCORE)
+		alpha := MIN_SCORE
+		beta := MAX_SCORE
+
+		// Use aspiration windows from depth 4 onward, centered on the previous score.
+		if i >= 4 {
+			alpha = bestScore - ASPIRATION_WINDOW
+			beta = bestScore + ASPIRATION_WINDOW
+		}
+
+		savedNodes := s.nodes
+		bestScore = s.Negamax(i, alpha, beta)
+
+		// Re-search with full window on fail-high or fail-low.
+		// Reset nodes so the info output only reflects the final search.
+		if !s.stop && (bestScore <= alpha || bestScore >= beta) {
+			s.nodes = savedNodes
+			bestScore = s.Negamax(i, MIN_SCORE, MAX_SCORE)
+		}
+
+		// If stopped during search (e.g. timeout), the result may be incomplete.
+		// Fall back to the last fully-completed iteration's best move.
 		if s.stop {
 			if lastBestMove != 0 {
 				s.bestMove = lastBestMove
@@ -102,7 +126,15 @@ func (s *Search) SendInfo(depth int, score int, startTime time.Time) {
 	elapsedTimeMs := time.Since(startTime).Milliseconds() + 1
 	nps := int64(s.nodes*1000) / elapsedTimeMs
 	fmt.Fprintf(&standard, "info depth %v", depth)
-	fmt.Fprintf(&standard, " score cp %v", score)
+	if score > MATE_THRESHOLD {
+		movesToMate := (MAX_SCORE - score + 1) / 2
+		fmt.Fprintf(&standard, " score mate %v", movesToMate)
+	} else if score < -MATE_THRESHOLD {
+		movesToMate := (MIN_SCORE - score) / 2
+		fmt.Fprintf(&standard, " score mate %v", movesToMate)
+	} else {
+		fmt.Fprintf(&standard, " score cp %v", score)
+	}
 	fmt.Fprintf(&standard, " nodes %v", s.nodes)
 	fmt.Fprintf(&standard, " nps %v", nps)
 	fmt.Fprintf(&standard, " time %v ", elapsedTimeMs)
@@ -111,10 +143,6 @@ func (s *Search) SendInfo(depth int, score int, startTime time.Time) {
 
 	var debug strings.Builder
 	fmt.Fprintf(&debug, "info string fhf/fh %.2f%%", (s.fhf/s.fh)*100)
-	movesToMate := MAX_SCORE - score
-	if movesToMate < 10 {
-		fmt.Fprintf(&debug, " mate in %v", movesToMate)
-	}
 	fmt.Println(debug.String())
 }
 
@@ -125,23 +153,35 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 	s.nodes++
 
+	if s.ply >= int(MAX_GAME_MOVES)-1 {
+		return s.Evaluate()
+	}
+
 	if s.Repetition() || s.halfMove >= 100 {
 		return DRAW
 	}
 
-	currentScore := s.Evaluate()
+	inCheck := s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove)
 
-	if currentScore >= beta {
-		return beta
+	if !inCheck {
+		currentScore := s.Evaluate()
+
+		if currentScore >= beta {
+			return beta
+		}
+
+		if currentScore > alpha {
+			alpha = currentScore
+		}
 	}
 
-	if currentScore > alpha {
-		alpha = currentScore
-	}
-
-	var moves []Move
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
 	var legalMoves int
-	s.GenerateMoves(&moves, s.sideToMove, true)
+	if inCheck {
+		s.GenerateMoves(&moves, s.sideToMove, false)
+	} else {
+		s.GenerateMoves(&moves, s.sideToMove, true)
+	}
 
 	for i := 0; i < len(moves); i++ {
 		move := s.PickNextMove(i, &moves, 0)
@@ -158,7 +198,7 @@ func (s *Search) QSearch(alpha int, beta int) int {
 		s.UndoMove()
 
 		if s.stop {
-			return DRAW
+			return alpha
 		}
 
 		if score >= beta {
@@ -176,6 +216,13 @@ func (s *Search) QSearch(alpha int, beta int) int {
 				s.bestMove = move
 			}
 		}
+	}
+
+	if inCheck && legalMoves == 0 {
+		// Mate distance from search root. Note: currentDepth is also incremented
+		// during null-move search, but null-move cutoffs return beta (not the score),
+		// so the off-by-one doesn't propagate to the root.
+		return MIN_SCORE + s.currentDepth
 	}
 
 	return alpha
@@ -190,6 +237,10 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		s.TimeCheck()
 	}
 
+	if s.ply >= int(MAX_GAME_MOVES)-1 {
+		return s.Evaluate()
+	}
+
 	if s.Repetition() || s.halfMove >= 100 {
 		return DRAW
 	}
@@ -201,7 +252,39 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		depth++
 	}
 
-	var moves []Move
+	// Null move pruning.
+	// nullMoveAllowed prevents consecutive null moves (works because search is single-threaded).
+	if !inCheck && s.nullMoveAllowed && depth >= 3 {
+		hasPieces := false
+		if s.sideToMove == WHITE {
+			hasPieces = s.bbWN|s.bbWB|s.bbWR|s.bbWQ > 0
+		} else {
+			hasPieces = s.bbBN|s.bbBB|s.bbBR|s.bbBQ > 0
+		}
+		if hasPieces {
+			oldEp := s.epCoord
+			oldHalfMove := s.halfMove
+			s.MakeNullMove()
+			s.currentDepth++
+			s.nullMoveAllowed = false
+			R := 2
+			if depth >= 6 {
+				R = 3
+			}
+			score := -s.Negamax(depth-1-R, -beta, -beta+1)
+			s.nullMoveAllowed = true
+			s.currentDepth--
+			s.UndoNullMove(oldEp, oldHalfMove)
+			if s.stop {
+				return alpha
+			}
+			if score >= beta {
+				return beta
+			}
+		}
+	}
+
+	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
 	var legalMoves int
 	pvMove, _ := s.GetPvMove()
 	s.GenerateMoves(&moves, s.sideToMove, false)
@@ -216,20 +299,32 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			continue
 		}
 		legalMoves++
-		score := -s.Negamax(depth-1, -beta, -alpha)
+		givesCheck := s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove)
+
+		var score int
+		moveKind := MoveKind(move & MOVE_KIND_MASK)
+		// Late move reductions (skip for moves that give check)
+		if legalMoves > 4 && depth >= 3 && !inCheck && !givesCheck && moveKind == QUIET {
+			score = -s.Negamax(depth-2, -beta, -alpha)
+			if score > alpha {
+				score = -s.Negamax(depth-1, -beta, -alpha)
+			}
+		} else {
+			score = -s.Negamax(depth-1, -beta, -alpha)
+		}
+
 		s.currentDepth--
 		s.UndoMove()
 
 		if s.stop {
-			return DRAW
+			return alpha
 		}
 
 		if score >= beta {
 			if legalMoves == 1 {
 				s.fhf++
 			}
-			moveKind := MoveKind(move & MOVE_KIND_MASK)
-			if moveKind == QUIET {
+			if moveKind == QUIET && s.currentDepth < KILLERS_DEPTH {
 				s.killers[1][s.currentDepth] = s.killers[0][s.currentDepth]
 				s.killers[0][s.currentDepth] = move
 			}
@@ -243,11 +338,13 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			if s.currentDepth == 0 {
 				s.bestMove = move
 			}
-			moveKind := MoveKind(move & MOVE_KIND_MASK)
-			originCoord := Coord((move & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT)
-			dstCoord := Coord((move & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT)
 			if moveKind == QUIET {
+				originCoord := Coord((move & MOVE_ORIGIN_COORD_MASK) >> MOVE_ORIGIN_COORD_SHIFT)
+				dstCoord := Coord((move & MOVE_DST_COORD_MASK) >> MOVE_DST_COORD_SHIFT)
 				s.alphaHistory[originCoord][dstCoord] += depth
+				if s.alphaHistory[originCoord][dstCoord] > MAX_HISTORY_VALUE {
+					s.alphaHistory[originCoord][dstCoord] = MAX_HISTORY_VALUE
+				}
 			}
 		}
 	}
@@ -326,14 +423,46 @@ func (s *Search) PickNextMove(index int, movesPtr *[]Move, pvMove Move) Move {
 		var mu MoveUnpacked
 		moves[i].Unpack(&mu)
 		order := MVV_LVA_SCORES[mu.dstSquare][mu.originSquare]
+
+		// Assign special ordering for promotions and EP captures
+		switch mu.moveKind {
+		case EP_CAPTURE:
+			order = MVV_LVA_EN_PASSANT
+		case KNIGHT_PROMOTION:
+			order = MVV_LVA_KNIGHT_PROMOTION
+		case BISHOP_PROMOTION:
+			order = MVV_LVA_BISHOP_PROMOTION
+		case ROOK_PROMOTION:
+			order = MVV_LVA_ROOK_PROMOTION
+		case QUEEN_PROMOTION:
+			order = MVV_LVA_QUEEN_PROMOTION
+		case KNIGHT_PROMOTION_CAPTURE:
+			order = MVV_LVA_KNIGHT_PROMOTION_CAPTURE
+		case BISHOP_PROMOTION_CAPTURE:
+			order = MVV_LVA_BISHOP_PROMOTION_CAPTURE
+		case ROOK_PROMOTION_CAPTURE:
+			order = MVV_LVA_ROOK_PROMOTION_CAPTURE
+		case QUEEN_PROMOTION_CAPTURE:
+			order = MVV_LVA_QUEEN_PROMOTION_CAPTURE
+		}
+
 		if pvMove == moves[i] {
 			order = 255
-		} else if s.killers[0][s.currentDepth] == moves[i] {
+		} else if order > 0 {
+			// Already has capture/promotion ordering
+		} else if s.currentDepth < KILLERS_DEPTH && s.killers[0][s.currentDepth] == moves[i] {
 			order = 9
-		} else if s.killers[1][s.currentDepth] == moves[i] {
+		} else if s.currentDepth < KILLERS_DEPTH && s.killers[1][s.currentDepth] == moves[i] {
 			order = 8
 		} else if order == 0 {
-			order = MoveOrder(s.alphaHistory[mu.originCoord][mu.dstCoord])
+			histVal := s.alphaHistory[mu.originCoord][mu.dstCoord]
+			if histVal > 0 {
+				// Scale history into 1-7 range proportionally
+				order = MoveOrder(1 + histVal*6/MAX_HISTORY_VALUE)
+				if order > 7 {
+					order = 7
+				}
+			}
 		}
 		if order > bestOrder {
 			bestOrder = order
