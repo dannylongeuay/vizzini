@@ -190,18 +190,22 @@ func TestUCISetGoParams(t *testing.T) {
 	tests := []struct {
 		s        string
 		duration time.Duration
+		infinite bool
 	}{
 		{
 			"infinite",
-			time.Duration(time.Minute - time.Second),
+			0,
+			true,
 		},
 		{
 			"wtime 10000 btime 8000 winc 1000 binc 1000 movestogo 40 depth 4 nodes 100000 movetime 5000",
 			time.Duration(time.Millisecond * time.Duration(4900)),
+			false,
 		},
 		{
 			"wtime 10000 btime 8000 winc 1000 binc 1000 movestogo 40 depth 4 nodes 100000",
 			time.Duration(time.Millisecond * time.Duration(1100)),
+			false,
 		},
 	}
 	for _, tt := range tests {
@@ -211,6 +215,12 @@ func TestUCISetGoParams(t *testing.T) {
 			t.Error(err)
 		}
 		uci.SetGoParams(args)
+		if tt.infinite {
+			if !uci.stopTime.IsZero() {
+				t.Errorf("expected zero stopTime for infinite, got %v", uci.stopTime)
+			}
+			continue
+		}
 		approxStopTime := time.Now().Add(tt.duration)
 		if !uci.stopTime.After(approxStopTime) {
 			t.Errorf("stopTime %v is not after %v", uci.stopTime, approxStopTime)

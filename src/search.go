@@ -38,6 +38,14 @@ func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	search.Board = board
 	search.maxDepth = maxDepth
 	search.maxNodes = maxNodes
+	search.pvTable = make([]PvMove, PV_TABLE_SIZE)
+	search.killers = make([][]Move, KILLERS_SIZE)
+	search.killers[0] = make([]Move, KILLERS_DEPTH)
+	search.killers[1] = make([]Move, KILLERS_DEPTH)
+	search.alphaHistory = make([][]int, BOARD_SQUARES)
+	for i := range search.alphaHistory {
+		search.alphaHistory[i] = make([]int, BOARD_SQUARES)
+	}
 	search.Clear()
 	return &search, nil
 }
@@ -50,13 +58,11 @@ func (s *Search) Reset() {
 	s.fh = 0
 	s.stop = false
 	s.stopTime = time.Time{}
-	s.pvTable = make([]PvMove, PV_TABLE_SIZE)
-	s.killers = make([][]Move, KILLERS_SIZE)
-	s.killers[0] = make([]Move, KILLERS_DEPTH)
-	s.killers[1] = make([]Move, KILLERS_DEPTH)
-	s.alphaHistory = make([][]int, BOARD_SQUARES)
-	for i := 0; i < len(s.alphaHistory); i++ {
-		s.alphaHistory[i] = make([]int, BOARD_SQUARES)
+	clear(s.pvTable)
+	clear(s.killers[0])
+	clear(s.killers[1])
+	for i := range s.alphaHistory {
+		clear(s.alphaHistory[i])
 	}
 }
 
@@ -73,11 +79,16 @@ func (s *Search) TimeCheck() {
 func (s *Search) IterativeDeepening() int {
 	startTime := time.Now()
 	var bestScore int
+	var lastBestMove Move
 	for i := 1; i <= s.maxDepth; i++ {
 		bestScore = s.Negamax(i, MIN_SCORE, MAX_SCORE)
 		if s.stop {
+			if lastBestMove != 0 {
+				s.bestMove = lastBestMove
+			}
 			break
 		}
+		lastBestMove = s.bestMove
 		s.SendInfo(i, bestScore, startTime)
 	}
 	return bestScore
@@ -269,27 +280,29 @@ func (s *Search) SetPvMove(move Move) {
 	s.pvTable[index] = PvMove{move, s.hash}
 }
 
-func (s *Search) GetPvMove() (Move, error) {
+func (s *Search) GetPvMove() (Move, bool) {
 	index := s.hash % PV_TABLE_SIZE
 	if s.pvTable[index].hash == s.hash {
-		return s.pvTable[index].move, nil
+		return s.pvTable[index].move, true
 	}
-	return 0, fmt.Errorf("no pv move found at:\n%v", s.ToString())
+	return 0, false
 }
 
 func (s *Search) SetPvLine() {
-	s.pvLine = make([]Move, 0, 20)
-	move, err := s.GetPvMove()
+	s.pvLine = s.pvLine[:0]
+	move, ok := s.GetPvMove()
 	var count int
-	for err == nil && count < s.maxDepth {
-		if s.MoveExists(move) {
-			s.MakeMove(move)
-			s.pvLine = append(s.pvLine, move)
-			count++
-		} else {
+	for ok && count < s.maxDepth {
+		if !s.MoveExists(move) {
 			break
 		}
-		move, err = s.GetPvMove()
+		if err := s.MakeMove(move); err != nil {
+			s.UndoMove()
+			break
+		}
+		s.pvLine = append(s.pvLine, move)
+		count++
+		move, ok = s.GetPvMove()
 	}
 	for i := 0; i < count; i++ {
 		s.UndoMove()

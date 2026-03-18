@@ -90,7 +90,7 @@ func (b *Board) Evaluate() int {
 
 	var score int
 
-	for bbSquare := range b.BitboardSquares() {
+	for _, bbSquare := range b.BitboardSquares() {
 		for bbSquare.bb > 0 {
 			score += SQUARE_SCORES[bbSquare.sq]
 

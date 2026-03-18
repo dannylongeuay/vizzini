@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -57,7 +58,7 @@ var SQUARES = [SQUARE_TYPES]string{
 	"BLACK_KING",
 }
 
-var BOARD_INITIALIZED bool
+var boardInitOnce sync.Once
 
 type Board struct {
 	squares       []Square
@@ -89,15 +90,11 @@ type Board struct {
 }
 
 func InitBoard() {
-	if BOARD_INITIALIZED {
-		return
-	}
-
-	InitHashKeys(time.Now().UTC().UnixNano())
-	InitBitboards()
-	InitMvvLva()
-
-	BOARD_INITIALIZED = true
+	boardInitOnce.Do(func() {
+		InitHashKeys(time.Now().UTC().UnixNano())
+		InitBitboards()
+		InitMvvLva()
+	})
 }
 
 func NewBoard(fen string) (*Board, error) {
@@ -291,22 +288,21 @@ type BitboardSquareResult struct {
 	sq Square
 }
 
-func (b *Board) BitboardSquares() chan BitboardSquareResult {
-	c := make(chan BitboardSquareResult, 12)
-	c <- BitboardSquareResult{b.bbWP, WHITE_PAWN}
-	c <- BitboardSquareResult{b.bbWN, WHITE_KNIGHT}
-	c <- BitboardSquareResult{b.bbWB, WHITE_BISHOP}
-	c <- BitboardSquareResult{b.bbWR, WHITE_ROOK}
-	c <- BitboardSquareResult{b.bbWQ, WHITE_QUEEN}
-	c <- BitboardSquareResult{b.bbWK, WHITE_KING}
-	c <- BitboardSquareResult{b.bbBP, BLACK_PAWN}
-	c <- BitboardSquareResult{b.bbBN, BLACK_KNIGHT}
-	c <- BitboardSquareResult{b.bbBB, BLACK_BISHOP}
-	c <- BitboardSquareResult{b.bbBR, BLACK_ROOK}
-	c <- BitboardSquareResult{b.bbBQ, BLACK_QUEEN}
-	c <- BitboardSquareResult{b.bbBK, BLACK_KING}
-	close(c)
-	return c
+func (b *Board) BitboardSquares() [12]BitboardSquareResult {
+	return [12]BitboardSquareResult{
+		{b.bbWP, WHITE_PAWN},
+		{b.bbWN, WHITE_KNIGHT},
+		{b.bbWB, WHITE_BISHOP},
+		{b.bbWR, WHITE_ROOK},
+		{b.bbWQ, WHITE_QUEEN},
+		{b.bbWK, WHITE_KING},
+		{b.bbBP, BLACK_PAWN},
+		{b.bbBN, BLACK_KNIGHT},
+		{b.bbBB, BLACK_BISHOP},
+		{b.bbBR, BLACK_ROOK},
+		{b.bbBQ, BLACK_QUEEN},
+		{b.bbBK, BLACK_KING},
+	}
 }
 
 func (b Board) ToString() string {

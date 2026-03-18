@@ -121,6 +121,18 @@ func (u *UCI) SetPosition(args []string) {
 func (u *UCI) SendCalculations(args []string) {
 	u.SetGoParams(args)
 	u.IterativeDeepening()
+	if u.bestMove == 0 {
+		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+		u.GenerateMoves(&moves, u.sideToMove, false)
+		for _, m := range moves {
+			if err := u.MakeMove(m); err == nil {
+				u.UndoMove()
+				u.bestMove = m
+				break
+			}
+			u.UndoMove()
+		}
+	}
 	fmt.Println("bestmove", u.bestMove.ToUCIString())
 }
 
@@ -129,7 +141,6 @@ func (u *UCI) SetStop() {
 }
 
 func (u *UCI) SetPonder() {
-	panic("ponderhit not implemented")
 }
 
 func NewBoardFromUCIPosition(args []string) (*Board, error) {
@@ -169,16 +180,16 @@ func (u *UCI) SetGoParams(args []string) {
 	for i, arg := range args {
 		switch arg {
 		case "searchmoves":
-			panic("searchmoves not implemented")
+			continue
 		case "ponder":
-			panic("ponder not implemented")
+			continue
 		case "wtime":
 			if u.sideToMove != WHITE {
 				continue
 			}
 			wtime, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			remainingTime = int64(wtime)
 		case "btime":
@@ -187,7 +198,7 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			btime, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			remainingTime = int64(btime)
 		case "winc":
@@ -196,7 +207,7 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			winc, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			increment = int64(winc)
 		case "binc":
@@ -205,33 +216,33 @@ func (u *UCI) SetGoParams(args []string) {
 			}
 			binc, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			increment = int64(binc)
 		case "movestogo":
 			movestogo, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			remainingMoves = int64(movestogo)
 		case "depth":
 			maxDepth, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			u.maxDepth = maxDepth
 		case "nodes":
 			maxNodes, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			u.maxNodes = maxNodes
 		case "mate":
-			panic("mate not implemented")
+			continue
 		case "movetime":
 			moveTime, err := strconv.Atoi(args[i+1])
 			if err != nil {
-				panic(err)
+				continue
 			}
 			maxMoveTime = int64(moveTime)
 		case "infinite":
@@ -239,14 +250,18 @@ func (u *UCI) SetGoParams(args []string) {
 		}
 	}
 
-	var duration time.Duration
 	if searchInfinite {
-		duration = time.Minute
-	} else if maxMoveTime > 0 {
+		return
+	}
+
+	var duration time.Duration
+	if maxMoveTime > 0 {
 		mtime := maxMoveTime - SEARCH_BUFFER
 		duration = time.Millisecond * time.Duration(mtime)
 	} else if remainingTime > 0 {
-		// TODO: need to speed up when getting low on time
+		if remainingMoves == 0 {
+			remainingMoves = 30
+		}
 		mtime := remainingTime/remainingMoves + increment - SEARCH_BUFFER
 		duration = time.Millisecond * time.Duration(mtime)
 	} else {

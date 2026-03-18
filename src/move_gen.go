@@ -37,6 +37,27 @@ func (b *Board) AppendCaptures(
 	}
 }
 
+func (b *Board) sideParams(side Color, wBB, bBB Bitboard, wSq, bSq Square) (Bitboard, Square, Bitboard) {
+	if side == WHITE {
+		return wBB, wSq, b.bbBlackPieces
+	}
+	return bBB, bSq, b.bbWhitePieces
+}
+
+func (b *Board) appendPromotions(moves *[]Move, originCoord, dstCoord Coord, originSquare Square, dstSquare Square, capture bool) {
+	if capture {
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, KNIGHT_PROMOTION_CAPTURE)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, BISHOP_PROMOTION_CAPTURE)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, ROOK_PROMOTION_CAPTURE)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, QUEEN_PROMOTION_CAPTURE)
+	} else {
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, KNIGHT_PROMOTION)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, BISHOP_PROMOTION)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, ROOK_PROMOTION)
+		b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, QUEEN_PROMOTION)
+	}
+}
+
 func (b *Board) GenerateMoves(moves *[]Move, side Color, capturesOnly bool) {
 	b.GeneratePawnMoves(moves, side, capturesOnly)
 	b.GenerateKnightMoves(moves, side, capturesOnly)
@@ -76,6 +97,7 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color, capturesOnly bool) 
 			doublePush = ((quiet & doublePushRankMask) >> SHIFT_VERTICAL) & ^b.bbAllPieces
 		}
 
+		// Captures
 		b.AppendCaptures(moves, captures, originCoord, originSquare)
 
 		if b.epCoord != A1 {
@@ -83,29 +105,23 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color, capturesOnly bool) 
 			for epAttack > 0 {
 				dstCoord := epAttack.PopLSB()
 				b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, EP_CAPTURE)
-
 			}
 		}
 
 		for promotionCaptures > 0 {
 			dstCoord := promotionCaptures.PopLSB()
 			dstSquare := b.squares[dstCoord]
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, KNIGHT_PROMOTION_CAPTURE)
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, BISHOP_PROMOTION_CAPTURE)
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, ROOK_PROMOTION_CAPTURE)
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, dstSquare, QUEEN_PROMOTION_CAPTURE)
+			b.appendPromotions(moves, originCoord, dstCoord, originSquare, dstSquare, true)
 		}
 
+		// Quiet moves
 		if capturesOnly {
 			continue
 		}
 
 		for promotions > 0 {
 			dstCoord := promotions.PopLSB()
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, KNIGHT_PROMOTION)
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, BISHOP_PROMOTION)
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, ROOK_PROMOTION)
-			b.AppendMove(moves, originCoord, dstCoord, originSquare, EMPTY, QUEEN_PROMOTION)
+			b.appendPromotions(moves, originCoord, dstCoord, originSquare, EMPTY, false)
 		}
 
 		b.AppendQuietMoves(moves, quiet, originCoord, originSquare)
@@ -118,14 +134,7 @@ func (b *Board) GeneratePawnMoves(moves *[]Move, side Color, capturesOnly bool) 
 }
 
 func (b *Board) GenerateKnightMoves(moves *[]Move, side Color, capturesOnly bool) {
-	bbN := b.bbWN
-	originSquare := WHITE_KNIGHT
-	bbOpponentPieces := b.bbBlackPieces
-	if side == BLACK {
-		bbN = b.bbBN
-		originSquare = BLACK_KNIGHT
-		bbOpponentPieces = b.bbWhitePieces
-	}
+	bbN, originSquare, bbOpponentPieces := b.sideParams(side, b.bbWN, b.bbBN, WHITE_KNIGHT, BLACK_KNIGHT)
 	for bbN > 0 {
 		originCoord := bbN.PopLSB()
 		quiet := KNIGHT_ATTACKS[originCoord] & ^b.bbAllPieces
@@ -140,14 +149,7 @@ func (b *Board) GenerateKnightMoves(moves *[]Move, side Color, capturesOnly bool
 }
 
 func (b *Board) GenerateBishopMoves(moves *[]Move, side Color, capturesOnly bool) {
-	bbB := b.bbWB
-	originSquare := WHITE_BISHOP
-	bbOpponentPieces := b.bbBlackPieces
-	if side == BLACK {
-		bbB = b.bbBB
-		originSquare = BLACK_BISHOP
-		bbOpponentPieces = b.bbWhitePieces
-	}
+	bbB, originSquare, bbOpponentPieces := b.sideParams(side, b.bbWB, b.bbBB, WHITE_BISHOP, BLACK_BISHOP)
 	for bbB > 0 {
 		originCoord := bbB.PopLSB()
 		bishopAttacks := BishopAttacks(originCoord, b.bbAllPieces)
@@ -163,14 +165,7 @@ func (b *Board) GenerateBishopMoves(moves *[]Move, side Color, capturesOnly bool
 }
 
 func (b *Board) GenerateRookMoves(moves *[]Move, side Color, capturesOnly bool) {
-	bbR := b.bbWR
-	originSquare := WHITE_ROOK
-	bbOpponentPieces := b.bbBlackPieces
-	if side == BLACK {
-		bbR = b.bbBR
-		originSquare = BLACK_ROOK
-		bbOpponentPieces = b.bbWhitePieces
-	}
+	bbR, originSquare, bbOpponentPieces := b.sideParams(side, b.bbWR, b.bbBR, WHITE_ROOK, BLACK_ROOK)
 	for bbR > 0 {
 		originCoord := bbR.PopLSB()
 		rookAttacks := RookAttacks(originCoord, b.bbAllPieces)
@@ -186,14 +181,7 @@ func (b *Board) GenerateRookMoves(moves *[]Move, side Color, capturesOnly bool) 
 }
 
 func (b *Board) GenerateQueenMoves(moves *[]Move, side Color, capturesOnly bool) {
-	bbQ := b.bbWQ
-	originSquare := WHITE_QUEEN
-	bbOpponentPieces := b.bbBlackPieces
-	if side == BLACK {
-		bbQ = b.bbBQ
-		originSquare = BLACK_QUEEN
-		bbOpponentPieces = b.bbWhitePieces
-	}
+	bbQ, originSquare, bbOpponentPieces := b.sideParams(side, b.bbWQ, b.bbBQ, WHITE_QUEEN, BLACK_QUEEN)
 	for bbQ > 0 {
 		originCoord := bbQ.PopLSB()
 
