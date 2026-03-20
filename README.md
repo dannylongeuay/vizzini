@@ -2,9 +2,13 @@
 
 > *"You fool! You fell victim to one of the classic blunders!"*
 
-A UCI-compliant chess engine written in Go — complete with search, evaluation, and time management. Play against it in the interactive CLI or plug it into your favorite chess GUI.
+A UCI-compliant chess engine written in Go — complete with search, evaluation, 
+and time management. Play against it in the interactive CLI or plug it into 
+your favorite chess GUI.
 
 ## Features
+
+> *"Never go in against a Sicilian when death is on the line!"*
 
 - **Bitboard board representation** — 64-bit integers for fast, efficient piece tracking
 - **Full legal move generation** — all piece types, castling, en passant, promotions, the works
@@ -15,14 +19,46 @@ A UCI-compliant chess engine written in Go — complete with search, evaluation,
 - **Interactive CLI** — Unicode board display so you can admire your position
 - **Perft testing framework** — correctness validation against known positions
 - **UCI protocol** — full UCI compliance for chess GUI integration
-- **Negamax search with alpha-beta pruning** — iterative deepening with PV table
-- **Position evaluation** — piece-square tables and material scoring
-- **Move ordering** — MVV-LVA, killer moves, and history heuristic
+- **Negamax search with alpha-beta pruning** — iterative deepening, aspiration windows, null move pruning, late move reductions, and check extensions
+- **Position evaluation** — piece-square tables, material scoring, evaluation noise, and temperature-based move selection
+- **Move ordering** — PV move, MVV-LVA, killer moves, and history heuristic
 - **Quiescence search** — tactical stability at search boundaries
+- **Draw detection** — repetition detection and 50-move rule
 - **Time management** — configurable depth, node limits, and clock-aware search
 - **Zero external dependencies** — *"I built this with nothing but my wits and a Go compiler"*
 
+## Search
+
+> *"INCONCEIVABLE!"*
+> *"You keep using that word. I do not think it means what you think it means."*
+
+Vizzini uses **negamax with alpha-beta pruning**, enhanced with several techniques to search deeper and faster:
+
+- **Iterative deepening** — searches progressively deeper, allowing time-controlled play and seeding move ordering from shallower iterations
+- **Aspiration windows** — from depth 4+, narrows the search window to ±50cp around the previous score; re-searches with a full window on fail
+- **Null move pruning** — skips a turn to test if the position is already winning; reduction R=2 (R=3 at depth ≥6), disabled in check or with only pawns
+- **Late move reductions (LMR)** — quiet moves searched after the first 4 get reduced depth; re-searched at full depth if they beat alpha
+- **Check extensions** — extends depth by 1 when in check so tactical lines aren't cut short
+- **Quiescence search** — continues searching captures and check evasions at leaf nodes until the position is tactically quiet
+- **PV table** — million-entry hash table storing the best move per position for move ordering and PV line reconstruction
+- **Killer moves** — two quiet refutation moves remembered per depth level
+- **History heuristic** — tracks quiet moves that improve alpha, scaled into move ordering priority
+- **Draw detection** — returns a draw score on repetition or when the 50-move clock reaches 100
+
+## Evaluation
+
+> *"You're trying to trick me into giving away something. It won't work."*
+
+Position evaluation combines **material scoring** with **piece-square tables** — each piece type has a 64-entry bonus/penalty table rewarding good placement (centralized knights, rooks on the seventh rank, safe kings, etc.).
+
+Two features add variety to play:
+
+- **Evaluation noise** — uniform random noise of ±5 centipawns on leaf evaluations prevents perfectly deterministic play from identical positions
+- **Temperature-based move selection** — during the first 10 moves, a softmax distribution (temperature 0.2) selects probabilistically among root moves within 75cp of the best, producing more varied openings; disabled when a forced mate is found
+
 ## Getting Started
+
+> *"Let me explain... No, there is too much. Let me sum up."*
 
 ### Prerequisites
 
@@ -60,6 +96,8 @@ Vizzini supports two modes, detected automatically on startup:
 Type `uci` at the prompt to enter UCI mode. This is the standard interface for chess GUIs like Arena, CuteChess, or Banksia — just point the GUI at the Vizzini binary.
 
 ### Player vs Engine
+
+> *"I can't compete with you physically, and you're no match for my brains."*
 
 Type anything else (or just press Enter) to play an interactive game against Vizzini. You submit moves in UCI notation and the engine responds with its own.
 
@@ -130,9 +168,9 @@ All source lives in `src/`:
 | `move.go` | Move encoding (bit-packed `uint32`), make/undo move logic |
 | `move_gen.go` | Legal move generation for all piece types |
 | `board_hash.go` | Zobrist hashing — incremental hash updates |
-| `search.go` | Negamax search with alpha-beta pruning, iterative deepening, PV table |
+| `search.go` | Negamax search — alpha-beta, iterative deepening, aspiration windows, NMP, LMR, PV table, move ordering |
 | `uci.go` | UCI protocol — command parsing and engine communication |
-| `evaluate.go` | Position evaluation — piece-square tables, material scoring, move ordering |
+| `evaluate.go` | Position evaluation — piece-square tables, material scoring |
 | `util.go` | UCI parsing, coordinate helpers, utility functions |
 
 ## Testing
