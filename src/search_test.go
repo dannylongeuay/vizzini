@@ -574,3 +574,125 @@ func TestTemperatureSelect(t *testing.T) {
 		}
 	})
 }
+
+// Priority 5: Transposition table
+
+func TestTTStoreAndProbe(t *testing.T) {
+	search, err := NewSearch(STARTING_FEN, 4, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Store a TT entry
+	testMove := NewMoveFromMoveUnpacked(MoveUnpacked{E2, E4, WHITE_PAWN, EMPTY, DOUBLE_PAWN_PUSH})
+	search.StoreTT(testMove, 50, 4, TT_EXACT)
+
+	// Probe should find it
+	entry, ok := search.ProbeTT()
+	if !ok {
+		t.Fatal("expected TT hit")
+	}
+	if entry.move != testMove {
+		t.Errorf("expected move %v, got %v", testMove, entry.move)
+	}
+	if entry.flag != TT_EXACT {
+		t.Errorf("expected TT_EXACT flag, got %v", entry.flag)
+	}
+	if int(entry.depth) != 4 {
+		t.Errorf("expected depth 4, got %v", entry.depth)
+	}
+	score := search.TTScoreToSearch(entry.score)
+	if score != 50 {
+		t.Errorf("expected score 50, got %v", score)
+	}
+}
+
+func TestTTMateScoreAdjustment(t *testing.T) {
+	search, err := NewSearch(STARTING_FEN, 8, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate being 3 plies from root
+	search.currentDepth = 3
+
+	// Store a "mate in 5 plies from root" score
+	mateScore := MAX_SCORE - 5
+	search.StoreTT(0, mateScore, 4, TT_EXACT)
+
+	// Retrieve at same depth — should get same score
+	entry, ok := search.ProbeTT()
+	if !ok {
+		t.Fatal("expected TT hit")
+	}
+	retrieved := search.TTScoreToSearch(entry.score)
+	if retrieved != mateScore {
+		t.Errorf("at same depth: expected %v, got %v", mateScore, retrieved)
+	}
+
+	// Retrieve at different depth (e.g., 1 ply from root)
+	search.currentDepth = 1
+	retrieved2 := search.TTScoreToSearch(entry.score)
+	// Stored as MAX_SCORE - 5 + 3 = MAX_SCORE - 2 (mate in 2 from position)
+	// Retrieved at depth 1: MAX_SCORE - 2 - 1 = MAX_SCORE - 3
+	expected := MAX_SCORE - 3
+	if retrieved2 != expected {
+		t.Errorf("at depth 1: expected %v, got %v", expected, retrieved2)
+	}
+}
+
+func TestTTReducesNodeCount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TT node count test in short mode")
+	}
+	// Search the same position twice. Second search should use TT entries
+	// and visit fewer nodes (or at worst the same).
+	fen := "r1bqkbnr/pppppppp/2n5/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2"
+
+	search1, err := NewSearch(fen, 5, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	search1.quiet = true
+	search1.evalNoise = 0
+	search1.temperature = 0
+	search1.IterativeDeepening()
+	nodes1 := search1.nodes
+
+	// Second search reuses the same TT (don't call Reset which clears TT)
+	search1.ResetKeepTT()
+	search1.IterativeDeepening()
+	nodes2 := search1.nodes
+
+	if nodes2 > nodes1 {
+		t.Errorf("second search with warm TT should not use more nodes: first=%v second=%v", nodes1, nodes2)
+	}
+}
+
+func TestTTPopulatedAfterSearch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TT populated test in short mode")
+	}
+	// Deeper search with TT should use significantly fewer nodes than without.
+	// We compare by running depth 6 from starting position — with TT populated
+	// from iterative deepening, we expect good cutoffs.
+	search, err := NewSearch(STARTING_FEN, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	search.quiet = true
+	search.evalNoise = 0
+	search.temperature = 0
+	search.IterativeDeepening()
+
+	// Basic sanity: TT should have entries
+	hasEntry := false
+	for i := Hash(0); i < TT_SIZE && !hasEntry; i++ {
+		if search.tt[i].flag != TT_NONE {
+			hasEntry = true
+		}
+	}
+	if !hasEntry {
+		t.Error("expected TT to contain entries after search")
+	}
+}

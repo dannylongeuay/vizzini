@@ -18,7 +18,7 @@ type Search struct {
 	bestMove         Move
 	stop             bool
 	stopTime         time.Time
-	pvTable          []PvMove
+	tt               []TTEntry
 	pvLine           []Move
 	fhf              float64
 	fh               float64
@@ -38,9 +38,20 @@ type ScoredMove struct {
 	score int
 }
 
-type PvMove struct {
-	move Move
-	hash Hash
+const (
+	TT_NONE  uint8 = iota
+	TT_EXACT
+	TT_ALPHA
+	TT_BETA
+)
+
+// TTEntry stores search results for a position.
+type TTEntry struct {
+	hash  Hash
+	move  Move
+	score int32
+	depth int8
+	flag  uint8
 }
 
 func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
@@ -52,7 +63,7 @@ func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	search.Board = board
 	search.maxDepth = maxDepth
 	search.maxNodes = maxNodes
-	search.pvTable = make([]PvMove, PV_TABLE_SIZE)
+	search.tt = make([]TTEntry, TT_SIZE)
 	search.killers = make([][]Move, KILLERS_SIZE)
 	search.killers[0] = make([]Move, KILLERS_DEPTH)
 	search.killers[1] = make([]Move, KILLERS_DEPTH)
@@ -68,7 +79,7 @@ func NewSearch(fen string, maxDepth int, maxNodes int) (*Search, error) {
 	return &search, nil
 }
 
-func (s *Search) Reset() {
+func (s *Search) ResetKeepTT() {
 	s.currentDepth = 0
 	s.completedDepth = 0
 	s.nodes = 0
@@ -79,12 +90,16 @@ func (s *Search) Reset() {
 	s.stopTime = time.Time{}
 	s.nullMoveAllowed = true
 	s.rootMoves = s.rootMoves[:0]
-	clear(s.pvTable)
 	clear(s.killers[0])
 	clear(s.killers[1])
 	for i := range s.alphaHistory {
 		clear(s.alphaHistory[i])
 	}
+}
+
+func (s *Search) Reset() {
+	s.ResetKeepTT()
+	clear(s.tt)
 }
 
 func (s *Search) NoisyEvaluate() int {
@@ -292,7 +307,6 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 		if score > alpha {
 			alpha = score
-			s.SetPvMove(move)
 			if s.currentDepth == 0 {
 				s.bestMove = move
 			}
@@ -327,6 +341,28 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 	}
 
 	s.nodes++
+
+	// Probe transposition table.
+	ttMove := Move(0)
+	isPvNode := beta-alpha > 1
+	if entry, ok := s.ProbeTT(); ok {
+		ttMove = entry.move
+		if int(entry.depth) >= depth && !isPvNode {
+			ttScore := s.TTScoreToSearch(entry.score)
+			switch entry.flag {
+			case TT_EXACT:
+				return ttScore
+			case TT_ALPHA:
+				if ttScore <= alpha {
+					return alpha
+				}
+			case TT_BETA:
+				if ttScore >= beta {
+					return beta
+				}
+			}
+		}
+	}
 
 	inCheck := s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove)
 	if inCheck {
@@ -367,11 +403,13 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 
 	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
 	var legalMoves int
-	pvMove, _ := s.GetPvMove()
 	s.GenerateMoves(&moves, s.sideToMove, false)
 
+	origAlpha := alpha
+	var bestMove Move
+
 	for i := 0; i < len(moves); i++ {
-		move := s.PickNextMove(i, &moves, pvMove)
+		move := s.PickNextMove(i, &moves, ttMove)
 		err := s.MakeMove(move)
 		s.currentDepth++
 		if err != nil {
@@ -406,6 +444,7 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		}
 
 		if score >= beta {
+			bestMove = move
 			if legalMoves == 1 {
 				s.fhf++
 			}
@@ -414,12 +453,13 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 				s.killers[0][s.currentDepth] = move
 			}
 			s.fh++
+			s.StoreTT(move, beta, depth, TT_BETA)
 			return beta
 		}
 
 		if score > alpha {
 			alpha = score
-			s.SetPvMove(move)
+			bestMove = move
 			if s.currentDepth == 0 {
 				s.bestMove = move
 			}
@@ -442,6 +482,13 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		}
 	}
 
+	// Store result in transposition table.
+	if alpha > origAlpha {
+		s.StoreTT(bestMove, alpha, depth, TT_EXACT)
+	} else {
+		s.StoreTT(bestMove, alpha, depth, TT_ALPHA)
+	}
+
 	return alpha
 }
 
@@ -457,34 +504,64 @@ func (s *Search) Repetition() bool {
 	return false
 }
 
-func (s *Search) SetPvMove(move Move) {
-	index := s.hash % PV_TABLE_SIZE
-	s.pvTable[index] = PvMove{move, s.hash}
+// StoreTT writes a search result into the transposition table.
+// Mate scores are adjusted from distance-from-root to distance-from-position.
+func (s *Search) StoreTT(move Move, score int, depth int, flag uint8) {
+	index := s.hash & TT_MASK
+	storeScore := score
+	if storeScore > MATE_THRESHOLD {
+		storeScore += s.currentDepth
+	} else if storeScore < -MATE_THRESHOLD {
+		storeScore -= s.currentDepth
+	}
+	s.tt[index] = TTEntry{
+		hash:  s.hash,
+		move:  move,
+		score: int32(storeScore),
+		depth: int8(depth),
+		flag:  flag,
+	}
 }
 
-func (s *Search) GetPvMove() (Move, bool) {
-	index := s.hash % PV_TABLE_SIZE
-	if s.pvTable[index].hash == s.hash {
-		return s.pvTable[index].move, true
+// ProbeTT retrieves a TT entry for the current position.
+// Returns the entry and whether the hash matched.
+func (s *Search) ProbeTT() (TTEntry, bool) {
+	index := s.hash & TT_MASK
+	entry := s.tt[index]
+	if entry.hash == s.hash && entry.flag != TT_NONE {
+		return entry, true
 	}
-	return 0, false
+	return TTEntry{}, false
+}
+
+// TTScoreToSearch converts a stored mate score back to distance-from-root.
+func (s *Search) TTScoreToSearch(score int32) int {
+	sc := int(score)
+	if sc > MATE_THRESHOLD {
+		sc -= s.currentDepth
+	} else if sc < -MATE_THRESHOLD {
+		sc += s.currentDepth
+	}
+	return sc
 }
 
 func (s *Search) SetPvLine() {
 	s.pvLine = s.pvLine[:0]
-	move, ok := s.GetPvMove()
 	var count int
-	for ok && count < s.maxDepth {
-		if !s.MoveExists(move) {
+	for count < s.maxDepth {
+		entry, ok := s.ProbeTT()
+		if !ok {
 			break
 		}
-		if err := s.MakeMove(move); err != nil {
+		if !s.MoveExists(entry.move) {
+			break
+		}
+		if err := s.MakeMove(entry.move); err != nil {
 			s.UndoMove()
 			break
 		}
-		s.pvLine = append(s.pvLine, move)
+		s.pvLine = append(s.pvLine, entry.move)
 		count++
-		move, ok = s.GetPvMove()
 	}
 	for i := 0; i < count; i++ {
 		s.UndoMove()

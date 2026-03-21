@@ -63,7 +63,8 @@ const DEFAULT_MAX_DEPTH int = 64
 const DEFAULT_MAX_NODES int = 0
 
 const SEARCH_BUFFER int64 = 50
-const PV_TABLE_SIZE Hash = 1000000
+const TT_SIZE Hash = 1 << 21
+const TT_MASK Hash = TT_SIZE - 1
 const KILLERS_SIZE = 2
 const KILLERS_DEPTH = 64
 
