@@ -1,8 +1,30 @@
 package main
 
-var SQUARE_SCORES = [SQUARE_TYPES]int{
-	0, 100, 300, 300, 500, 900, 10000,
-	-100, -300, -300, -500, -900, -10000,
+// Phase weights per piece type (non-pawn, non-king).
+const PHASE_KNIGHT = 1
+const PHASE_BISHOP = 1
+const PHASE_ROOK = 2
+const PHASE_QUEEN = 4
+
+// Total phase at game start: 4 knights + 4 bishops + 4 rooks + 2 queens = 24.
+const PHASE_TOTAL = 24
+
+// Midgame material values indexed by Square type.
+var MATERIAL_MG = [SQUARE_TYPES]int{
+	0, 100, 320, 330, 500, 900, 10000,
+	-100, -320, -330, -500, -900, -10000,
+}
+
+// Endgame material values indexed by Square type.
+var MATERIAL_EG = [SQUARE_TYPES]int{
+	0, 120, 280, 300, 520, 950, 10000,
+	-120, -280, -300, -520, -950, -10000,
+}
+
+// Phase weight indexed by Square type (for phase calculation).
+var PHASE_WEIGHT = [SQUARE_TYPES]int{
+	0, 0, PHASE_KNIGHT, PHASE_BISHOP, PHASE_ROOK, PHASE_QUEEN, 0,
+	0, PHASE_KNIGHT, PHASE_BISHOP, PHASE_ROOK, PHASE_QUEEN, 0,
 }
 
 var VICTIM_SCORE = [SQUARE_TYPES]MoveOrder{
@@ -12,7 +34,8 @@ var VICTIM_SCORE = [SQUARE_TYPES]MoveOrder{
 
 var MVV_LVA_SCORES [SQUARE_TYPES][SQUARE_TYPES]MoveOrder
 
-var PAWN_COORD_SCORES = [BOARD_SQUARES]int{
+// Midgame piece-square tables.
+var PAWN_MG = [BOARD_SQUARES]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 	5, 5, 5, -10, -10, 5, 5, 5,
 	5, 0, 0, 5, 5, 0, 0, 5,
@@ -23,7 +46,7 @@ var PAWN_COORD_SCORES = [BOARD_SQUARES]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 }
 
-var KNIGHT_COORD_SCORES = [BOARD_SQUARES]int{
+var KNIGHT_MG = [BOARD_SQUARES]int{
 	-5, -10, -5, -5, -5, -5, -10, -5,
 	-5, 0, 0, 5, 5, 0, 0, -5,
 	-5, 5, 15, 15, 15, 15, 5, -5,
@@ -34,7 +57,7 @@ var KNIGHT_COORD_SCORES = [BOARD_SQUARES]int{
 	-5, -5, -5, -5, -5, -5, -5, -5,
 }
 
-var BISHOP_COORD_SCORES = [BOARD_SQUARES]int{
+var BISHOP_MG = [BOARD_SQUARES]int{
 	0, 0, -10, 0, 0, -10, 0, 0,
 	0, 0, 0, 10, 10, 0, 0, 0,
 	0, 0, 0, 10, 10, 0, 0, 0,
@@ -45,7 +68,7 @@ var BISHOP_COORD_SCORES = [BOARD_SQUARES]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 }
 
-var ROOK_COORD_SCORES = [BOARD_SQUARES]int{
+var ROOK_MG = [BOARD_SQUARES]int{
 	0, 0, 5, 10, 10, 0, 0, 0,
 	0, 0, 0, 10, 10, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
@@ -56,7 +79,7 @@ var ROOK_COORD_SCORES = [BOARD_SQUARES]int{
 	10, 10, 10, 10, 10, 10, 10, 10,
 }
 
-var QUEEN_COORD_SCORES = [BOARD_SQUARES]int{
+var QUEEN_MG = [BOARD_SQUARES]int{
 	-20, -10, -10, -5, -5, -10, -10, -20,
 	-10, 0, 0, 0, 0, 0, 0, -10,
 	-10, 0, 5, 5, 5, 5, 0, -10,
@@ -67,15 +90,139 @@ var QUEEN_COORD_SCORES = [BOARD_SQUARES]int{
 	-20, -10, -10, 0, 0, -10, -10, -20,
 }
 
-var KING_COORD_SCORES = [BOARD_SQUARES]int{
-	0, 0, 10, -5, -5, -5, 10, 0,
-	0, 0, 0, -5, -5, -5, 0, 0,
+// Midgame king: prefer castled corners.
+var KING_MG = [BOARD_SQUARES]int{
+	20, 30, 10, 0, 0, 10, 30, 20,
+	20, 20, 0, 0, 0, 0, 20, 20,
+	-10, -20, -20, -20, -20, -20, -20, -10,
+	-20, -30, -30, -40, -40, -30, -30, -20,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+}
+
+// Endgame piece-square tables.
+var PAWN_EG = [BOARD_SQUARES]int{
+	0, 0, 0, 0, 0, 0, 0, 0,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	10, 10, 10, 10, 10, 10, 10, 10,
+	15, 15, 15, 20, 20, 15, 15, 15,
+	25, 25, 25, 30, 30, 25, 25, 25,
+	40, 40, 40, 45, 45, 40, 40, 40,
+	60, 60, 60, 65, 65, 60, 60, 60,
+	0, 0, 0, 0, 0, 0, 0, 0,
+}
+
+var KNIGHT_EG = [BOARD_SQUARES]int{
+	-20, -10, -5, -5, -5, -5, -10, -20,
+	-10, -5, 0, 0, 0, 0, -5, -10,
+	-5, 0, 10, 10, 10, 10, 0, -5,
+	-5, 0, 10, 20, 20, 10, 0, -5,
+	-5, 0, 10, 20, 20, 10, 0, -5,
+	-5, 0, 10, 10, 10, 10, 0, -5,
+	-10, -5, 0, 0, 0, 0, -5, -10,
+	-20, -10, -5, -5, -5, -5, -10, -20,
+}
+
+var BISHOP_EG = [BOARD_SQUARES]int{
+	-10, -5, -5, -5, -5, -5, -5, -10,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	-5, 0, 5, 10, 10, 5, 0, -5,
+	-5, 0, 5, 10, 10, 5, 0, -5,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-10, -5, -5, -5, -5, -5, -5, -10,
+}
+
+var ROOK_EG = [BOARD_SQUARES]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	0, 0, 0, 0, 0, 0, 0, 0,
+}
+
+var QUEEN_EG = [BOARD_SQUARES]int{
+	-10, -5, -5, 0, 0, -5, -5, -10,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	0, 0, 5, 5, 5, 5, 0, 0,
+	0, 0, 5, 5, 5, 5, 0, 0,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-10, -5, -5, 0, 0, -5, -5, -10,
+}
+
+// Endgame king: centralized and active.
+var KING_EG = [BOARD_SQUARES]int{
+	-50, -30, -20, -20, -20, -20, -30, -50,
+	-30, -10, 0, 0, 0, 0, -10, -30,
+	-20, 0, 10, 15, 15, 10, 0, -20,
+	-20, 0, 15, 20, 20, 15, 0, -20,
+	-20, 0, 15, 20, 20, 15, 0, -20,
+	-20, 0, 10, 15, 15, 10, 0, -20,
+	-30, -10, 0, 0, 0, 0, -10, -30,
+	-50, -30, -20, -20, -20, -20, -30, -50,
+}
+
+// Pawn structure bonuses/penalties.
+const PASSED_PAWN_MG = 10
+const PASSED_PAWN_EG = 20
+const ISOLATED_PAWN_MG = -10
+const ISOLATED_PAWN_EG = -15
+const DOUBLED_PAWN_MG = -10
+const DOUBLED_PAWN_EG = -20
+
+// Passed pawn rank bonus multiplier (indexed by rank for white perspective).
+var PASSED_PAWN_RANK_BONUS = [RANKS]int{0, 0, 0, 1, 2, 4, 6, 0}
+
+// Adjacent file masks for isolated pawn detection (initialized in InitEval).
+var ADJACENT_FILE_MASKS [FILES]Bitboard
+
+// Front span masks for passed pawn detection (initialized in InitEval).
+var WHITE_FRONT_SPAN [BOARD_SQUARES]Bitboard
+var BLACK_FRONT_SPAN [BOARD_SQUARES]Bitboard
+
+func InitEval() {
+	// Initialize adjacent file masks.
+	for f := 0; f < FILES; f++ {
+		ADJACENT_FILE_MASKS[f] = 0
+		if f > 0 {
+			ADJACENT_FILE_MASKS[f] |= FILE_MASK_BITBOARDS[f-1]
+		}
+		if f < FILES-1 {
+			ADJACENT_FILE_MASKS[f] |= FILE_MASK_BITBOARDS[f+1]
+		}
+	}
+
+	// Initialize front span masks.
+	// White front span at coord: all squares on same file + adjacent files, on ranks above.
+	// Black front span at coord: all squares on same file + adjacent files, on ranks below.
+	for coord := 0; coord < BOARD_SQUARES; coord++ {
+		file := coord % FILES
+		rank := coord / FILES
+
+		fileMask := FILE_MASK_BITBOARDS[file] | ADJACENT_FILE_MASKS[file]
+
+		var whiteSpan Bitboard
+		for r := rank + 1; r < RANKS; r++ {
+			whiteSpan |= RANK_MASK_BITBOARDS[r]
+		}
+		WHITE_FRONT_SPAN[coord] = fileMask & whiteSpan
+
+		var blackSpan Bitboard
+		for r := 0; r < rank; r++ {
+			blackSpan |= RANK_MASK_BITBOARDS[r]
+		}
+		BLACK_FRONT_SPAN[coord] = fileMask & blackSpan
+	}
+
+	InitMvvLva()
 }
 
 func InitMvvLva() {
@@ -86,48 +233,150 @@ func InitMvvLva() {
 	}
 }
 
-func (b *Board) Evaluate() int {
+// Phase computes the game phase from piece counts (non-destructive).
+// Returns 0 (endgame) to PHASE_TOTAL (midgame).
+func (b *Board) Phase() int {
+	var phase int
+	for _, bbSquare := range b.BitboardSquares() {
+		phase += PHASE_WEIGHT[bbSquare.sq] * bbSquare.bb.Count()
+	}
+	if phase > PHASE_TOTAL {
+		phase = PHASE_TOTAL
+	}
+	return phase
+}
 
-	var score int
+// TaperedMaterial returns the phase-blended material value for a piece type.
+func TaperedMaterial(sq Square, phase int) int {
+	return (MATERIAL_MG[sq]*phase + MATERIAL_EG[sq]*(PHASE_TOTAL-phase)) / PHASE_TOTAL
+}
+
+func (b *Board) Evaluate() int {
+	var mgScore, egScore int
+	phase := b.Phase()
 
 	for _, bbSquare := range b.BitboardSquares() {
 		for bbSquare.bb > 0 {
-			score += SQUARE_SCORES[bbSquare.sq]
-
 			coord := bbSquare.bb.PopLSB()
 			mirror := MIRROR_COORDS[coord]
 
 			switch bbSquare.sq {
 			case WHITE_PAWN:
-				score += PAWN_COORD_SCORES[coord]
+				mgScore += MATERIAL_MG[WHITE_PAWN] + PAWN_MG[coord]
+				egScore += MATERIAL_EG[WHITE_PAWN] + PAWN_EG[coord]
 			case WHITE_KNIGHT:
-				score += KNIGHT_COORD_SCORES[coord]
+				mgScore += MATERIAL_MG[WHITE_KNIGHT] + KNIGHT_MG[coord]
+				egScore += MATERIAL_EG[WHITE_KNIGHT] + KNIGHT_EG[coord]
 			case WHITE_BISHOP:
-				score += BISHOP_COORD_SCORES[coord]
+				mgScore += MATERIAL_MG[WHITE_BISHOP] + BISHOP_MG[coord]
+				egScore += MATERIAL_EG[WHITE_BISHOP] + BISHOP_EG[coord]
 			case WHITE_ROOK:
-				score += ROOK_COORD_SCORES[coord]
+				mgScore += MATERIAL_MG[WHITE_ROOK] + ROOK_MG[coord]
+				egScore += MATERIAL_EG[WHITE_ROOK] + ROOK_EG[coord]
 			case WHITE_QUEEN:
-				score += QUEEN_COORD_SCORES[coord]
+				mgScore += MATERIAL_MG[WHITE_QUEEN] + QUEEN_MG[coord]
+				egScore += MATERIAL_EG[WHITE_QUEEN] + QUEEN_EG[coord]
 			case WHITE_KING:
-				score += KING_COORD_SCORES[coord]
+				mgScore += MATERIAL_MG[WHITE_KING] + KING_MG[coord]
+				egScore += MATERIAL_EG[WHITE_KING] + KING_EG[coord]
 			case BLACK_PAWN:
-				score -= PAWN_COORD_SCORES[mirror]
+				mgScore -= MATERIAL_MG[WHITE_PAWN] + PAWN_MG[mirror]
+				egScore -= MATERIAL_EG[WHITE_PAWN] + PAWN_EG[mirror]
 			case BLACK_KNIGHT:
-				score -= KNIGHT_COORD_SCORES[mirror]
+				mgScore -= MATERIAL_MG[WHITE_KNIGHT] + KNIGHT_MG[mirror]
+				egScore -= MATERIAL_EG[WHITE_KNIGHT] + KNIGHT_EG[mirror]
 			case BLACK_BISHOP:
-				score -= BISHOP_COORD_SCORES[mirror]
+				mgScore -= MATERIAL_MG[WHITE_BISHOP] + BISHOP_MG[mirror]
+				egScore -= MATERIAL_EG[WHITE_BISHOP] + BISHOP_EG[mirror]
 			case BLACK_ROOK:
-				score -= ROOK_COORD_SCORES[mirror]
+				mgScore -= MATERIAL_MG[WHITE_ROOK] + ROOK_MG[mirror]
+				egScore -= MATERIAL_EG[WHITE_ROOK] + ROOK_EG[mirror]
 			case BLACK_QUEEN:
-				score -= QUEEN_COORD_SCORES[mirror]
+				mgScore -= MATERIAL_MG[WHITE_QUEEN] + QUEEN_MG[mirror]
+				egScore -= MATERIAL_EG[WHITE_QUEEN] + QUEEN_EG[mirror]
 			case BLACK_KING:
-				score -= KING_COORD_SCORES[mirror]
+				mgScore -= MATERIAL_MG[WHITE_KING] + KING_MG[mirror]
+				egScore -= MATERIAL_EG[WHITE_KING] + KING_EG[mirror]
 			}
 		}
 	}
+
+	// Pawn structure evaluation.
+	mgPawn, egPawn := b.evaluatePawnStructure()
+	mgScore += mgPawn
+	egScore += egPawn
+
+	// Taper: phase ranges from 0 (endgame) to PHASE_TOTAL (midgame).
+	score := (mgScore*phase + egScore*(PHASE_TOTAL-phase)) / PHASE_TOTAL
 
 	if b.sideToMove == WHITE {
 		return score
 	}
 	return -score
+}
+
+func (b *Board) evaluatePawnStructure() (int, int) {
+	var mgScore, egScore int
+
+	// White pawns.
+	wp := b.bbWP
+	for wp > 0 {
+		coord := wp.PopLSB()
+		file := int(coord) % FILES
+		rank := int(coord) / FILES
+
+		// Passed pawn: no enemy pawns on same or adjacent files ahead.
+		if WHITE_FRONT_SPAN[coord]&b.bbBP == 0 {
+			bonus := PASSED_PAWN_RANK_BONUS[rank]
+			mgScore += PASSED_PAWN_MG * bonus
+			egScore += PASSED_PAWN_EG * bonus
+		}
+
+		// Isolated pawn: no friendly pawns on adjacent files.
+		if ADJACENT_FILE_MASKS[file]&b.bbWP == 0 {
+			mgScore += ISOLATED_PAWN_MG
+			egScore += ISOLATED_PAWN_EG
+		}
+	}
+
+	// White doubled pawns (per file).
+	for f := 0; f < FILES; f++ {
+		count := (FILE_MASK_BITBOARDS[f] & b.bbWP).Count()
+		if count > 1 {
+			mgScore += DOUBLED_PAWN_MG * (count - 1)
+			egScore += DOUBLED_PAWN_EG * (count - 1)
+		}
+	}
+
+	// Black pawns.
+	bp := b.bbBP
+	for bp > 0 {
+		coord := bp.PopLSB()
+		file := int(coord) % FILES
+		rank := int(coord) / FILES
+
+		// Passed pawn: no enemy pawns on same or adjacent files ahead (toward rank 0 for black).
+		if BLACK_FRONT_SPAN[coord]&b.bbWP == 0 {
+			bonus := PASSED_PAWN_RANK_BONUS[RANKS-1-rank]
+			mgScore -= PASSED_PAWN_MG * bonus
+			egScore -= PASSED_PAWN_EG * bonus
+		}
+
+		// Isolated pawn.
+		if ADJACENT_FILE_MASKS[file]&b.bbBP == 0 {
+			mgScore -= ISOLATED_PAWN_MG
+			egScore -= ISOLATED_PAWN_EG
+		}
+	}
+
+	// Black doubled pawns.
+	for f := 0; f < FILES; f++ {
+		count := (FILE_MASK_BITBOARDS[f] & b.bbBP).Count()
+		if count > 1 {
+			mgScore -= DOUBLED_PAWN_MG * (count - 1)
+			egScore -= DOUBLED_PAWN_EG * (count - 1)
+		}
+	}
+
+	return mgScore, egScore
 }

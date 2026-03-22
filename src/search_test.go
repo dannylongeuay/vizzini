@@ -703,7 +703,8 @@ func TestFutilityPruning(t *testing.T) {
 	}
 	// Use Negamax directly (no iterative deepening) so TT warmup doesn't
 	// mask the effect of futility pruning.
-	fen := STARTING_FEN
+	// Use a middlegame position where futility pruning is reliably beneficial.
+	fen := "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"
 
 	// Disable futility and reverse futility pruning with huge margins.
 	savedMargins := FUTILITY_MARGINS

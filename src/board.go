@@ -94,7 +94,7 @@ func InitBoard() {
 		// Fixed seed for deterministic games; replace with a random seed for competitive play.
 		InitHashKeys(181818)
 		InitBitboards()
-		InitMvvLva()
+		InitEval()
 	})
 }
 

@@ -289,7 +289,7 @@ func (s *Search) QSearch(alpha int, beta int) int {
 			move.Unpack(&mu)
 			// Never delta-prune promotions — they gain significant material.
 			if mu.moveKind < KNIGHT_PROMOTION {
-				capturedValue := SQUARE_SCORES[mu.dstSquare]
+				capturedValue := TaperedMaterial(mu.dstSquare, s.Phase())
 				if capturedValue < 0 {
 					capturedValue = -capturedValue
 				}
