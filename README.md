@@ -20,7 +20,8 @@ your favorite chess GUI.
 - **Perft testing framework** — correctness validation against known positions
 - **UCI protocol** — full UCI compliance for chess GUI integration
 - **Negamax search with alpha-beta pruning** — iterative deepening, aspiration windows, null move pruning, late move reductions, and check extensions
-- **Position evaluation** — piece-square tables, material scoring, evaluation noise, and temperature-based move selection
+- **Position evaluation** — tapered eval with midgame/endgame blending, piece-square tables, mobility, king safety, bishop pair bonus, evaluation noise, and temperature-based move selection
+- **Transposition table** — 2M-entry hash table for position caching, with futility and delta pruning
 - **Move ordering** — PV move, MVV-LVA, killer moves, and history heuristic
 - **Quiescence search** — tactical stability at search boundaries
 - **Draw detection** — repetition detection and 50-move rule
@@ -44,13 +45,22 @@ Vizzini uses **negamax with alpha-beta pruning**, enhanced with several techniqu
 - **PV table** — million-entry hash table storing the best move per position for move ordering and PV line reconstruction
 - **Killer moves** — two quiet refutation moves remembered per depth level
 - **History heuristic** — tracks quiet moves that improve alpha, scaled into move ordering priority
+- **Transposition table** — 2M-entry hash table caching search results (score, depth, best move, bound type) to avoid re-searching positions; mate scores adjusted for distance-from-root accuracy
+- **Futility pruning** — at shallow depths (≤3), skips quiet moves that can't improve alpha based on static eval + margin; reverse futility prunes when static eval already exceeds beta
+- **Delta pruning** — in quiescence search, skips captures where the captured piece value plus a 200cp margin can't reach alpha; never prunes promotions
 - **Draw detection** — returns a draw score on repetition or when the 50-move clock reaches 100
 
 ## Evaluation
 
 > *"You're trying to trick me into giving away something. It won't work."*
 
-Position evaluation combines **material scoring** with **piece-square tables** — each piece type has a 64-entry bonus/penalty table rewarding good placement (centralized knights, rooks on the seventh rank, safe kings, etc.).
+Position evaluation uses a **tapered evaluation** system with several components:
+
+- **Tapered evaluation** — separate midgame and endgame scores blended by game phase (piece count); smooth transitions as material comes off the board
+- **Material and piece-square tables** — each piece type scored with phase-specific values and 64-entry placement bonuses (centralized knights, rooks on the 7th, safe kings, etc.)
+- **Mobility** — bonus for each safe square a piece can reach (excluding squares attacked by enemy pawns), weighted per piece type
+- **King safety** — pawn shield bonuses, open/semi-open file penalties near the king, and a non-linear attacker danger table scaling with the number and weight of pieces targeting the king zone
+- **Bishop pair** — bonus for retaining both bishops (30cp midgame, 50cp endgame)
 
 Two features add variety to play:
 
@@ -295,7 +305,7 @@ All source lives in `src/`:
 | `board_hash.go` | Zobrist hashing — incremental hash updates |
 | `search.go` | Negamax search — alpha-beta, iterative deepening, aspiration windows, NMP, LMR, PV table, move ordering |
 | `uci.go` | UCI protocol — command parsing and engine communication |
-| `evaluate.go` | Position evaluation — piece-square tables, material scoring |
+| `evaluate.go` | Position evaluation — tapered eval, material, piece-square tables, mobility, king safety |
 | `server.go` | HTTP server, API handlers, CORS and body-limit middleware |
 | `util.go` | UCI parsing, coordinate helpers, utility functions |
 
