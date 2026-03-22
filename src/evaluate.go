@@ -170,6 +170,24 @@ var KING_EG = [BOARD_SQUARES]int{
 	-50, -30, -20, -20, -20, -20, -30, -50,
 }
 
+// Mobility bonuses per safe square (excluding squares controlled by opponent pawns).
+const (
+	MOBILITY_KNIGHT_MG = 4
+	MOBILITY_KNIGHT_EG = 3
+	MOBILITY_BISHOP_MG = 5
+	MOBILITY_BISHOP_EG = 4
+	MOBILITY_ROOK_MG   = 2
+	MOBILITY_ROOK_EG   = 3
+	MOBILITY_QUEEN_MG  = 1
+	MOBILITY_QUEEN_EG  = 2
+)
+
+// Bishop pair bonus.
+const (
+	BISHOP_PAIR_MG = 30
+	BISHOP_PAIR_EG = 50
+)
+
 // Pawn structure bonuses/penalties.
 const PASSED_PAWN_MG = 10
 const PASSED_PAWN_EG = 20
@@ -306,6 +324,21 @@ func (b *Board) Evaluate() int {
 	mgScore += mgPawn
 	egScore += egPawn
 
+	// Mobility evaluation.
+	mgMobility, egMobility := b.evaluateMobility()
+	mgScore += mgMobility
+	egScore += egMobility
+
+	// Bishop pair bonus.
+	if b.bbWB.Count() >= 2 {
+		mgScore += BISHOP_PAIR_MG
+		egScore += BISHOP_PAIR_EG
+	}
+	if b.bbBB.Count() >= 2 {
+		mgScore -= BISHOP_PAIR_MG
+		egScore -= BISHOP_PAIR_EG
+	}
+
 	// Taper: phase ranges from 0 (endgame) to PHASE_TOTAL (midgame).
 	score := (mgScore*phase + egScore*(PHASE_TOTAL-phase)) / PHASE_TOTAL
 
@@ -376,6 +409,97 @@ func (b *Board) evaluatePawnStructure() (int, int) {
 			mgScore -= DOUBLED_PAWN_MG * (count - 1)
 			egScore -= DOUBLED_PAWN_EG * (count - 1)
 		}
+	}
+
+	return mgScore, egScore
+}
+
+func (b *Board) evaluateMobility() (int, int) {
+	var mgScore, egScore int
+
+	// Compute pawn attack masks for safe mobility (exclude squares attacked by enemy pawns).
+	var whitePawnAttacks, blackPawnAttacks Bitboard
+	wp := b.bbWP
+	for wp > 0 {
+		coord := wp.PopLSB()
+		whitePawnAttacks |= PAWN_ATTACKS[WHITE][coord]
+	}
+	bp := b.bbBP
+	for bp > 0 {
+		coord := bp.PopLSB()
+		blackPawnAttacks |= PAWN_ATTACKS[BLACK][coord]
+	}
+
+	// White knights.
+	wn := b.bbWN
+	for wn > 0 {
+		coord := wn.PopLSB()
+		mobility := (KNIGHT_ATTACKS[coord] & ^blackPawnAttacks & ^b.bbWhitePieces).Count()
+		mgScore += MOBILITY_KNIGHT_MG * mobility
+		egScore += MOBILITY_KNIGHT_EG * mobility
+	}
+
+	// White bishops.
+	wb := b.bbWB
+	for wb > 0 {
+		coord := wb.PopLSB()
+		mobility := (BishopAttacks(coord, b.bbAllPieces) & ^blackPawnAttacks & ^b.bbWhitePieces).Count()
+		mgScore += MOBILITY_BISHOP_MG * mobility
+		egScore += MOBILITY_BISHOP_EG * mobility
+	}
+
+	// White rooks.
+	wr := b.bbWR
+	for wr > 0 {
+		coord := wr.PopLSB()
+		mobility := (RookAttacks(coord, b.bbAllPieces) & ^blackPawnAttacks & ^b.bbWhitePieces).Count()
+		mgScore += MOBILITY_ROOK_MG * mobility
+		egScore += MOBILITY_ROOK_EG * mobility
+	}
+
+	// White queens.
+	wq := b.bbWQ
+	for wq > 0 {
+		coord := wq.PopLSB()
+		mobility := ((BishopAttacks(coord, b.bbAllPieces) | RookAttacks(coord, b.bbAllPieces)) & ^blackPawnAttacks & ^b.bbWhitePieces).Count()
+		mgScore += MOBILITY_QUEEN_MG * mobility
+		egScore += MOBILITY_QUEEN_EG * mobility
+	}
+
+	// Black knights.
+	bn := b.bbBN
+	for bn > 0 {
+		coord := bn.PopLSB()
+		mobility := (KNIGHT_ATTACKS[coord] & ^whitePawnAttacks & ^b.bbBlackPieces).Count()
+		mgScore -= MOBILITY_KNIGHT_MG * mobility
+		egScore -= MOBILITY_KNIGHT_EG * mobility
+	}
+
+	// Black bishops.
+	bb := b.bbBB
+	for bb > 0 {
+		coord := bb.PopLSB()
+		mobility := (BishopAttacks(coord, b.bbAllPieces) & ^whitePawnAttacks & ^b.bbBlackPieces).Count()
+		mgScore -= MOBILITY_BISHOP_MG * mobility
+		egScore -= MOBILITY_BISHOP_EG * mobility
+	}
+
+	// Black rooks.
+	br := b.bbBR
+	for br > 0 {
+		coord := br.PopLSB()
+		mobility := (RookAttacks(coord, b.bbAllPieces) & ^whitePawnAttacks & ^b.bbBlackPieces).Count()
+		mgScore -= MOBILITY_ROOK_MG * mobility
+		egScore -= MOBILITY_ROOK_EG * mobility
+	}
+
+	// Black queens.
+	bq := b.bbBQ
+	for bq > 0 {
+		coord := bq.PopLSB()
+		mobility := ((BishopAttacks(coord, b.bbAllPieces) | RookAttacks(coord, b.bbAllPieces)) & ^whitePawnAttacks & ^b.bbBlackPieces).Count()
+		mgScore -= MOBILITY_QUEEN_MG * mobility
+		egScore -= MOBILITY_QUEEN_EG * mobility
 	}
 
 	return mgScore, egScore

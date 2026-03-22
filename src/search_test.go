@@ -13,7 +13,7 @@ func TestSearchNegamax(t *testing.T) {
 	}{
 		{
 			STARTING_FEN,
-			30,
+			58,
 		},
 	}
 	for _, tt := range tests {
