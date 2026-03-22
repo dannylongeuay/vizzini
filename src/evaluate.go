@@ -1,13 +1,15 @@
 package main
 
 // Phase weights per piece type (non-pawn, non-king).
-const PHASE_KNIGHT = 1
-const PHASE_BISHOP = 1
-const PHASE_ROOK = 2
-const PHASE_QUEEN = 4
+const (
+	PHASE_KNIGHT = 1
+	PHASE_BISHOP = 1
+	PHASE_ROOK   = 2
+	PHASE_QUEEN  = 4
 
-// Total phase at game start: 4 knights + 4 bishops + 4 rooks + 2 queens = 24.
-const PHASE_TOTAL = 24
+	// Total phase at game start: 4 knights + 4 bishops + 4 rooks + 2 queens = 24.
+	PHASE_TOTAL = 24
+)
 
 // Midgame material values indexed by Square type.
 var MATERIAL_MG = [SQUARE_TYPES]int{
@@ -188,6 +190,35 @@ const (
 	BISHOP_PAIR_EG = 50
 )
 
+// King safety: attack weight indexed by piece kind (PAWN=1..KING=6).
+// Knights=2, Bishops=2, Rooks=3, Queens=5. Others=0.
+var KING_ATTACK_WEIGHT = [7]int{0, 0, 2, 2, 3, 5, 0}
+
+// Non-linear danger table: maps cumulative attacker weight to centipawn penalty.
+// Index = sum of KING_ATTACK_WEIGHT for all pieces attacking king zone. Capped at 15.
+var KING_DANGER_TABLE = [16]int{
+	0, 0, 3, 12, 28, 50, 78, 112,
+	152, 198, 250, 308, 372, 442, 518, 600,
+}
+
+// King safety constants (MG only).
+const (
+	PAWN_SHIELD_BONUS_MG     = 10  // pawn on ideal shield rank
+	PAWN_SHIELD_ADVANCE_MG   = 5   // pawn advanced one rank beyond ideal
+	PAWN_SHIELD_MISSING_MG   = -15 // no pawn on this shield file at all
+	KING_OPEN_FILE_MG        = -25 // no pawns of either color on file
+	KING_SEMI_OPEN_FILE_MG   = -12 // no friendly pawns but enemy pawns present
+	KING_SAFETY_MIN_MATERIAL = 4   // minimum opponent attacking material (phase weight)
+)
+
+// Pawn shield masks for king safety (initialized in InitEval).
+var WHITE_PAWN_SHIELD [BOARD_SQUARES]Bitboard
+var BLACK_PAWN_SHIELD [BOARD_SQUARES]Bitboard
+
+// Advanced pawn shield masks (2 ranks ahead/behind king, initialized in InitEval).
+var WHITE_PAWN_SHIELD_ADV [BOARD_SQUARES]Bitboard
+var BLACK_PAWN_SHIELD_ADV [BOARD_SQUARES]Bitboard
+
 // Pawn structure bonuses/penalties.
 const PASSED_PAWN_MG = 10
 const PASSED_PAWN_EG = 20
@@ -238,6 +269,60 @@ func InitEval() {
 			blackSpan |= RANK_MASK_BITBOARDS[r]
 		}
 		BLACK_FRONT_SPAN[coord] = fileMask & blackSpan
+	}
+
+	// Initialize pawn shield masks (immediate and advanced).
+	for coord := 0; coord < BOARD_SQUARES; coord++ {
+		file := coord % FILES
+		rank := coord / FILES
+
+		// White pawn shield: squares one rank ahead on king file and adjacent files.
+		if rank < RANKS-1 {
+			shieldRank := rank + 1
+			WHITE_PAWN_SHIELD[coord] |= COORD_MASK_BITBOARDS[shieldRank*FILES+file]
+			if file > 0 {
+				WHITE_PAWN_SHIELD[coord] |= COORD_MASK_BITBOARDS[shieldRank*FILES+file-1]
+			}
+			if file < FILES-1 {
+				WHITE_PAWN_SHIELD[coord] |= COORD_MASK_BITBOARDS[shieldRank*FILES+file+1]
+			}
+		}
+
+		// White advanced pawn shield: two ranks ahead.
+		if rank+2 < RANKS {
+			advRank := rank + 2
+			WHITE_PAWN_SHIELD_ADV[coord] |= COORD_MASK_BITBOARDS[advRank*FILES+file]
+			if file > 0 {
+				WHITE_PAWN_SHIELD_ADV[coord] |= COORD_MASK_BITBOARDS[advRank*FILES+file-1]
+			}
+			if file < FILES-1 {
+				WHITE_PAWN_SHIELD_ADV[coord] |= COORD_MASK_BITBOARDS[advRank*FILES+file+1]
+			}
+		}
+
+		// Black pawn shield: squares one rank behind on king file and adjacent files.
+		if rank > 0 {
+			shieldRank := rank - 1
+			BLACK_PAWN_SHIELD[coord] |= COORD_MASK_BITBOARDS[shieldRank*FILES+file]
+			if file > 0 {
+				BLACK_PAWN_SHIELD[coord] |= COORD_MASK_BITBOARDS[shieldRank*FILES+file-1]
+			}
+			if file < FILES-1 {
+				BLACK_PAWN_SHIELD[coord] |= COORD_MASK_BITBOARDS[shieldRank*FILES+file+1]
+			}
+		}
+
+		// Black advanced pawn shield: two ranks behind.
+		if rank-2 >= 0 {
+			advRank := rank - 2
+			BLACK_PAWN_SHIELD_ADV[coord] |= COORD_MASK_BITBOARDS[advRank*FILES+file]
+			if file > 0 {
+				BLACK_PAWN_SHIELD_ADV[coord] |= COORD_MASK_BITBOARDS[advRank*FILES+file-1]
+			}
+			if file < FILES-1 {
+				BLACK_PAWN_SHIELD_ADV[coord] |= COORD_MASK_BITBOARDS[advRank*FILES+file+1]
+			}
+		}
 	}
 
 	InitMvvLva()
@@ -328,6 +413,9 @@ func (b *Board) Evaluate() int {
 	mgMobility, egMobility := b.evaluateMobility()
 	mgScore += mgMobility
 	egScore += egMobility
+
+	// King safety evaluation (MG only).
+	mgScore += b.evaluateKingSafety()
 
 	// Bishop pair bonus.
 	if b.bbWB.Count() >= 2 {
@@ -503,4 +591,121 @@ func (b *Board) evaluateMobility() (int, int) {
 	}
 
 	return mgScore, egScore
+}
+
+func (b *Board) evaluateKingSafety() int {
+	var mgScore int
+
+	// White king safety: penalty from black attackers.
+	blackAttackMaterial := b.bbBN.Count()*PHASE_KNIGHT +
+		b.bbBB.Count()*PHASE_BISHOP +
+		b.bbBR.Count()*PHASE_ROOK +
+		b.bbBQ.Count()*PHASE_QUEEN
+	if blackAttackMaterial >= KING_SAFETY_MIN_MATERIAL {
+		mgScore -= b.kingSafetyForSide(
+			b.kingCoords[WHITE],
+			b.bbBN, b.bbBB, b.bbBR, b.bbBQ,
+			b.bbWP, b.bbBP,
+			&WHITE_PAWN_SHIELD, &WHITE_PAWN_SHIELD_ADV,
+		)
+	}
+
+	// Black king safety: penalty from white attackers.
+	whiteAttackMaterial := b.bbWN.Count()*PHASE_KNIGHT +
+		b.bbWB.Count()*PHASE_BISHOP +
+		b.bbWR.Count()*PHASE_ROOK +
+		b.bbWQ.Count()*PHASE_QUEEN
+	if whiteAttackMaterial >= KING_SAFETY_MIN_MATERIAL {
+		mgScore += b.kingSafetyForSide(
+			b.kingCoords[BLACK],
+			b.bbWN, b.bbWB, b.bbWR, b.bbWQ,
+			b.bbBP, b.bbWP,
+			&BLACK_PAWN_SHIELD, &BLACK_PAWN_SHIELD_ADV,
+		)
+	}
+
+	return mgScore
+}
+
+// kingSafetyForSide computes the king safety penalty for the defending side.
+// Returns a positive value representing how unsafe the king is.
+func (b *Board) kingSafetyForSide(
+	kingCoord Coord,
+	attackerKnights, attackerBishops, attackerRooks, attackerQueens Bitboard,
+	friendlyPawns, enemyPawns Bitboard,
+	shieldTable, advShieldTable *[BOARD_SQUARES]Bitboard,
+) int {
+	var penalty int
+	kingZone := KING_ATTACKS[kingCoord] | COORD_MASK_BITBOARDS[kingCoord]
+
+	// Attacker weight accumulation.
+	var attackWeight int
+	knights := attackerKnights
+	for knights > 0 {
+		coord := knights.PopLSB()
+		if KNIGHT_ATTACKS[coord]&kingZone != 0 {
+			attackWeight += KING_ATTACK_WEIGHT[2] // KNIGHT
+		}
+	}
+	bishops := attackerBishops
+	for bishops > 0 {
+		coord := bishops.PopLSB()
+		if BishopAttacks(coord, b.bbAllPieces)&kingZone != 0 {
+			attackWeight += KING_ATTACK_WEIGHT[3] // BISHOP
+		}
+	}
+	rooks := attackerRooks
+	for rooks > 0 {
+		coord := rooks.PopLSB()
+		if RookAttacks(coord, b.bbAllPieces)&kingZone != 0 {
+			attackWeight += KING_ATTACK_WEIGHT[4] // ROOK
+		}
+	}
+	queens := attackerQueens
+	for queens > 0 {
+		coord := queens.PopLSB()
+		if (BishopAttacks(coord, b.bbAllPieces)|RookAttacks(coord, b.bbAllPieces))&kingZone != 0 {
+			attackWeight += KING_ATTACK_WEIGHT[5] // QUEEN
+		}
+	}
+	if attackWeight > 15 {
+		attackWeight = 15
+	}
+	penalty += KING_DANGER_TABLE[attackWeight]
+
+	// Pawn shield evaluation.
+	kingFile := int(kingCoord) % FILES
+	shieldMask := shieldTable[kingCoord]
+	advancedShieldMask := advShieldTable[kingCoord]
+
+	startFile := kingFile - 1
+	if startFile < 0 {
+		startFile = 0
+	}
+	endFile := kingFile + 1
+	if endFile > FILES-1 {
+		endFile = FILES - 1
+	}
+	for f := startFile; f <= endFile; f++ {
+		filePawns := FILE_MASK_BITBOARDS[f] & friendlyPawns
+		if filePawns&shieldMask != 0 {
+			penalty -= PAWN_SHIELD_BONUS_MG
+		} else if filePawns&advancedShieldMask != 0 {
+			penalty -= PAWN_SHIELD_ADVANCE_MG
+		} else if filePawns == 0 {
+			penalty -= PAWN_SHIELD_MISSING_MG
+		}
+	}
+
+	// Open/semi-open files near king (stacks with pawn shield missing penalty by design).
+	for f := startFile; f <= endFile; f++ {
+		fileMask := FILE_MASK_BITBOARDS[f]
+		if fileMask&friendlyPawns == 0 && fileMask&enemyPawns == 0 {
+			penalty -= KING_OPEN_FILE_MG
+		} else if fileMask&friendlyPawns == 0 {
+			penalty -= KING_SEMI_OPEN_FILE_MG
+		}
+	}
+
+	return penalty
 }

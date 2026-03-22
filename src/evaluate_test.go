@@ -143,6 +143,57 @@ func TestEvaluateMobility(t *testing.T) {
 	}
 }
 
+func TestEvaluateKingSafety(t *testing.T) {
+	tests := []struct {
+		name     string
+		fen      string
+		minScore int
+		maxScore int
+	}{
+		{
+			// Castled king with intact pawn shield should score better than broken shield.
+			// White castled kingside with full shield vs black castled with missing g-pawn.
+			name:     "intact shield vs broken shield",
+			fen:      "r1bq1rk1/pppp1p1p/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w - - 0 5",
+			minScore: 490,
+			maxScore: 540,
+		},
+		{
+			// Multiple black attackers aimed at white king zone.
+			name:     "attackers near white king",
+			fen:      "r2q1rk1/ppp2ppp/2n5/3pp3/2B1n3/4PN2/PPP1QPPP/R1B2RK1 b - - 0 9",
+			minScore: -230,
+			maxScore: -180,
+		},
+		{
+			// Open file near king penalty: white king on g1, no pawns on g-file.
+			name:     "open file near king",
+			fen:      "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1P1P/RNBQ1RK1 w kq - 0 5",
+			minScore: 220,
+			maxScore: 270,
+		},
+		{
+			// Starting position should still evaluate to 0 (symmetric).
+			name:     "starting position is zero",
+			fen:      STARTING_FEN,
+			minScore: 0,
+			maxScore: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			board, err := NewBoard(tt.fen)
+			if err != nil {
+				t.Fatal(err)
+			}
+			score := board.Evaluate()
+			if score < tt.minScore || score > tt.maxScore {
+				t.Errorf("score %v not in expected range [%v, %v]", score, tt.minScore, tt.maxScore)
+			}
+		})
+	}
+}
+
 func TestEvaluateSymmetry(t *testing.T) {
 	// Color-flipped positions should produce negated scores.
 	tests := []struct {
