@@ -8,11 +8,11 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		printHelp()
-		os.Exit(1)
-	}
 	scanner := bufio.NewScanner(os.Stdin)
+	if len(os.Args) < 2 {
+		ModeUCI(scanner)
+		return
+	}
 	switch os.Args[1] {
 	case "play":
 		ModePlayerVsEngine(scanner)
@@ -27,12 +27,13 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println("Usage: vizzini <command>")
+	fmt.Println("Usage: vizzini [command]")
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Println("  play   Start Player vs Engine mode")
-	fmt.Println("  uci    Start UCI mode")
-	fmt.Println("  serve  Start HTTP server mode")
+	fmt.Println("  (none)  Start UCI mode (default)")
+	fmt.Println("  play    Start Player vs Engine mode")
+	fmt.Println("  uci     Start UCI mode")
+	fmt.Println("  serve   Start HTTP server mode")
 }
 
 func ModePlayerVsEngine(scanner *bufio.Scanner) {
