@@ -259,15 +259,16 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 	inCheck := s.CoordAttacked(s.kingCoords[s.sideToMove], s.sideToMove)
 
+	var standPat int
 	if !inCheck {
-		currentScore := s.NoisyEvaluate()
+		standPat = s.NoisyEvaluate()
 
-		if currentScore >= beta {
+		if standPat >= beta {
 			return beta
 		}
 
-		if currentScore > alpha {
-			alpha = currentScore
+		if standPat > alpha {
+			alpha = standPat
 		}
 	}
 
@@ -281,6 +282,23 @@ func (s *Search) QSearch(alpha int, beta int) int {
 
 	for i := 0; i < len(moves); i++ {
 		move := s.PickNextMove(i, &moves, 0)
+
+		// Delta pruning: skip captures that cannot raise alpha.
+		if !inCheck {
+			var mu MoveUnpacked
+			move.Unpack(&mu)
+			// Never delta-prune promotions — they gain significant material.
+			if mu.moveKind < KNIGHT_PROMOTION {
+				capturedValue := SQUARE_SCORES[mu.dstSquare]
+				if capturedValue < 0 {
+					capturedValue = -capturedValue
+				}
+				if standPat+capturedValue+DELTA_MARGIN <= alpha {
+					continue
+				}
+			}
+		}
+
 		err := s.MakeMove(move)
 		s.currentDepth++
 		if err != nil {
@@ -401,6 +419,18 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		}
 	}
 
+	// Compute static eval for futility pruning and reverse futility pruning.
+	var staticEval int
+	futilityPruning := false
+	if !inCheck && !isPvNode && depth <= 3 {
+		staticEval = s.NoisyEvaluate()
+		// Reverse futility pruning: if static eval is well above beta, prune.
+		if staticEval-FUTILITY_MARGINS[depth] >= beta {
+			return beta
+		}
+		futilityPruning = staticEval+FUTILITY_MARGINS[depth] <= alpha
+	}
+
 	moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
 	var legalMoves int
 	s.GenerateMoves(&moves, s.sideToMove, false)
@@ -422,6 +452,14 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 
 		var score int
 		moveKind := MoveKind(move & MOVE_KIND_MASK)
+
+		// Futility pruning: skip quiet moves that cannot improve alpha.
+		if futilityPruning && !givesCheck && moveKind == QUIET && legalMoves > 1 {
+			s.currentDepth--
+			s.UndoMove()
+			continue
+		}
+
 		// Late move reductions (skip for moves that give check)
 		if legalMoves > 4 && depth >= 3 && !inCheck && !givesCheck && moveKind == QUIET {
 			score = -s.Negamax(depth-2, -beta, -alpha)

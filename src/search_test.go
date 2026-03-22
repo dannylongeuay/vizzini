@@ -696,3 +696,108 @@ func TestTTPopulatedAfterSearch(t *testing.T) {
 		t.Error("expected TT to contain entries after search")
 	}
 }
+
+func TestFutilityPruning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping futility pruning test in short mode")
+	}
+	// Use Negamax directly (no iterative deepening) so TT warmup doesn't
+	// mask the effect of futility pruning.
+	fen := STARTING_FEN
+
+	// Disable futility and reverse futility pruning with huge margins.
+	savedMargins := FUTILITY_MARGINS
+	FUTILITY_MARGINS = [4]int{0, 100000, 100000, 100000}
+	sWithout, err := NewSearch(fen, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sWithout.evalNoise = 0
+	sWithout.temperature = 0
+	sWithout.Negamax(6, MIN_SCORE, MAX_SCORE)
+	nodesWithout := sWithout.nodes
+	FUTILITY_MARGINS = savedMargins
+
+	// Search with default futility margins.
+	sWith, err := NewSearch(fen, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sWith.evalNoise = 0
+	sWith.temperature = 0
+	sWith.Negamax(6, MIN_SCORE, MAX_SCORE)
+	nodesWith := sWith.nodes
+
+	if nodesWith >= nodesWithout {
+		t.Errorf("futility pruning should reduce nodes: with=%v without=%v", nodesWith, nodesWithout)
+	}
+}
+
+func TestReverseFutilityPruning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping reverse futility pruning test in short mode")
+	}
+	// White is up a queen — reverse futility should prune heavily.
+	fen := "rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+	// Disable futility and reverse futility pruning with huge margins.
+	savedMargins := FUTILITY_MARGINS
+	FUTILITY_MARGINS = [4]int{0, 100000, 100000, 100000}
+	sWithout, err := NewSearch(fen, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sWithout.evalNoise = 0
+	sWithout.temperature = 0
+	sWithout.Negamax(6, MIN_SCORE, MAX_SCORE)
+	nodesWithout := sWithout.nodes
+	FUTILITY_MARGINS = savedMargins
+
+	// Search with default margins.
+	sWith, err := NewSearch(fen, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sWith.evalNoise = 0
+	sWith.temperature = 0
+	sWith.Negamax(6, MIN_SCORE, MAX_SCORE)
+	nodesWith := sWith.nodes
+
+	if nodesWith >= nodesWithout {
+		t.Errorf("reverse futility pruning should reduce nodes: with=%v without=%v", nodesWith, nodesWithout)
+	}
+}
+
+func TestDeltaPruning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping delta pruning test in short mode")
+	}
+	fen := "r1bqkbnr/pppppppp/2n5/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2"
+
+	// Disable delta pruning by setting a huge margin (everything passes).
+	savedDelta := DELTA_MARGIN
+	DELTA_MARGIN = 100000
+	sWithout, err := NewSearch(fen, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sWithout.evalNoise = 0
+	sWithout.temperature = 0
+	sWithout.Negamax(6, MIN_SCORE, MAX_SCORE)
+	nodesWithout := sWithout.nodes
+	DELTA_MARGIN = savedDelta
+
+	// Search with default delta margin.
+	sWith, err := NewSearch(fen, 6, DEFAULT_MAX_NODES)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sWith.evalNoise = 0
+	sWith.temperature = 0
+	sWith.Negamax(6, MIN_SCORE, MAX_SCORE)
+	nodesWith := sWith.nodes
+
+	if nodesWith >= nodesWithout {
+		t.Errorf("delta pruning should reduce nodes: with=%v without=%v", nodesWith, nodesWithout)
+	}
+}
