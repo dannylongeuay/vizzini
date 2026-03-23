@@ -69,8 +69,8 @@ const KILLERS_SIZE = 2
 const KILLERS_DEPTH = 64
 
 const DRAW int = 0
-const MAX_SCORE int = 100000
-const MIN_SCORE int = -100000
+const MAX_SCORE int = 30000
+const MIN_SCORE int = -30000
 const MATE_THRESHOLD int = MAX_SCORE - int(MAX_GAME_MOVES)
 const MAX_HISTORY_VALUE int = 400
 
@@ -79,6 +79,7 @@ var FUTILITY_MARGINS = [4]int{0, 200, 500, 900}
 
 // Delta pruning margin added on top of captured piece value in quiescence search.
 var DELTA_MARGIN int = 200
+
 const DEFAULT_EVAL_NOISE int = 5
 const DEFAULT_TEMPERATURE float64 = 0.2
 const DEFAULT_TEMP_MOVE_LIMIT int = 10
