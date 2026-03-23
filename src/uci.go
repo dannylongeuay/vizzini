@@ -13,6 +13,7 @@ type UCI struct {
 	debug      bool
 	input      string
 	ponderMode bool
+	searchDone chan struct{}
 }
 
 func NewUCI() (*UCI, error) {
@@ -25,54 +26,65 @@ func NewUCI() (*UCI, error) {
 	return &uci, nil
 }
 
+// waitForSearch blocks until any in-progress search completes.
+func (u *UCI) waitForSearch() {
+	if u.searchDone != nil {
+		<-u.searchDone
+		u.searchDone = nil
+	}
+}
+
 func ModeUCI(scanner *bufio.Scanner) {
 	uci, err := NewUCI()
 	if err != nil {
 		panic(err)
 	}
-	uci.SendOk()
 
 	for scanner.Scan() {
 		uci.input = scanner.Text()
 		words := strings.Split(uci.input, " ")
 
-		if len(words) == 0 {
+		command := words[0]
+		if command == "" {
 			continue
 		}
-		command := words[0]
 
-		var args []string
-		if len(words) > 0 {
-			args = words[1:]
-		}
+		args := words[1:]
 
 		switch command {
 		case "uci":
+			uci.waitForSearch()
 			uci.SendOk()
 		case "debug":
 			uci.SetDebug(args)
 		case "isready":
+			uci.waitForSearch()
 			uci.SendReady()
 		case "setoption":
 			uci.SetOption(args)
 		case "register":
 			uci.SendRegistration()
 		case "ucinewgame":
+			uci.waitForSearch()
 			uci.SetNewGame()
 		case "position":
+			uci.waitForSearch()
 			uci.SetPosition(args)
 		case "go":
+			uci.waitForSearch()
 			uci.SendCalculations(args)
 		case "stop":
 			uci.SetStop()
+			uci.waitForSearch()
 		case "ponderhit":
 			uci.SetPonder()
 		case "quit":
-			goto QUIT
-
+			uci.SetStop()
+			uci.waitForSearch()
+			return
 		}
 	}
-QUIT:
+	uci.waitForSearch()
 }
 
 func (u *UCI) SendOk() {
@@ -101,46 +113,51 @@ func (u *UCI) SetOption(args []string) {
 }
 
 func (u *UCI) SendRegistration() {
-	fmt.Println("register later")
+	fmt.Println("registration ok")
 }
 
 func (u *UCI) SetNewGame() {
 	args := []string{"startpos"}
 	u.SetPosition(args)
-	u.Clear()
 	u.maxDepth = DEFAULT_MAX_DEPTH
 	u.maxNodes = DEFAULT_MAX_NODES
+	clear(u.tt)
 }
 
 func (u *UCI) SetPosition(args []string) {
 	var err error
 	u.Board, err = NewBoardFromUCIPosition(args)
 	if err != nil {
-		panic(err)
+		fmt.Println("info string error:", err)
+		return
 	}
-	u.Reset()
+	u.ResetKeepTT()
 }
 
 func (u *UCI) SendCalculations(args []string) {
 	u.SetGoParams(args)
-	u.IterativeDeepening()
-	if u.bestMove == 0 {
-		moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
-		u.GenerateMoves(&moves, u.sideToMove, false)
-		for _, m := range moves {
-			if err := u.MakeMove(m); err == nil {
+	u.searchDone = make(chan struct{})
+	go func() {
+		defer close(u.searchDone)
+		u.IterativeDeepening()
+		if u.bestMove == 0 {
+			moves := make([]Move, 0, INITIAL_MOVES_CAPACITY)
+			u.GenerateMoves(&moves, u.sideToMove, false)
+			for _, m := range moves {
+				if err := u.MakeMove(m); err == nil {
+					u.UndoMove()
+					u.bestMove = m
+					break
+				}
 				u.UndoMove()
-				u.bestMove = m
-				break
 			}
-			u.UndoMove()
 		}
-	}
-	fmt.Println("bestmove", u.bestMove.ToUCIString())
+		fmt.Println("bestmove", u.bestMove.ToUCIString())
+	}()
 }
 
 func (u *UCI) SetStop() {
-	u.stop = true
+	u.stop.Store(true)
 }
 
 func (u *UCI) SetPonder() {
@@ -180,6 +197,9 @@ func NewBoardFromUCIPosition(args []string) (*Board, error) {
 }
 
 func (u *UCI) SetGoParams(args []string) {
+	u.maxDepth = DEFAULT_MAX_DEPTH
+	u.maxNodes = DEFAULT_MAX_NODES
+
 	var maxMoveTime int64
 	var remainingTime int64
 	var increment int64
@@ -278,12 +298,18 @@ func (u *UCI) SetGoParams(args []string) {
 	var duration time.Duration
 	if maxMoveTime > 0 {
 		mtime := maxMoveTime - SEARCH_BUFFER
+		if mtime < 1 {
+			mtime = 1
+		}
 		duration = time.Millisecond * time.Duration(mtime)
 	} else if remainingTime > 0 {
 		if remainingMoves == 0 {
 			remainingMoves = 30
 		}
 		mtime := remainingTime/remainingMoves + increment - SEARCH_BUFFER
+		if mtime < 1 {
+			mtime = 1
+		}
 		duration = time.Millisecond * time.Duration(mtime)
 	} else {
 		duration = time.Second * 3

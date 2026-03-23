@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type Search struct {
 	nodes            int
 	maxNodes         int
 	bestMove         Move
-	stop             bool
+	stop             atomic.Bool
 	stopTime         time.Time
 	tt               []TTEntry
 	pvLine           []Move
@@ -86,7 +87,7 @@ func (s *Search) ResetKeepTT() {
 	s.bestMove = 0
 	s.fhf = 0
 	s.fh = 0
-	s.stop = false
+	s.stop.Store(false)
 	s.stopTime = time.Time{}
 	s.nullMoveAllowed = true
 	s.rootMoves = s.rootMoves[:0]
@@ -163,8 +164,11 @@ func (s *Search) Clear() {
 }
 
 func (s *Search) TimeCheck() {
+	if s.maxNodes > 0 && s.nodes >= s.maxNodes {
+		s.stop.Store(true)
+	}
 	if !s.stopTime.IsZero() && time.Now().After(s.stopTime) {
-		s.stop = true
+		s.stop.Store(true)
 	}
 }
 
@@ -190,7 +194,7 @@ func (s *Search) IterativeDeepening() int {
 
 		// Re-search with full window on fail-high or fail-low.
 		// Reset nodes so the info output only reflects the final search.
-		if !s.stop && (bestScore <= alpha || bestScore >= beta) {
+		if !s.stop.Load() && (bestScore <= alpha || bestScore >= beta) {
 			s.nodes = savedNodes
 			s.rootMoves = s.rootMoves[:0]
 			bestScore = s.Negamax(i, MIN_SCORE, MAX_SCORE)
@@ -198,7 +202,7 @@ func (s *Search) IterativeDeepening() int {
 
 		// If stopped during search (e.g. timeout), the result may be incomplete.
 		// Fall back to the last fully-completed iteration's best move.
-		if s.stop {
+		if s.stop.Load() {
 			if lastBestMove != 0 {
 				s.bestMove = lastBestMove
 			}
@@ -208,7 +212,7 @@ func (s *Search) IterativeDeepening() int {
 		s.completedDepth = i
 		s.SendInfo(i, bestScore, startTime)
 	}
-	if !s.stop {
+	if !s.stop.Load() {
 		s.TemperatureSelect(bestScore)
 	}
 	return bestScore
@@ -237,9 +241,11 @@ func (s *Search) SendInfo(depth int, score int, startTime time.Time) {
 	fmt.Fprint(&standard, s.GetPvLineString())
 	fmt.Println(standard.String())
 
-	var debug strings.Builder
-	fmt.Fprintf(&debug, "info string fhf/fh %.2f%%", (s.fhf/s.fh)*100)
-	fmt.Println(debug.String())
+	if s.fh > 0 {
+		var debug strings.Builder
+		fmt.Fprintf(&debug, "info string fhf/fh %.2f%%", (s.fhf/s.fh)*100)
+		fmt.Println(debug.String())
+	}
 }
 
 func (s *Search) QSearch(alpha int, beta int) int {
@@ -311,7 +317,7 @@ func (s *Search) QSearch(alpha int, beta int) int {
 		s.currentDepth--
 		s.UndoMove()
 
-		if s.stop {
+		if s.stop.Load() {
 			return alpha
 		}
 
@@ -410,7 +416,7 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 			s.nullMoveAllowed = true
 			s.currentDepth--
 			s.UndoNullMove(oldEp, oldHalfMove)
-			if s.stop {
+			if s.stop.Load() {
 				return alpha
 			}
 			if score >= beta {
@@ -473,7 +479,7 @@ func (s *Search) Negamax(depth int, alpha int, beta int) int {
 		s.currentDepth--
 		s.UndoMove()
 
-		if s.stop {
+		if s.stop.Load() {
 			return alpha
 		}
 
