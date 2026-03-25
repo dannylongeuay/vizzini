@@ -143,6 +143,8 @@ Moves use standard UCI format: `<from><to>[promotion]`
 
 ### Lichess Bot
 
+Challenge the bot [here](https://lichess.org/?user=vizzini-chess#friend)
+
 Connects to Lichess as a bot account, accepts challenges, and plays games automatically.
 
 ```sh
