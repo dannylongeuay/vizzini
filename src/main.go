@@ -20,6 +20,8 @@ func main() {
 		ModeUCI(scanner)
 	case "serve":
 		ModeServe()
+	case "lichess":
+		ModeLichess()
 	default:
 		printHelp()
 		os.Exit(1)
@@ -34,6 +36,7 @@ func printHelp() {
 	fmt.Println("  play    Start Player vs Engine mode")
 	fmt.Println("  uci     Start UCI mode")
 	fmt.Println("  serve   Start HTTP server mode")
+	fmt.Println("  lichess Start Lichess bot mode (requires LICHESS_TOKEN env var)")
 }
 
 func ModePlayerVsEngine(scanner *bufio.Scanner) {
