@@ -5,6 +5,7 @@ alias s := serve
 alias t := test
 alias tl := test-long
 alias l := lint
+alias li := lichess
 alias f := format
 
 # Build binary
@@ -20,6 +21,9 @@ uci: build
 
 serve: build
     CORS_PERMISSIVE=1 ./bin/vizzini serve
+
+lichess: build
+    ./bin/vizzini lichess
 
 # Run short tests
 test:

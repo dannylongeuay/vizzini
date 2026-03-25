@@ -100,7 +100,7 @@ go build -o bin/vizzini ./src/...
 
 ## Usage
 
-Vizzini supports two modes, detected automatically on startup:
+Vizzini supports several modes:
 
 ### UCI Mode
 
@@ -140,6 +140,18 @@ Moves use standard UCI format: `<from><to>[promotion]`
 - `e2e4` — pawn to e4
 - `g1f3` — knight to f3
 - `e7e8q` — pawn promotes to queen
+
+### Lichess Bot
+
+Connects to Lichess as a bot account, accepts challenges, and plays games automatically.
+
+```sh
+./bin/vizzini lichess
+# or
+just lichess
+```
+
+Requires the `LICHESS_TOKEN` environment variable set to a valid Lichess Bot API token. The bot accepts unrated standard games at bullet, blitz, or rapid time controls.
 
 ## API
 
@@ -287,6 +299,7 @@ All tasks are available through `just`:
 | `just lint` | `just l` | Lint with golangci-lint |
 | `just format` | `just f` | Format with goimports |
 | `just serve` | `just s` | Build and start the HTTP API server |
+| `just lichess` | `just li` | Build and start Lichess bot mode |
 
 ## Architecture
 
@@ -294,7 +307,7 @@ All source lives in `src/`:
 
 | File | Purpose |
 | --- | --- |
-| `main.go` | Entry point, UCI mode, and interactive player-vs-engine mode |
+| `main.go` | Entry point and mode routing (UCI, player-vs-engine, serve, lichess) |
 | `types.go` | Core type definitions — `Square`, `Color`, `Move`, `Bitboard`, `Hash`, etc. |
 | `const.go` | Game constants and enumerations |
 | `bitboard.go` | Bitboard operations (set/clear/pop bits, LS1B) |
@@ -306,6 +319,7 @@ All source lives in `src/`:
 | `search.go` | Negamax search — alpha-beta, iterative deepening, aspiration windows, NMP, LMR, PV table, move ordering |
 | `uci.go` | UCI protocol — command parsing and engine communication |
 | `evaluate.go` | Position evaluation — tapered eval, material, piece-square tables, mobility, king safety |
+| `lichess.go` | Lichess bot — API integration, challenge handling, game loop |
 | `server.go` | HTTP server, API handlers, CORS and body-limit middleware |
 | `util.go` | UCI parsing, coordinate helpers, utility functions |
 
